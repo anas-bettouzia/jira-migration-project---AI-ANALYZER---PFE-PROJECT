@@ -1,12 +1,19 @@
 version: '3.9'
+
 services:
   backend:
     build: .
+    pull_policy: build
     container_name: flask_backend
     ports:
       - "5000:5000"
+    environment:
+      - MONGO_URI=mongodb://mongo_db:27017/jira_migration
+      - JWT_SECRET_KEY=super-secret-key
+      - OPENAI_API_KEY=your-openai-key-here
     depends_on:
       - mongo
+
   mongo:
     image: mongo:6
     container_name: mongo_db
@@ -14,5 +21,6 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+
 volumes:
   mongo_data:
