@@ -8,6 +8,9 @@ from app.core.logger import setup_logger
 def create_app():
     app = Flask(__name__)
 
+    import os
+    print("DEBUG MONGO_URI:", os.getenv("MONGO_URI"), flush=True)
+    print("DEBUG CONFIG URI:", Config.MONGO_URI, flush=True)
     app.config["MONGO_URI"] = Config.MONGO_URI
     app.config["JWT_SECRET_KEY"] = Config.JWT_SECRET_KEY
 
