@@ -4,10 +4,14 @@ from app.core.config import Config
 from app.core.extensions import mongo, jwt  
 from app.core.errors import register_error_handlers
 from app.core.logger import setup_logger
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 def create_app():
     app = Flask(__name__)
-
+    
+    # Elle permet à Flask de respecter les headers envoyés par le serveur de l'entreprise
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+    
     import os
     print("DEBUG MONGO_URI:", os.getenv("MONGO_URI"), flush=True)
     print("DEBUG CONFIG URI:", Config.MONGO_URI, flush=True)
