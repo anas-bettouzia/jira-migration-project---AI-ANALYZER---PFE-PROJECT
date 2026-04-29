@@ -132,16 +132,6 @@ services:
       - mongodb
     restart: unless-stopped
 
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-
 volumes:
   mongo_data:
-  ollama_data:
   knowledge_chroma_data:
