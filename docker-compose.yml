@@ -1,26 +1,130 @@
 version: '3.9'
 
 services:
-  backend:
-    build: .
-    pull_policy: build
-    container_name: flask_backend
+
+  gateway:
+    build:
+      context: .
+      target: gateway
+    container_name: gateway
     ports:
       - "88:5000"
-    environment:
-      - MONGO_URI=mongodb://mongo_db:27017/jira_migration
-      - JWT_SECRET_KEY=super-secret-key
-      - OPENAI_API_KEY=your-openai-key-here
+    env_file: .env
     depends_on:
-      - mongo
+      - mongodb
+      - redis
+    restart: unless-stopped
 
-  mongo:
+  parsing_service:
+    build:
+      context: .
+      target: parsing_service
+    container_name: parsing_service
+    ports:
+      - "5001:5001"
+    env_file: .env
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+  compatibility_service:
+    build:
+      context: .
+      target: compatibility_service
+    container_name: compatibility_service
+    ports:
+      - "5002:5002"
+    env_file: .env
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+  knowledge_service:
+    build:
+      context: .
+      dockerfile: knowledge_service/Dockerfile
+    container_name: knowledge_service
+    ports:
+      - "5003:5003"
+    env_file:
+      - .env
+    volumes:
+      - ./knowledge_service/docs:/app/knowledge_service/docs
+      - knowledge_chroma_data:/app/knowledge_service/chroma_db
+    restart: unless-stopped
+
+  report_service:
+    build:
+      context: .
+      target: report_service
+    container_name: report_service
+    ports:
+      - "5004:5004"
+    env_file: .env
+    depends_on:
+      - mongodb
+      - knowledge_service
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      target: worker
+    container_name: worker
+    env_file: .env
+    depends_on:
+      - redis
+      - mongodb
+    restart: unless-stopped
+
+  mongodb:
     image: mongo:6
     container_name: mongo_db
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: chromadb
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    restart: unless-stopped
+
+  mongo_express:
+    image: mongo-express:latest
+    container_name: mongo_express
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017/
+      ME_CONFIG_BASICAUTH: "false"
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
 
 volumes:
   mongo_data:
+  chroma_data:
+  ollama_data:
+  knowledge_chroma_data:
