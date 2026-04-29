@@ -72,7 +72,6 @@ services:
       <<: *common-env
       PORT: 5003
     volumes:
-      - ./knowledge_service/docs:/app/knowledge_service/docs
       - knowledge_chroma_data:/app/knowledge_service/chroma_db
     depends_on:
       - mongodb
