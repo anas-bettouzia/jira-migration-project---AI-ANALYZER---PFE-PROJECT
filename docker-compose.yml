@@ -1,4 +1,19 @@
-version: '3.9'
+version: "3.9"
+
+x-common-env: &common-env
+  MONGO_URI: ${MONGO_URI}
+  JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+  GEMINI_API_KEY: ${GEMINI_API_KEY}
+  OLLAMA_URL: ${OLLAMA_URL}
+  REDIS_URL: ${REDIS_URL}
+  PARSING_SERVICE_URL: ${PARSING_SERVICE_URL}
+  COMPATIBILITY_SERVICE_URL: ${COMPATIBILITY_SERVICE_URL}
+  KNOWLEDGE_SERVICE_URL: ${KNOWLEDGE_SERVICE_URL}
+  REPORT_SERVICE_URL: ${REPORT_SERVICE_URL}
+  ANONYMIZED_TELEMETRY: ${ANONYMIZED_TELEMETRY}
+  PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: ${PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION}
+  FLASK_ENV: ${FLASK_ENV}
+  DEBUG: ${DEBUG}
 
 services:
 
@@ -9,7 +24,9 @@ services:
     container_name: gateway
     ports:
       - "88:5000"
-    env_file: .env
+    environment:
+      <<: *common-env
+      PORT: 5000
     depends_on:
       - mongodb
       - redis
@@ -22,7 +39,9 @@ services:
     container_name: parsing_service
     ports:
       - "5001:5001"
-    env_file: .env
+    environment:
+      <<: *common-env
+      PORT: 5001
     depends_on:
       - mongodb
     restart: unless-stopped
@@ -34,9 +53,12 @@ services:
     container_name: compatibility_service
     ports:
       - "5002:5002"
-    env_file: .env
+    environment:
+      <<: *common-env
+      PORT: 5002
     depends_on:
       - mongodb
+      - knowledge_service
     restart: unless-stopped
 
   knowledge_service:
@@ -46,11 +68,14 @@ services:
     container_name: knowledge_service
     ports:
       - "5003:5003"
-    env_file:
-      - .env
+    environment:
+      <<: *common-env
+      PORT: 5003
     volumes:
       - ./knowledge_service/docs:/app/knowledge_service/docs
       - knowledge_chroma_data:/app/knowledge_service/chroma_db
+    depends_on:
+      - mongodb
     restart: unless-stopped
 
   report_service:
@@ -60,7 +85,9 @@ services:
     container_name: report_service
     ports:
       - "5004:5004"
-    env_file: .env
+    environment:
+      <<: *common-env
+      PORT: 5004
     depends_on:
       - mongodb
       - knowledge_service
@@ -71,7 +98,8 @@ services:
       context: .
       target: worker
     container_name: worker
-    env_file: .env
+    environment:
+      <<: *common-env
     depends_on:
       - redis
       - mongodb
@@ -91,15 +119,6 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
-    restart: unless-stopped
-
-  chromadb:
-    image: chromadb/chroma:latest
-    container_name: chromadb
-    ports:
-      - "8000:8000"
-    volumes:
-      - chroma_data:/chroma/chroma
     restart: unless-stopped
 
   mongo_express:
@@ -125,6 +144,5 @@ services:
 
 volumes:
   mongo_data:
-  chroma_data:
   ollama_data:
   knowledge_chroma_data:
