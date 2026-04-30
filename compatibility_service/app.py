@@ -7,9 +7,11 @@ import logging
 import os
 import sys
 
+from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from dotenv import load_dotenv
+
+load_dotenv()
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -18,7 +20,7 @@ from compatibility_service.engine.hybrid_engine import analyze_components_hybrid
 from compatibility_service.engine.matrix import build_matrix
 from shared.db.mongo_client import get_mongo_db
 
-load_dotenv()
+
 app = Flask(__name__)
 CORS(app)
 

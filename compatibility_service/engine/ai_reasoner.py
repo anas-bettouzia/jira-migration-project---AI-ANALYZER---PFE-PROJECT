@@ -13,8 +13,6 @@ import google.generativeai as genai
 
 logger = logging.getLogger(__name__)
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
 ALLOWED_FINAL_STATUSES = [
     "COMPATIBLE",
@@ -34,14 +32,24 @@ ALLOWED_RISK_LEVELS = [
 ]
 
 
+def get_gemini_api_key() -> str:
+    """Return Gemini API key from environment."""
+    return os.getenv("GEMINI_API_KEY", "")
+
+
+def get_gemini_model() -> str:
+    """Return Gemini model name from environment."""
+    return os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+
+
 def is_ai_available() -> bool:
     """Return True if Gemini configuration is available."""
-    return bool(GEMINI_API_KEY.strip())
+    return bool(get_gemini_api_key().strip())
 
 
 def _configure_gemini() -> None:
     """Configure Gemini client."""
-    genai.configure(api_key=GEMINI_API_KEY)
+    genai.configure(api_key=get_gemini_api_key())
 
 
 def _build_prompt(
@@ -191,10 +199,11 @@ def reason_with_ai(
 
     try:
         _configure_gemini()
-        model = genai.GenerativeModel(GEMINI_MODEL)
+        model = genai.GenerativeModel(get_gemini_model())
         response = model.generate_content(prompt)
 
         raw_text = getattr(response, "text", "") or ""
+        raw_text = raw_text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
         parsed = json.loads(raw_text)
         normalized = _normalize_ai_result(parsed, rule_result)
 

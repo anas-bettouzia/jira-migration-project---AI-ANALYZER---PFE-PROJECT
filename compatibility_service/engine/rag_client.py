@@ -13,10 +13,6 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-KNOWLEDGE_SERVICE_URL = os.getenv(
-    "KNOWLEDGE_SERVICE_URL",
-    "http://localhost:5003",
-)
 
 DEFAULT_TOP_K = 5
 DEFAULT_TIMEOUT = 20
@@ -24,7 +20,10 @@ DEFAULT_TIMEOUT = 20
 
 def get_knowledge_service_url() -> str:
     """Return the configured Knowledge Service base URL."""
-    return KNOWLEDGE_SERVICE_URL.rstrip("/")
+    return os.getenv(
+        "KNOWLEDGE_SERVICE_URL",
+        "http://localhost:5003",
+    ).rstrip("/")
 
 
 def search_component_evidence(component: dict, top_k: int = DEFAULT_TOP_K) -> list[dict]:

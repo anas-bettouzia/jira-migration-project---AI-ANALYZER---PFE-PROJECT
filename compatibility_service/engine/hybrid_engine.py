@@ -45,7 +45,14 @@ def analyze_component_hybrid(component: dict, top_k: int = DEFAULT_TOP_K) -> dic
     rule_result = analyze_component(component)
 
     # Step 2 — Retrieve RAG evidence
-    evidence_chunks = search_component_evidence(rule_result, top_k=top_k)
+    rag_component = {
+        **component,
+        **rule_result,
+        "features_detected": component.get("features_detected", []),
+        "final_status": rule_result.get("overall_status", "NEEDS_REVIEW"),
+    }
+
+    evidence_chunks = search_component_evidence(rag_component, top_k=top_k)
     summarized_evidence = summarize_evidence(evidence_chunks)
 
     # Step 3 — Build enriched baseline

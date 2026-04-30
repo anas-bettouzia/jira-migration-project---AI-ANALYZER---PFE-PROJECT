@@ -167,7 +167,16 @@ def merge_results(
 
 
 def _extract_features(rule_result: dict) -> list[str]:
-    """Extract analyzed feature names from a rule result."""
+    """Extract feature names from a rule result or parsed component format."""
+    features_detected = rule_result.get("features_detected", [])
+
+    if features_detected:
+        return [
+            feature
+            for feature in features_detected
+            if isinstance(feature, str) and feature.strip()
+        ]
+
     return [
         item.get("feature", "")
         for item in rule_result.get("features_analyzed", [])
