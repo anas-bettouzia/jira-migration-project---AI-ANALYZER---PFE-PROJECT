@@ -132,4 +132,7 @@ services:
 
 volumes:
   mongo_data:
+    name: jira_migration_mongo_data
+
   knowledge_chroma_data:
+    name: jira_migration_knowledge_chroma_data
