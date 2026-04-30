@@ -39,7 +39,7 @@ def get_gemini_api_key() -> str:
 
 def get_gemini_model() -> str:
     """Return Gemini model name from environment."""
-    return os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+    return os.getenv("GEMINI_MODEL", "gemini-2.0-flash-lite")
 
 
 def is_ai_available() -> bool:
