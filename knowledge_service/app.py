@@ -22,6 +22,16 @@ from knowledge_service.retriever.search import search, search_for_component
 
 load_dotenv()
 app = Flask(__name__)
+app.config["TRUSTED_HOSTS"] = [
+    "knowledge_service",
+    "knowledge_service:5003",
+    "docker.itspectrum.fr",
+    "docker.itspectrum.fr:5003",
+    "localhost",
+    "localhost:5003",
+    "127.0.0.1",
+    "127.0.0.1:5003",
+]
 CORS(app)
 
 logging.basicConfig(level=logging.INFO)
