@@ -10,7 +10,7 @@ import sys
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-
+from dotenv import load_dotenv
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # pylint: disable=wrong-import-position
@@ -20,6 +20,7 @@ from knowledge_service.indexer.document_loader import (
 )
 from knowledge_service.retriever.search import search, search_for_component
 
+load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
@@ -104,7 +105,8 @@ def search_component():
         return jsonify({"error": "'component' field is required."}), 400
 
     try:
-        results = search_for_component(data["component"])
+        top_k = data.get("top_k", 5)
+        results = search_for_component(data["component"], top_k=top_k)
         return jsonify({
             "results": results,
             "count": len(results),
