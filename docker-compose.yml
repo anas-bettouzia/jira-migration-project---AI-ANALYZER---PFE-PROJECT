@@ -116,8 +116,6 @@ services:
   redis:
     image: redis:7-alpine
     container_name: redis
-    ports:
-      - "6379:6379"
     restart: unless-stopped
 
   mongo_express:
