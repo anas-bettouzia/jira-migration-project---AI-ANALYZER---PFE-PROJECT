@@ -20,16 +20,7 @@ DEFAULT_TOP_K = 5
 
 
 def search(query: str, top_k: int = DEFAULT_TOP_K) -> list[dict]:
-    """
-    Search for the most relevant documentation chunks for a given query.
-
-    Args:
-        query: the search query (e.g. a feature name or compatibility question)
-        top_k: number of results to return
-
-    Returns:
-        list of dicts with keys: text, source, chunk_index, distance
-    """
+    """Search for the most relevant documentation chunks for a given query."""
     if not query or not query.strip():
         return []
 
@@ -69,37 +60,67 @@ def search(query: str, top_k: int = DEFAULT_TOP_K) -> list[dict]:
     return chunks
 
 
+def _extract_features(component: dict) -> list[str]:
+    """
+    Extract feature names from different component/result formats.
+
+    Supports:
+    - parsed component format: features_detected = ["java_api", ...]
+    - compatibility format: features_analyzed = [{"feature": "...", "risk_level": "..."}]
+    """
+    features_detected = component.get("features_detected", [])
+    if features_detected:
+        return [
+            feature
+            for feature in features_detected
+            if isinstance(feature, str) and feature.strip()
+        ]
+
+    features_analyzed = component.get("features_analyzed", [])
+    extracted = []
+
+    for feature_result in features_analyzed:
+        if not isinstance(feature_result, dict):
+            continue
+
+        feature_name = feature_result.get("feature", "")
+        risk_level = feature_result.get("risk_level", "")
+
+        if feature_name and risk_level in ("BLOCKER", "MAJOR"):
+            extracted.append(feature_name)
+
+    return extracted
+
+
 def search_for_component(component: dict, top_k: int = DEFAULT_TOP_K) -> list[dict]:
     """
-    Build a query from a compatibility result and search for relevant docs.
-    Used by the report_service to enrich LLM prompts with RAG context.
-
-    Args:
-        component: dict from compatibility_service with features_analyzed
-        top_k: number of results
-
-    Returns:
-        list of relevant documentation chunks
+    Build a query from a component or compatibility result and search for relevant docs.
+    Used by compatibility_service and report_service.
     """
     plugin = component.get("plugin", "")
-    overall_status = component.get("overall_status", "")
-    features = [
-        feature["feature"]
-        for feature in component.get("features_analyzed", [])
-        if feature["risk_level"] in ("BLOCKER", "MAJOR")
-    ]
+    overall_status = component.get(
+        "final_status",
+        component.get("overall_status", ""),
+    )
+
+    features = _extract_features(component)
 
     if not features:
+        logger.warning(
+            "No features found for RAG search on component %s",
+            component.get("component_id", "unknown"),
+        )
         return []
 
     query = (
-        f"{plugin} plugin compatibility Jira Cloud: "
-        f"{', '.join(features[:5])} — status: {overall_status}"
+        f"{plugin} plugin Jira Cloud compatibility migration: "
+        f"{', '.join(features[:6])} "
+        f"status {overall_status}"
     )
 
     logger.info(
         "RAG query for component %s: %s",
-        component.get("component_id"),
+        component.get("component_id", "unknown"),
         query,
     )
 
