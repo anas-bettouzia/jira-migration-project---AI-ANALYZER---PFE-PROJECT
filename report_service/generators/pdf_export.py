@@ -57,7 +57,8 @@ def export_report_to_pdf(
     story.append(Spacer(1, 12))
     story.append(Paragraph("Migration Score", styles["Heading2"]))
     story.append(Paragraph(f"{report.get('migration_score', 0)}/100", styles["BodyText"]))
-    story.append(Paragraph(_clean_inline(report.get("migration_recommendation", "")), styles["BodyText"]))
+    recommendation_text = _clean_inline(report.get("migration_recommendation", ""))
+    story.append(Paragraph(recommendation_text, styles["BodyText"]))
     story.append(Spacer(1, 12))
 
     story.append(Paragraph("Risk Overview", styles["Heading2"]))
