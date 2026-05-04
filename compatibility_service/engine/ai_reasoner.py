@@ -202,6 +202,17 @@ def reason_with_ai(
         model = genai.GenerativeModel(get_gemini_model())
         response = model.generate_content(prompt)
 
+        usage_metadata = getattr(response, "usage_metadata", None)
+        if usage_metadata is not None:
+            logger.info(
+                "AI quota usage for component %s | model=%s | prompt_tokens=%s | candidates_tokens=%s | total_tokens=%s",
+                component.get("component_id", "unknown"),
+                get_gemini_model(),
+                usage_metadata.prompt_token_count,
+                usage_metadata.candidates_token_count,
+                usage_metadata.total_token_count,
+            )
+
         raw_text = getattr(response, "text", "") or ""
         raw_text = (
             raw_text.strip()
