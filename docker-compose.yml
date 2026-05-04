@@ -99,8 +99,11 @@ services:
       context: .
       target: worker
     container_name: worker
+    ports:
+      - "5005:5005"
     environment:
       <<: *common-env
+      PORT: 5005
     depends_on:
       - redis
       - mongodb
