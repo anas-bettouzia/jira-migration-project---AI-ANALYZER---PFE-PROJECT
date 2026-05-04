@@ -203,7 +203,13 @@ def reason_with_ai(
         response = model.generate_content(prompt)
 
         raw_text = getattr(response, "text", "") or ""
-        raw_text = raw_text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        raw_text = (
+            raw_text.strip()
+            .removeprefix("```json")
+            .removeprefix("```")
+            .removesuffix("```")
+            .strip()
+        )
         parsed = json.loads(raw_text)
         normalized = _normalize_ai_result(parsed, rule_result)
 
