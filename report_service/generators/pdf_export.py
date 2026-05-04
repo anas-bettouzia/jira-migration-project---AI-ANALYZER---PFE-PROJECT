@@ -6,27 +6,31 @@ Generates a readable PDF migration report from a structured report dict.
 
 from pathlib import Path
 
+from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import (
-    SimpleDocTemplate,
     Paragraph,
+    SimpleDocTemplate,
     Spacer,
     Table,
     TableStyle,
 )
-from reportlab.lib import colors
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+DEFAULT_OUTPUT_DIR = BASE_DIR / "generated_reports"
 
 
 def export_report_to_pdf(
     report: dict,
-    output_dir: str = "generated_reports",
+    output_dir: str | Path = DEFAULT_OUTPUT_DIR,
 ) -> str:
     """Export a migration report to PDF and return the file path."""
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
 
     report_id = report.get("report_id", "unknown-report")
-    file_path = Path(output_dir) / f"{report_id}.pdf"
+    file_path = output_path / f"{report_id}.pdf"
 
     doc = SimpleDocTemplate(
         str(file_path),
