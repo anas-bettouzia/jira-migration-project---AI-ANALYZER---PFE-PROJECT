@@ -1,17 +1,20 @@
 """
 API Gateway service for Jira Migration backend.
-Provides authentication and routing for various microservices.
+Provides authentication and routing to backend microservices.
 """
 
+import logging
 import os
 import sys
 
+from dotenv import load_dotenv
 from flasgger import Swagger
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import create_access_token, jwt_required
-from dotenv import load_dotenv
+import requests
 
+load_dotenv()
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -21,7 +24,12 @@ from shared.core.errors import register_error_handlers
 from shared.core.extensions import jwt, mongo
 from shared.core.logger import setup_logger
 
-load_dotenv()
+logger = logging.getLogger(__name__)
+
+WORKER_URL = os.getenv("WORKER_URL", "http://worker:5005")
+REPORT_SERVICE_URL = os.getenv("REPORT_SERVICE_URL", "http://report_service:5004")
+REQUEST_TIMEOUT = 180
+
 
 def create_app():
     """Create and configure the API Gateway Flask application."""
@@ -46,10 +54,7 @@ def create_app():
                 "type": "apiKey",
                 "name": "Authorization",
                 "in": "header",
-                "description": (
-                    "Enter the token with the `Bearer ` prefix, "
-                    "e.g. 'Bearer abcde12345'"
-                ),
+                "description": "Enter token with Bearer prefix: Bearer <token>",
             }
         },
     }
@@ -63,64 +68,118 @@ def create_app():
         "password": "1234",
     }
 
+    @app.route("/api/health", methods=["GET"])
+    def health():
+        """Gateway health check."""
+        return jsonify({"status": "ok", "service": "gateway"}), 200
+
     @app.route("/api/login", methods=["POST"])
     def login():
         """
-        User login endpoint
-        ---
-        parameters:
-          - name: body
-            in: body
-            required: true
-            schema:
-              type: object
-              properties:
-                email:
-                  type: string
-                password:
-                  type: string
-        responses:
-          200:
-            description: Login successful, returns JWT token
-          401:
-            description: Invalid credentials
+        User login endpoint.
         """
-        data = request.json
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"error": "Request body is required"}), 400
+
         if (
-            data["email"] == user_credentials["email"]
-            and data["password"] == user_credentials["password"]
+            data.get("email") == user_credentials["email"]
+            and data.get("password") == user_credentials["password"]
         ):
             token = create_access_token(identity=data["email"])
-            return jsonify({"token": token})
+            return jsonify({"token": token}), 200
+
         return jsonify({"error": "Invalid credentials"}), 401
 
     @app.route("/api/analyze", methods=["POST"])
     @jwt_required()
     def analyze():
         """
-        Trigger analysis job (Requires JWT)
-        ---
-        tags:
-          - Analysis
-        security:
-          - Bearer: []
-        responses:
-          200:
-            description: Job created
-          401:
-            description: Unauthorized
-        """
-        data = request.json
-        result = {"status": "queued", "input": data}
-        return jsonify(result)
+        Trigger full analysis pipeline through Worker.
 
-    @app.route("/api/health", methods=["GET"])
-    def health():
-        return jsonify({"status": "ok", "service": "gateway"})
+        Expects multipart/form-data:
+          file=<zip/xml/json/sql>
+        """
+        if "file" not in request.files:
+            return jsonify({"error": "File is required."}), 400
+
+        uploaded_file = request.files["file"]
+
+        if not uploaded_file.filename:
+            return jsonify({"error": "Uploaded file must have a filename."}), 400
+
+        try:
+            url = f"{WORKER_URL.rstrip('/')}/worker/jobs/run"
+
+            files = {
+                "file": (
+                    uploaded_file.filename,
+                    uploaded_file.stream,
+                    uploaded_file.content_type,
+                )
+            }
+
+            response = requests.post(
+                url,
+                files=files,
+                timeout=REQUEST_TIMEOUT,
+            )
+
+            return jsonify(response.json()), response.status_code
+
+        except requests.exceptions.RequestException as error:
+            logger.error("Worker request failed: %s", error)
+            return jsonify({"error": f"Worker request failed: {error}"}), 502
+
+        except ValueError as error:
+            logger.error("Invalid Worker response: %s", error)
+            return jsonify({"error": "Invalid response from Worker service."}), 502
+
+    @app.route("/api/jobs/<job_id>", methods=["GET"])
+    @jwt_required()
+    def get_job(job_id):
+        """Get worker job status."""
+        try:
+            url = f"{WORKER_URL.rstrip('/')}/worker/jobs/{job_id}"
+            response = requests.get(url, timeout=REQUEST_TIMEOUT)
+            return jsonify(response.json()), response.status_code
+
+        except requests.exceptions.RequestException as error:
+            logger.error("Worker job status request failed: %s", error)
+            return jsonify({"error": f"Worker request failed: {error}"}), 502
+
+    @app.route("/api/jobs", methods=["GET"])
+    @jwt_required()
+    def list_jobs():
+        """List worker jobs."""
+        try:
+            limit = request.args.get("limit", 50)
+            url = f"{WORKER_URL.rstrip('/')}/worker/jobs?limit={limit}"
+            response = requests.get(url, timeout=REQUEST_TIMEOUT)
+            return jsonify(response.json()), response.status_code
+
+        except requests.exceptions.RequestException as error:
+            logger.error("Worker jobs request failed: %s", error)
+            return jsonify({"error": f"Worker request failed: {error}"}), 502
+
+    @app.route("/api/reports/<report_id>", methods=["GET"])
+    @jwt_required()
+    def get_report(report_id):
+        """Proxy report retrieval."""
+        try:
+            url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports/{report_id}"
+            response = requests.get(url, timeout=REQUEST_TIMEOUT)
+            return jsonify(response.json()), response.status_code
+
+        except requests.exceptions.RequestException as error:
+            logger.error("Report request failed: %s", error)
+            return jsonify({"error": f"Report request failed: {error}"}), 502
 
     return app
 
 
 if __name__ == "__main__":
     gateway_app = create_app()
-    gateway_app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    gateway_app.run(host="0.0.0.0", port=port, debug=True)
