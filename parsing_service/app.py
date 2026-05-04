@@ -6,6 +6,8 @@ import sys
 import uuid
 from datetime import datetime
 
+from dotenv import load_dotenv
+
 from flask import Flask, jsonify, request
 from werkzeug.utils import secure_filename
 
@@ -16,6 +18,7 @@ from parsing_service.parsers import dump_parser, groovy_parser, xml_parser, zip_
 from shared.db.mongo_client import get_mongo_db
 from shared.schemas.parsed_data_schema import ParsedJiraData
 
+load_dotenv()
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
