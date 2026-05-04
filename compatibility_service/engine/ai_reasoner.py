@@ -205,7 +205,8 @@ def reason_with_ai(
         usage_metadata = getattr(response, "usage_metadata", None)
         if usage_metadata is not None:
             logger.info(
-                "AI quota usage for component %s | model=%s | prompt_tokens=%s | candidates_tokens=%s | total_tokens=%s",
+                "AI quota usage for component %s | model=%s | "
+                "prompt_tokens=%s | candidates_tokens=%s | total_tokens=%s",
                 component.get("component_id", "unknown"),
                 get_gemini_model(),
                 usage_metadata.prompt_token_count,
