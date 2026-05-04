@@ -5,6 +5,8 @@ Builds structured prompts for Gemini to generate
 human-readable migration reports.
 """
 
+from datetime import datetime
+
 
 def build_report_prompt(report: dict) -> str:
     """
@@ -16,6 +18,7 @@ def build_report_prompt(report: dict) -> str:
     Returns:
         string prompt
     """
+    current_date = datetime.utcnow().strftime("%Y-%m-%d")
 
     summary = report.get("summary", "")
     score = report.get("migration_score", 0)
@@ -23,8 +26,8 @@ def build_report_prompt(report: dict) -> str:
     components = report.get("sections", {}).get("components", [])
 
     blockers = [
-        c for c in components
-        if c.get("final_risk") == "BLOCKER"
+        component for component in components
+        if component.get("final_risk") == "BLOCKER"
     ]
 
     prompt = f"""
@@ -33,6 +36,7 @@ You are a Jira Cloud migration expert.
 Generate a professional migration report based on the following data.
 
 === CONTEXT ===
+Report Date: {current_date}
 Migration Score: {score}/100
 
 Summary:
@@ -44,15 +48,15 @@ Global Recommendation:
 === BLOCKERS ===
 """
 
-    for b in blockers[:5]:
+    for blocker in blockers[:5]:
         prompt += f"""
-- Component: {b.get("component_id")}
-  Risk: {b.get("final_risk")}
-  Issue: {b.get("reasoning_summary")}
-  Fix: {b.get("recommended_action")}
+- Component: {blocker.get("component_id")}
+  Risk: {blocker.get("final_risk")}
+  Issue: {blocker.get("reasoning_summary")}
+  Fix: {blocker.get("recommended_action")}
 """
 
-    prompt += """
+    prompt += f"""
 
 === INSTRUCTIONS ===
 
@@ -64,9 +68,12 @@ Write a clear, structured report with:
 4. Recommended Next Steps
 
 Constraints:
-- Keep it concise (max 300-500 words)
-- Use professional consulting tone
+- Use this exact report date: {current_date}
+- Do NOT write [Current Date]
+- Keep it concise, between 300 and 500 words
+- Use a professional consulting tone
 - Do NOT repeat raw JSON
+- Do NOT invent components or risks not present in the input data
 """
 
     return prompt.strip()
