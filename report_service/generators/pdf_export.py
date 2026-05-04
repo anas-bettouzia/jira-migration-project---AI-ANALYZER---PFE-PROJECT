@@ -4,6 +4,7 @@ PDF export utilities for Report Service.
 Generates a readable PDF migration report from a structured report dict.
 """
 
+import re
 from pathlib import Path
 
 from reportlab.lib import colors
@@ -47,14 +48,16 @@ def export_report_to_pdf(
     story.append(Paragraph(report.get("title", "Migration Report"), styles["Title"]))
     story.append(Spacer(1, 16))
 
-    story.append(Paragraph("Executive Summary", styles["Heading2"]))
-    summary_text = report.get("ai_summary") or report.get("summary", "")
-    story.append(Paragraph(summary_text, styles["BodyText"]))
-    story.append(Spacer(1, 12))
+    _add_markdown_text(
+        story,
+        report.get("ai_summary") or report.get("summary", ""),
+        styles,
+    )
 
+    story.append(Spacer(1, 12))
     story.append(Paragraph("Migration Score", styles["Heading2"]))
     story.append(Paragraph(f"{report.get('migration_score', 0)}/100", styles["BodyText"]))
-    story.append(Paragraph(report.get("migration_recommendation", ""), styles["BodyText"]))
+    story.append(Paragraph(_clean_inline(report.get("migration_recommendation", "")), styles["BodyText"]))
     story.append(Spacer(1, 12))
 
     story.append(Paragraph("Risk Overview", styles["Heading2"]))
@@ -100,9 +103,9 @@ def export_report_to_pdf(
     if recommendations:
         for recommendation in recommendations[:10]:
             text = (
-                f"<b>{recommendation.get('priority', '')}</b> — "
-                f"{recommendation.get('component_id', '')}: "
-                f"{recommendation.get('action', '')}"
+                f"<b>{_clean_inline(recommendation.get('priority', ''))}</b> — "
+                f"{_clean_inline(recommendation.get('component_id', ''))}: "
+                f"{_clean_inline(recommendation.get('action', ''))}"
             )
             story.append(Paragraph(text, styles["BodyText"]))
             story.append(Spacer(1, 6))
@@ -111,6 +114,51 @@ def export_report_to_pdf(
 
     doc.build(story)
     return str(file_path)
+
+
+def _add_markdown_text(story: list, text: str, styles) -> None:
+    """Convert simple Markdown text into ReportLab paragraphs."""
+    lines = text.splitlines()
+
+    for line in lines:
+        line = line.strip()
+
+        if not line or line == "---":
+            story.append(Spacer(1, 6))
+            continue
+
+        if line.startswith("## "):
+            story.append(Paragraph(_clean_inline(line[3:]), styles["Heading1"]))
+            story.append(Spacer(1, 8))
+            continue
+
+        if line.startswith("### "):
+            story.append(Paragraph(_clean_inline(line[4:]), styles["Heading2"]))
+            story.append(Spacer(1, 6))
+            continue
+
+        if line.startswith("*   ") or line.startswith("- "):
+            content = line.replace("*   ", "", 1).replace("- ", "", 1)
+            story.append(Paragraph(f"• {_clean_inline(content)}", styles["BodyText"]))
+            continue
+
+        numbered_match = re.match(r"^\d+\.\s+(.*)", line)
+        if numbered_match:
+            story.append(Paragraph(_clean_inline(line), styles["BodyText"]))
+            continue
+
+        story.append(Paragraph(_clean_inline(line), styles["BodyText"]))
+
+
+def _clean_inline(text: str) -> str:
+    """Clean inline Markdown and make it ReportLab-safe."""
+    text = str(text)
+    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", text)
+    text = re.sub(r"`(.*?)`", r"<font name='Courier'>\1</font>", text)
+
+    return text
 
 
 def _table_style() -> TableStyle:
