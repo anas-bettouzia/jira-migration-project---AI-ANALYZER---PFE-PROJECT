@@ -6,6 +6,7 @@ Provides authentication and routing to backend microservices.
 import logging
 import os
 import sys
+from datetime import timedelta
 
 from dotenv import load_dotenv
 from flasgger import Swagger
@@ -38,6 +39,7 @@ def create_app():
 
     app.config["MONGO_URI"] = Config.MONGO_URI
     app.config["JWT_SECRET_KEY"] = Config.JWT_SECRET_KEY
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=8)
 
     mongo.init_app(app)
     jwt.init_app(app)
