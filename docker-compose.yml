@@ -122,6 +122,9 @@ services:
   redis:
     image: redis:7-alpine
     container_name: redis
+    command: redis-server --appendonly yes 
+    volumes:
+      - redis_data:/data
     restart: unless-stopped
 
   mongo_express:
@@ -136,12 +139,32 @@ services:
       - mongodb
     restart: unless-stopped
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    expose:
+      - "11434"
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=-1 
+    restart: unless-stopped
+
 volumes:
   mongo_data:
+    external: false
     name: jira_migration_mongo_data
-
+  ollama_data:
+    external: false
+    name: jira_migration_ollama_data
+  redis_data:
+    external: false
+    name: jira_migration_redis_data
   knowledge_chroma_data:
+    external: false
     name: jira_migration_knowledge_chroma_data
-  
   report_generated_files:
+    external: false
     name: jira_migration_report_generated_files
