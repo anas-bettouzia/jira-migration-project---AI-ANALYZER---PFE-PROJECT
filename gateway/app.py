@@ -35,7 +35,7 @@ REQUEST_TIMEOUT = 180
 def create_app():
     """Create and configure the API Gateway Flask application."""
     app = Flask(__name__)
-    CORS(app)
+    CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
     app.config["MONGO_URI"] = Config.MONGO_URI
     app.config["JWT_SECRET_KEY"] = Config.JWT_SECRET_KEY
