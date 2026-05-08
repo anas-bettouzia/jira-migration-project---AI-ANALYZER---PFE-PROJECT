@@ -216,8 +216,11 @@ def create_app():
                 return jsonify(response.json()), response.status_code
 
             # Pass the file content and headers back to the client
+            filename = f'report_{report_id}.json'
             headers = {
-                'Content-Disposition': response.headers.get('Content-Disposition', f'attachment; filename=report_{report_id}.json'),
+                'Content-Disposition': response.headers.get(
+                    'Content-Disposition', f'attachment; filename={filename}'
+                ),
                 'Content-Type': response.headers.get('Content-Type', 'application/json')
             }
             return response.content, 200, headers
@@ -242,8 +245,11 @@ def create_app():
                     return jsonify({"error": "Failed to retrieve PDF"}), response.status_code
 
             # Pass the PDF file content and headers back to the client
+            filename = f'report_{report_id}.pdf'
             headers = {
-                'Content-Disposition': response.headers.get('Content-Disposition', f'attachment; filename=report_{report_id}.pdf'),
+                'Content-Disposition': response.headers.get(
+                    'Content-Disposition', f'attachment; filename={filename}'
+                ),
                 'Content-Type': response.headers.get('Content-Type', 'application/pdf')
             }
             return response.content, 200, headers
