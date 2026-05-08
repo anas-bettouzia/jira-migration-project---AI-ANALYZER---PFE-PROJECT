@@ -17,7 +17,6 @@ class Config:
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "super-secret-key")
     OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434")
-    REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379")
     PARSING_SERVICE_URL = os.getenv(
         "PARSING_SERVICE_URL", "http://parsing_service:5001"
     )
@@ -38,3 +37,5 @@ class Config:
         "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION",
         "python",
     )
+    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")

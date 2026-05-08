@@ -18,7 +18,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # pylint: disable=wrong-import-position
 from compatibility_service.engine.hybrid_engine import analyze_components_hybrid
 from compatibility_service.engine.matrix import build_matrix
-from shared.db.mongo_client import get_mongo_db
+from shared.repositories.analysis_repository import AnalysisRepository
+from shared.repositories.compatibility_repository import CompatibilityRepository
 
 
 app = Flask(__name__)
@@ -53,8 +54,8 @@ def analyze():
         logger.info("Loading components from MongoDB for analysis_id: %s", analysis_id)
 
         try:
-            db = get_mongo_db()
-            record = db.analyses.find_one({"analysis_id": analysis_id})
+            analysis_repo = AnalysisRepository()
+            record = analysis_repo.get_analysis_by_id(analysis_id)
 
             if not record:
                 return jsonify({
@@ -65,7 +66,7 @@ def analyze():
             logger.info("Loaded %d components from MongoDB.", len(components))
 
         except Exception as error:  # pylint: disable=broad-exception-caught
-            logger.error("MongoDB error: %s", error)
+            logger.error("Database error: %s", error)
             return jsonify({"error": f"Database error: {error}"}), 500
 
     elif "components" in data:
@@ -89,8 +90,8 @@ def analyze():
         return jsonify({"error": f"Analysis failed: {error}"}), 500
 
     try:
-        db = get_mongo_db()
-        db.compatibility_matrices.insert_one({**matrix})
+        compatibility_repo = CompatibilityRepository()
+        compatibility_repo.insert_matrix({**matrix})
         logger.info("Matrix %s saved to MongoDB.", matrix["matrix_id"])
     except Exception as error:  # pylint: disable=broad-exception-caught
         logger.warning("Could not save matrix to MongoDB: %s", error)
@@ -104,8 +105,8 @@ def analyze():
 def get_matrix(matrix_id):
     """Retrieve a previously computed compatibility matrix by ID."""
     try:
-        db = get_mongo_db()
-        matrix = db.compatibility_matrices.find_one({"matrix_id": matrix_id})
+        compatibility_repo = CompatibilityRepository()
+        matrix = compatibility_repo.get_matrix_by_id(matrix_id)
 
         if not matrix:
             return jsonify({"error": f"Matrix '{matrix_id}' not found."}), 404
@@ -122,17 +123,8 @@ def get_matrix(matrix_id):
 def list_matrices():
     """List all compatibility matrices with summary only."""
     try:
-        db = get_mongo_db()
-        matrices = list(db.compatibility_matrices.find(
-            {},
-            {
-                "_id": 0,
-                "matrix_id": 1,
-                "analysis_id": 1,
-                "analyzed_at": 1,
-                "summary": 1,
-            }
-        ))
+        compatibility_repo = CompatibilityRepository()
+        matrices = compatibility_repo.list_matrices()
         return jsonify({"matrices": matrices, "count": len(matrices)}), 200
 
     except Exception as error:  # pylint: disable=broad-exception-caught

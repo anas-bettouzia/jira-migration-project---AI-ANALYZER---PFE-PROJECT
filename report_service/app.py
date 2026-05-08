@@ -20,7 +20,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from report_service.generators.json_export import export_report_to_json
 from report_service.generators.pdf_export import export_report_to_pdf
 from report_service.generators.report_builder import build_report
-from shared.db.mongo_client import get_mongo_db
+from shared.repositories.compatibility_repository import CompatibilityRepository
+from shared.repositories.report_repository import ReportRepository
 
 app = Flask(__name__)
 CORS(app)
@@ -64,8 +65,8 @@ def generate_report():
         return jsonify({"error": f"Report generation failed: {error}"}), 500
 
     try:
-        db = get_mongo_db()
-        db.reports.insert_one({**report})
+        report_repo = ReportRepository()
+        report_repo.insert_report({**report})
         logger.info("Report %s saved to MongoDB.", report["report_id"])
     except Exception as error:  # pylint: disable=broad-exception-caught
         logger.warning("Could not save report to MongoDB: %s", error)
@@ -78,8 +79,8 @@ def generate_report():
 def get_report(report_id):
     """Retrieve a generated report by report_id."""
     try:
-        db = get_mongo_db()
-        report = db.reports.find_one({"report_id": report_id})
+        report_repo = ReportRepository()
+        report = report_repo.get_report_by_id(report_id)
 
         if not report:
             return jsonify({"error": f"Report '{report_id}' not found."}), 404
@@ -96,19 +97,8 @@ def get_report(report_id):
 def list_reports():
     """List generated reports with summary only."""
     try:
-        db = get_mongo_db()
-        reports = list(db.reports.find(
-            {},
-            {
-                "_id": 0,
-                "report_id": 1,
-                "matrix_id": 1,
-                "analysis_id": 1,
-                "generated_at": 1,
-                "title": 1,
-                "summary": 1,
-            },
-        ))
+        report_repo = ReportRepository()
+        reports = report_repo.list_reports()
 
         return jsonify({"reports": reports, "count": len(reports)}), 200
 
@@ -120,8 +110,8 @@ def list_reports():
 @app.route("/reports/<report_id>/json", methods=["GET"])
 def export_json(report_id):
     """Export a report as JSON file."""
-    db = get_mongo_db()
-    report = db.reports.find_one({"report_id": report_id})
+    report_repo = ReportRepository()
+    report = report_repo.get_report_by_id(report_id)
 
     if not report:
         return jsonify({"error": f"Report '{report_id}' not found."}), 404
@@ -134,8 +124,8 @@ def export_json(report_id):
 @app.route("/reports/<report_id>/pdf", methods=["GET"])
 def export_pdf(report_id):
     """Export a report as PDF file."""
-    db = get_mongo_db()
-    report = db.reports.find_one({"report_id": report_id})
+    report_repo = ReportRepository()
+    report = report_repo.get_report_by_id(report_id)
 
     if not report:
         return jsonify({"error": f"Report '{report_id}' not found."}), 404
@@ -149,18 +139,13 @@ def _load_matrix(data: dict) -> dict | None:
     """
     Load a compatibility matrix by matrix_id or latest matrix for analysis_id.
     """
-    db = get_mongo_db()
+    compatibility_repo = CompatibilityRepository()
 
     if data.get("matrix_id"):
-        return db.compatibility_matrices.find_one({
-            "matrix_id": data["matrix_id"],
-        })
+        return compatibility_repo.get_matrix_by_id(data["matrix_id"])
 
     if data.get("analysis_id"):
-        return db.compatibility_matrices.find_one(
-            {"analysis_id": data["analysis_id"]},
-            sort=[("analyzed_at", -1)],
-        )
+        return compatibility_repo.get_latest_matrix_by_analysis_id(data["analysis_id"])
 
     return None
 
