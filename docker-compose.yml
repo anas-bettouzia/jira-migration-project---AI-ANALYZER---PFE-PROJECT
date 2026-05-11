@@ -139,7 +139,7 @@ services:
     environment:
       ME_CONFIG_MONGODB_URL: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongodb:27017/?authSource=admin
       ME_CONFIG_BASICAUTH_USERNAME: spectrum_admin
-      ME_CONFIG_BASICAUTH_PASSWORD: UnAutreMotDePassePourLeWeb
+      ME_CONFIG_BASICAUTH_PASSWORD: AnasSuperMotDePasseWeb123
     depends_on:
       - mongodb
     restart: unless-stopped
