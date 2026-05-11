@@ -12,7 +12,7 @@ class Config:
 
     MONGO_URI = os.getenv(
         "MONGO_URI",
-        "mongodb://admin:AnasSuperMotDePasse123!@mongodb:27017/jira_migration?authSource=admin",
+        "mongodb://admin:AnasSuperMotDePasse123@mongodb:27017/jira_migration?authSource=admin",
     )
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "super-secret-key")
