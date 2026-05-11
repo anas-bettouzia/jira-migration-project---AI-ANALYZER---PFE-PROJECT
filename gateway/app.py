@@ -114,10 +114,11 @@ def create_app():
         try:
             url = f"{WORKER_URL.rstrip('/')}/worker/jobs/run"
 
+            data = uploaded_file.read()
             files = {
                 "file": (
                     uploaded_file.filename,
-                    uploaded_file.stream,
+                    data,
                     uploaded_file.content_type,
                 )
             }
