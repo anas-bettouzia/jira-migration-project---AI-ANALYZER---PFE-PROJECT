@@ -8,6 +8,7 @@ Runs the full Jira migration pipeline:
 """
 
 import logging
+import mimetypes
 import os
 from pathlib import Path
 
@@ -95,15 +96,21 @@ def run_full_analysis_job(job_id: str, file_path: str) -> dict:
 def _call_parsing_service(file_path: str) -> dict:
     """Call Parsing Service /parse endpoint."""
     url = f"{PARSING_SERVICE_URL.rstrip('/')}/parse"
-
     logger.info("Calling Parsing Service: %s", url)
 
+    # Déterminer le type MIME
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if not mime_type:
+        mime_type = 'application/octet-stream'
+
     with open(file_path, "rb") as file:
-        response = requests.post(
-            url,
-            files={"file": (Path(file_path).name, file)},
-            timeout=DEFAULT_TIMEOUT,
-        )
+        files = {
+            "file": (os.path.basename(file_path), file, mime_type)
+        }
+        response = requests.post(url, files=files, timeout=DEFAULT_TIMEOUT)
+
+    if response.status_code != 200:
+        logger.error("Parsing failed (%s): %s", response.status_code, response.text)
 
     response.raise_for_status()
     return response.json()
