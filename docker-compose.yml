@@ -114,8 +114,11 @@ services:
   mongodb:
     image: mongo:6
     container_name: mongo_db
-    ports:
-      - "27017:27017"
+    # ports:
+    #   - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
     volumes:
       - mongo_data:/data/db
     restart: unless-stopped
@@ -134,8 +137,9 @@ services:
     ports:
       - "8081:8081"
     environment:
-      ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017/
-      ME_CONFIG_BASICAUTH: "false"
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: spectrum_admin
+      ME_CONFIG_BASICAUTH_PASSWORD: UnAutreMotDePassePourLeWeb
     depends_on:
       - mongodb
     restart: unless-stopped
