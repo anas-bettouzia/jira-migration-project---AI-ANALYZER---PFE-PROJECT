@@ -21,6 +21,7 @@ from shared.repositories.analysis_repository import AnalysisRepository
 from shared.schemas.parsed_data_schema import ParsedJiraData
 
 app = Flask(__name__)
+app.config["TRUSTED_HOSTS"] = None
 CORS(app)
 
 logging.basicConfig(level=logging.INFO)

@@ -115,6 +115,12 @@ def create_app():
             url = f"{WORKER_URL.rstrip('/')}/worker/jobs/run"
 
             data = uploaded_file.read()
+            logger.info(
+                "Forwarding file to worker: filename=%s size=%s content_type=%s",
+                uploaded_file.filename,
+                len(data),
+                uploaded_file.content_type,
+            )
             files = {
                 "file": (
                     uploaded_file.filename,
