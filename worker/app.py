@@ -47,11 +47,19 @@ def run_job():
       file=<zip/xml/json/sql>
     """
     if "file" not in request.files:
+        logger.error("Worker received request without file part")
         return jsonify({"error": "File is required."}), 400
 
     uploaded_file = request.files["file"]
+    logger.info(
+        "Worker received file upload: file_in_request=%s filename=%s content_type=%s",
+        "file" in request.files,
+        uploaded_file.filename,
+        uploaded_file.content_type,
+    )
 
     if not uploaded_file.filename:
+        logger.error("Worker received file without filename")
         return jsonify({"error": "Uploaded file must have a filename."}), 400
 
     job = create_job(
@@ -71,11 +79,13 @@ def run_job():
 
         uploaded_file.save(temp_file.name)
         temp_file.close()
+        file_size = os.path.getsize(temp_file.name)
 
         logger.info(
-            "Saved uploaded file for job %s to %s",
+            "Saved uploaded file for job %s to %s (size=%s bytes)",
             job["job_id"],
             temp_file.name,
+            file_size,
         )
 
         result = run_full_analysis_job(job["job_id"], temp_file.name)
