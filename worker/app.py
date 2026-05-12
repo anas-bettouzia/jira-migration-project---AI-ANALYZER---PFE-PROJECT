@@ -8,6 +8,7 @@ import logging
 import os
 import sys
 import tempfile
+import threading
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -41,10 +42,8 @@ def health():
 @app.route("/worker/jobs/run", methods=["POST"])
 def run_job():
     """
-    Run full analysis job.
-
-    Expects multipart/form-data:
-      file=<zip/xml/json/sql>
+    Run full analysis job asynchronously.
+    Expects multipart/form-data: file=<zip/xml/json/sql>
     """
     if "file" not in request.files:
         logger.error("Worker received request without file part")
@@ -62,6 +61,7 @@ def run_job():
         logger.error("Worker received file without filename")
         return jsonify({"error": "Uploaded file must have a filename."}), 400
 
+    # On crée le job en base de données tout de suite
     job = create_job(
         job_type="FULL_ANALYSIS",
         payload={
@@ -70,6 +70,7 @@ def run_job():
     )
 
     try:
+        # Préparation du fichier temporaire
         suffix = Path(uploaded_file.filename).suffix
         temp_file = tempfile.NamedTemporaryFile(
             delete=False,
@@ -82,22 +83,31 @@ def run_job():
         file_size = os.path.getsize(temp_file.name)
 
         logger.info(
-            "Saved uploaded file for job %s to %s (size=%s bytes)",
+            "Saved uploaded file for job %s to %s (size=%s bytes). Starting background task.",
             job["job_id"],
             temp_file.name,
             file_size,
         )
 
-        result = run_full_analysis_job(job["job_id"], temp_file.name)
+        # --- CHANGEMENT ICI : LANCEMENT DU THREAD ---
+        # On lance run_full_analysis_job dans un fil d'exécution séparé
+        analysis_thread = threading.Thread(
+            target=run_full_analysis_job,
+            args=(job["job_id"], temp_file.name)
+        )
+        analysis_thread.start()
 
+        # On répond IMMÉDIATEMENT au client (Gateway/Nginx)
+        # On utilise le code HTTP 202 (Accepted) pour dire que c'est en cours
         return jsonify({
             "job_id": job["job_id"],
-            "status": "COMPLETED" if "report_id" in result else "FAILED",
-            "result": result,
-        }), 200
+            "status": "STARTED",
+            "message": "Analysis job started in background.",
+            "check_status_url": f"/api/worker/jobs/{job['job_id']}"
+        }), 202
 
     except Exception as error:  # pylint: disable=broad-exception-caught
-        logger.error("Worker job execution failed: %s", error)
+        logger.error("Worker failed to initiate job %s: %s", job["job_id"], error)
         return jsonify({
             "job_id": job["job_id"],
             "status": "FAILED",
