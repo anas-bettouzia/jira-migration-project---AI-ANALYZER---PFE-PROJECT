@@ -138,6 +138,10 @@ services:
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
     volumes:
       - mongo_data:/data/db
+    networks:
+      default:
+        aliases:
+          - mongodb
     restart: unless-stopped
 
   redis:
