@@ -49,6 +49,7 @@ services:
       default:
         aliases:
           - parsing-service
+          - parsing_service
     depends_on:
       - mongodb
     restart: unless-stopped
@@ -67,6 +68,7 @@ services:
       default:
         aliases:
           - compatibility-service
+          - compatibility_service
     depends_on:
       - mongodb
       - knowledge_service
@@ -86,6 +88,7 @@ services:
       default:
         aliases:
           - knowledge-service
+          - knowledge_service
     volumes:
       - knowledge_chroma_data:/app/knowledge_service/chroma_db
     depends_on:
@@ -108,6 +111,7 @@ services:
       default:
         aliases:
           - report-service
+          - report_service
     depends_on:
       - mongodb
       - knowledge_service
@@ -126,6 +130,9 @@ services:
     depends_on:
       - redis
       - mongodb
+      - parsing_service
+      - compatibility_service
+      - report_service
     restart: unless-stopped
 
   mongodb:

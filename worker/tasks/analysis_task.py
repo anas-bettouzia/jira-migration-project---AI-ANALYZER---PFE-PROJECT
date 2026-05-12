@@ -25,7 +25,7 @@ COMPATIBILITY_SERVICE_URL = os.getenv(
 )
 REPORT_SERVICE_URL = os.getenv("REPORT_SERVICE_URL", "http://report_service:5004")
 
-DEFAULT_TIMEOUT = 120
+DEFAULT_TIMEOUT = 300
 
 
 def run_full_analysis_job(job_id: str, file_path: str) -> dict:
@@ -107,7 +107,7 @@ def _call_parsing_service(file_path: str) -> dict:
         files = {
             "file": (os.path.basename(file_path), file, mime_type)
         }
-        response = requests.post(url, files=files, timeout=DEFAULT_TIMEOUT)
+        response = requests.post(url, files=files, timeout=(10, DEFAULT_TIMEOUT))
 
     if response.status_code != 200:
         logger.error("Parsing failed (%s): %s", response.status_code, response.text)
@@ -125,7 +125,7 @@ def _call_compatibility_service(analysis_id: str) -> dict:
     response = requests.post(
         url,
         json={"analysis_id": analysis_id},
-        timeout=DEFAULT_TIMEOUT,
+        timeout=(10, DEFAULT_TIMEOUT),
     )
 
     response.raise_for_status()
@@ -141,7 +141,7 @@ def _call_report_service(matrix_id: str) -> dict:
     response = requests.post(
         url,
         json={"matrix_id": matrix_id},
-        timeout=DEFAULT_TIMEOUT,
+        timeout=(10, DEFAULT_TIMEOUT),
     )
 
     response.raise_for_status()
