@@ -10,7 +10,7 @@ from datetime import timedelta
 
 from dotenv import load_dotenv
 from flasgger import Swagger
-from flask import Flask, jsonify, request
+from flask import Flask, app, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import create_access_token, jwt_required
 import requests
@@ -35,7 +35,7 @@ REQUEST_TIMEOUT = 180
 def create_app():
     """Create and configure the API Gateway Flask application."""
     app = Flask(__name__)
-    CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
+    CORS(app, resources={r"/api/*": {"origins": "*"}}) #, supports_credentials=True
 
     app.config["MONGO_URI"] = Config.MONGO_URI
     app.config["JWT_SECRET_KEY"] = Config.JWT_SECRET_KEY
@@ -179,6 +179,14 @@ def create_app():
         try:
             url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports/{report_id}"
             response = requests.get(url, timeout=REQUEST_TIMEOUT)
+            
+            # Vérifier si la requête a réussi avant de parser le JSON
+            if response.status_code != 200:
+                try:
+                    return jsonify(response.json()), response.status_code
+                except ValueError:
+                    return jsonify({"error": "Rapport non trouvé ou erreur du service"}), response.status_code
+
             return jsonify(response.json()), response.status_code
 
         except requests.exceptions.RequestException as error:
