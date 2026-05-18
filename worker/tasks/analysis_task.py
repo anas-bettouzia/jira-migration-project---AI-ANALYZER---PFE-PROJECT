@@ -25,7 +25,7 @@ COMPATIBILITY_SERVICE_URL = os.getenv(
 )
 REPORT_SERVICE_URL = os.getenv("REPORT_SERVICE_URL", "http://report_service:5004")
 
-DEFAULT_TIMEOUT = 300
+DEFAULT_TIMEOUT = 900
 
 
 def run_full_analysis_job(job_id: str, file_path: str) -> dict:
