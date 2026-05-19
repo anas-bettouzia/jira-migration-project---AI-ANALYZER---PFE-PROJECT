@@ -12,7 +12,12 @@ from dotenv import load_dotenv
 from flasgger import Swagger
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from flask_jwt_extended import create_access_token, jwt_required
+from flask_jwt_extended import (
+    create_access_token,
+    get_jwt_identity,
+    jwt_required,
+)
+from werkzeug.security import check_password_hash, generate_password_hash
 import requests
 
 load_dotenv()
@@ -23,6 +28,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from shared.core.config import Config
 from shared.core.errors import register_error_handlers
 from shared.core.extensions import jwt, mongo
+from shared.repositories.user_repository import UserRepository
 from shared.core.logger import setup_logger
 
 logger = logging.getLogger(__name__)
@@ -30,6 +36,22 @@ logger = logging.getLogger(__name__)
 WORKER_URL = os.getenv("WORKER_URL", "http://worker:5005")
 REPORT_SERVICE_URL = os.getenv("REPORT_SERVICE_URL", "http://report_service:5004")
 REQUEST_TIMEOUT = 180
+
+
+def _ensure_admin_user(user_repo: UserRepository) -> None:
+    """Create default admin user from env variables if it does not exist."""
+    admin_email = os.getenv("GATEWAY_ADMIN_EMAIL")
+    admin_password = os.getenv("GATEWAY_ADMIN_PASSWORD")
+
+    if not admin_email or not admin_password:
+        return
+
+    if user_repo.get_user_by_email(admin_email) is None:
+        user_repo.create_user(
+            admin_email,
+            generate_password_hash(admin_password),
+            role="admin",
+        )
 
 
 def create_app():
@@ -43,6 +65,31 @@ def create_app():
 
     mongo.init_app(app)
     jwt.init_app(app)
+
+
+    @jwt.unauthorized_loader
+    def missing_token_callback(error):
+        return jsonify({
+            "error": "Authorization token is missing",
+            "message": str(error)
+        }), 401
+
+    @jwt.invalid_token_loader
+    def invalid_token_callback(error):
+        return jsonify({
+            "error": "Invalid token",
+            "message": str(error)
+        }), 401
+
+    @jwt.expired_token_loader
+    def expired_token_callback(_jwt_header, _jwt_payload):
+        return jsonify({
+            "error": "Token has expired",
+            "message": "Please log in again"
+        }), 401
+
+    user_repo = UserRepository()
+    _ensure_admin_user(user_repo)
 
     swagger_template = {
         "swagger": "2.0",
@@ -65,11 +112,6 @@ def create_app():
     setup_logger(app)
     register_error_handlers(app)
 
-    user_credentials = {
-        "email": "admin@test.com",
-        "password": "1234",
-    }
-
     @app.route("/api/health", methods=["GET"])
     def health():
         """Gateway health check."""
@@ -78,25 +120,50 @@ def create_app():
     @app.route("/api/login", methods=["POST"])
     def login():
         """
-        User login endpoint.
+        User login endpoint. Validates credentials from environment or defaults.
+        Returns a JWT access token on success.
         """
         data = request.get_json()
 
         if not data:
             return jsonify({"error": "Request body is required"}), 400
 
-        if (
-            data.get("email") == user_credentials["email"]
-            and data.get("password") == user_credentials["password"]
-        ):
-            token = create_access_token(identity=data["email"])
+        user = user_repo.get_user_by_email(data.get("email", ""))
+        if user and check_password_hash(user["password_hash"], data.get("password", "")):
+            token = create_access_token(identity=user["email"])
             return jsonify({"token": token}), 200
 
         return jsonify({"error": "Invalid credentials"}), 401
 
+    @app.route("/api/register", methods=["POST"])
+    def register():
+        """Register a new user account."""
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"error": "Request body is required"}), 400
+
+        email = data.get("email")
+        password = data.get("password")
+        if not email or not password:
+            return jsonify({"error": "Email and password are required"}), 400
+
+        if user_repo.get_user_by_email(email):
+            return jsonify({"error": "Email already registered"}), 409
+
+        user_repo.create_user(email, generate_password_hash(password), role="user")
+        return jsonify({"message": "User registered successfully"}), 201
+
+    @app.route("/api/me", methods=["GET"])
+    @jwt_required()
+    def me():
+        """Return currently authenticated user."""
+        return jsonify({"email": get_jwt_identity()}), 200
+
     @app.route("/api/analyze", methods=["POST"])
     @jwt_required()
     def analyze():
+
         """
         Trigger full analysis pipeline through Worker.
 

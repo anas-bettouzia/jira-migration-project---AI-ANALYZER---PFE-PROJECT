@@ -29,6 +29,9 @@ def create_job(job_type: str = "FULL_ANALYSIS", payload: dict | None = None) -> 
         "job_id": job_id,
         "job_type": job_type,
         "status": STATUS_QUEUED,
+        "progress": 0,
+        "stage": "queued",
+        "message": "Job created and waiting to start.",
         "payload": payload or {},
         "created_at": now,
         "updated_at": now,
@@ -44,6 +47,21 @@ def create_job(job_type: str = "FULL_ANALYSIS", payload: dict | None = None) -> 
     return job
 
 
+def update_job_progress(job_id: str, progress: int, stage: str, message: str) -> None:
+    """Update a job's progress, stage, and message."""
+    now = datetime.utcnow().isoformat()
+
+    _repo().update_job_status(
+        job_id,
+        {
+            "progress": progress,
+            "stage": stage,
+            "message": message,
+            "updated_at": now,
+        },
+    )
+
+
 def mark_running(job_id: str) -> None:
     """Mark a job as running."""
     now = datetime.utcnow().isoformat()
@@ -52,6 +70,9 @@ def mark_running(job_id: str) -> None:
         job_id,
         {
             "status": STATUS_RUNNING,
+            "progress": 5,
+            "stage": "started",
+            "message": "Job started.",
             "started_at": now,
             "updated_at": now,
             "error": None,
@@ -67,6 +88,9 @@ def mark_completed(job_id: str, result: dict) -> None:
         job_id,
         {
             "status": STATUS_COMPLETED,
+            "progress": 100,
+            "stage": "completed",
+            "message": "Job completed successfully.",
             "completed_at": now,
             "updated_at": now,
             "result": result,
@@ -83,6 +107,9 @@ def mark_failed(job_id: str, error: str) -> None:
         job_id,
         {
             "status": STATUS_FAILED,
+            "progress": 100,
+            "stage": "failed",
+            "message": error,
             "completed_at": now,
             "updated_at": now,
             "error": error,

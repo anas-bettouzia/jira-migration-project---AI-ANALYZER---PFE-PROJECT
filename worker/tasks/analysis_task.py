@@ -14,7 +14,12 @@ from pathlib import Path
 
 import requests
 
-from worker.tasks.job_manager import mark_completed, mark_failed, mark_running
+from worker.tasks.job_manager import (
+    mark_completed,
+    mark_failed,
+    mark_running,
+    update_job_progress,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +45,7 @@ def run_full_analysis_job(job_id: str, file_path: str) -> dict:
         final result dict containing analysis_id, matrix_id and report_id
     """
     mark_running(job_id)
+    update_job_progress(job_id, 10, "parsing", "Starting parsing service call.")
 
     try:
         logger.info("Starting full analysis job %s", job_id)
@@ -53,17 +59,31 @@ def run_full_analysis_job(job_id: str, file_path: str) -> dict:
         if not analysis_id:
             raise ValueError("Parsing Service did not return analysis_id.")
 
+        update_job_progress(
+            job_id,
+            40,
+            "compatibility",
+            "Parsing completed. Starting compatibility analysis.",
+        )
         compatibility_result = _call_compatibility_service(analysis_id)
         matrix_id = compatibility_result.get("matrix_id")
 
         if not matrix_id:
             raise ValueError("Compatibility Service did not return matrix_id.")
 
+        update_job_progress(
+            job_id,
+            70,
+            "report",
+            "Compatibility analysis complete. Generating report.",
+        )
         report_result = _call_report_service(matrix_id)
         report_id = report_result.get("report_id")
 
         if not report_id:
             raise ValueError("Report Service did not return report_id.")
+
+        update_job_progress(job_id, 90, "finalizing", "Report generated. Finalizing job.")
 
         result = {
             "analysis_id": analysis_id,
