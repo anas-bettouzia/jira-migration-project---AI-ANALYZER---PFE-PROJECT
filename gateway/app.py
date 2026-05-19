@@ -6,6 +6,7 @@ Provides authentication and routing to backend microservices.
 import logging
 import os
 import sys
+import re
 from datetime import timedelta
 
 from dotenv import load_dotenv
@@ -19,6 +20,7 @@ from flask_jwt_extended import (
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 import requests
+
 
 load_dotenv()
 
@@ -37,6 +39,8 @@ WORKER_URL = os.getenv("WORKER_URL", "http://worker:5005")
 REPORT_SERVICE_URL = os.getenv("REPORT_SERVICE_URL", "http://report_service:5004")
 REQUEST_TIMEOUT = 180
 
+EMAIL_REGEX = r"^[\w\.-]+@[\w\.-]+\.\w+$"
+PASSWORD_REGEX = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\w\W]{8,}$"
 
 def _ensure_admin_user(user_repo: UserRepository) -> None:
     """Create default admin user from env variables if it does not exist."""
@@ -143,10 +147,22 @@ def create_app():
         if not data:
             return jsonify({"error": "Request body is required"}), 400
 
-        email = data.get("email")
-        password = data.get("password")
+        email = data.get("email", "").strip()
+        password = data.get("password", "")
+
         if not email or not password:
             return jsonify({"error": "Email and password are required"}), 400
+
+        if not re.match(EMAIL_REGEX, email):
+            return jsonify({"error": "Le format de l'adresse email est invalide."}), 400
+
+        if not re.match(PASSWORD_REGEX, password):
+            return jsonify({
+                "error": (
+                    "Le mot de passe doit contenir au moins 8 caractères, "
+                    "une majuscule, une minuscule et un chiffre."
+                )
+            }), 400
 
         if user_repo.get_user_by_email(email):
             return jsonify({"error": "Email already registered"}), 409
