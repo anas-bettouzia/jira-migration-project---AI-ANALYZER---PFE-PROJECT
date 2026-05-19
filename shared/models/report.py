@@ -20,3 +20,4 @@ class ReportModel:
     sections: Dict[str, Any] = field(default_factory=dict)
     raw_matrix: Dict[str, Any] = field(default_factory=dict)
     file_paths: Optional[List[str]] = field(default_factory=list)
+    status: bool = True

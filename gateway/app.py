@@ -357,6 +357,18 @@ def create_app():
             logger.error("Report PDF export failed: %s", error)
             return jsonify({"error": f"Report request failed: {error}"}), 502
 
+    @app.route("/api/reports/<report_id>", methods=["DELETE"])
+    @jwt_required()
+    def delete_report(report_id):
+        """Proxy report soft-deletion to report_service."""
+        try:
+            url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports/{report_id}"
+            response = requests.delete(url, timeout=REQUEST_TIMEOUT)
+            return jsonify(response.json()), response.status_code
+        except requests.exceptions.RequestException as error:
+            logger.error("Delete report request failed: %s", error)
+            return jsonify({"error": f"Report service request failed: {error}"}), 502
+
     return app
 
 

@@ -16,6 +16,7 @@ class ReportSummary(BaseSchema):
     title: str
     generated_at: str
     summary: str
+    status: bool = True
 
 
 class ReportModel(BaseSchema):
@@ -32,3 +33,4 @@ class ReportModel(BaseSchema):
     statistics: Dict[str, Any] = Field(default_factory=dict)
     sections: Dict[str, Any] = Field(default_factory=dict)
     raw_matrix: Dict[str, Any] = Field(default_factory=dict)
+    status: bool = True

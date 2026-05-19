@@ -77,11 +77,12 @@ def generate_report():
 
 @app.route("/reports/<report_id>", methods=["GET"])
 def get_report(report_id):
-    """Retrieve a generated report by report_id."""
+    """Retrieve a generated report by report_id only if active."""
     try:
         report_repo = ReportRepository()
         report = report_repo.get_report_by_id(report_id)
 
+        # Si le rapport n'existe pas OU si son statut est False, get_report_by_id renverra None
         if not report:
             return jsonify({"error": f"Report '{report_id}' not found."}), 404
 
@@ -95,9 +96,10 @@ def get_report(report_id):
 
 @app.route("/reports", methods=["GET"])
 def list_reports():
-    """List generated reports with summary only."""
+    """List generated reports with summary only (filtered by status=True)."""
     try:
         report_repo = ReportRepository()
+        # list_reports() applique automatiquement le filtre {"status": {"$ne": False}}
         reports = report_repo.list_reports()
 
         return jsonify({"reports": reports, "count": len(reports)}), 200
@@ -109,10 +111,11 @@ def list_reports():
 
 @app.route("/reports/<report_id>/json", methods=["GET"])
 def export_json(report_id):
-    """Export a report as JSON file."""
+    """Export an active report as JSON file."""
     report_repo = ReportRepository()
     report = report_repo.get_report_by_id(report_id)
 
+    # Bloque l'export si le rapport est en status=False (renvoie None)
     if not report:
         return jsonify({"error": f"Report '{report_id}' not found."}), 404
 
@@ -123,10 +126,11 @@ def export_json(report_id):
 
 @app.route("/reports/<report_id>/pdf", methods=["GET"])
 def export_pdf(report_id):
-    """Export a report as PDF file."""
+    """Export an active report as PDF file."""
     report_repo = ReportRepository()
     report = report_repo.get_report_by_id(report_id)
 
+    # Bloque l'export si le rapport est en status=False (renvoie None)
     if not report:
         return jsonify({"error": f"Report '{report_id}' not found."}), 404
 
@@ -149,6 +153,25 @@ def _load_matrix(data: dict) -> dict | None:
 
     return None
 
+@app.route("/reports/<report_id>", methods=["DELETE"])
+def delete_report(report_id):
+    """Soft delete a report by setting its status to False."""
+    try:
+        report_repo = ReportRepository()
+        success = report_repo.soft_delete_report(report_id)
+
+        if not success:
+            return jsonify({
+                "error": f"Report '{report_id}' not found or already deleted."
+            }), 404
+
+        return jsonify({
+            "message": f"Report '{report_id}' deleted successfully (soft delete)."
+        }), 200
+
+    except Exception as error:  # pylint: disable=broad-exception-caught
+        logger.error("Error deleting report: %s", error)
+        return jsonify({"error": str(error)}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5004))

@@ -33,7 +33,10 @@ class ReportRepository:
         Returns:
             The report document if found, otherwise None.
         """
-        return self.collection.find_one({"report_id": report_id})
+        return self.collection.find_one({
+            "report_id": report_id,
+            "status": {"$ne": False}
+            })
 
     def list_reports(self, limit: int = 50) -> list[dict]:
         """
@@ -53,9 +56,20 @@ class ReportRepository:
             "generated_at": 1,
             "title": 1,
             "summary": 1,
+            "status": 1,
         }
         return list(
-            self.collection.find({}, projection)
+            self.collection.find({"status": {"$ne": False}}, projection)
             .sort("generated_at", -1)
             .limit(limit)
         )
+
+    def soft_delete_report(self, report_id: str) -> bool:
+        """
+        Update report status to False instead of removing it from database.
+        """
+        result = self.collection.update_one(
+            {"report_id": report_id},
+            {"$set": {"status": False}}
+        )
+        return result.modified_count > 0
