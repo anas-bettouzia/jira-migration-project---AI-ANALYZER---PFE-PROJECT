@@ -49,8 +49,14 @@ Global Recommendation:
 """
 
     for blocker in blockers[:5]:
+        component_name = (
+            blocker.get("component_display_name")
+            or blocker.get("component_name")
+            or blocker.get("component_id")
+        )
         prompt += f"""
-- Component: {blocker.get("component_id")}
+- Component: {component_name}
+  Component ID: {blocker.get("component_id")}
   Risk: {blocker.get("final_risk")}
   Issue: {blocker.get("reasoning_summary")}
   Fix: {blocker.get("recommended_action")}

@@ -121,6 +121,8 @@ def create_component_from_snip(
 
     return JiraComponent(
         component_id=component_id,
+        component_name=display_location if len(display_location) < 120 else filename,
+        component_name_source="extracted",
         component_type="script",
         plugin="unknown",
         location=JiraComponentLocation(file_path=filename),

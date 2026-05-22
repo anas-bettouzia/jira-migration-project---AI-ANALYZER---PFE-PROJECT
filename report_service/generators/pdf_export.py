@@ -83,8 +83,14 @@ def export_report_to_pdf(
     if blockers:
         blocker_rows = [["Component", "Plugin", "Risk", "Status"]]
         for blocker in blockers:
+            display_name = (
+                blocker.get("component_display_name")
+                or blocker.get("component_name")
+                or blocker.get("component_id", "")
+            )
+
             blocker_rows.append([
-                blocker.get("component_id", ""),
+                display_name,
                 blocker.get("plugin", ""),
                 blocker.get("risk_level", ""),
                 blocker.get("overall_status", ""),
@@ -103,9 +109,14 @@ def export_report_to_pdf(
 
     if recommendations:
         for recommendation in recommendations[:10]:
+            component_name = (
+                recommendation.get("component_display_name")
+                or recommendation.get("component_name")
+                or recommendation.get("component_id", "")
+            )
             text = (
                 f"<b>{_clean_inline(recommendation.get('priority', ''))}</b> — "
-                f"{_clean_inline(recommendation.get('component_id', ''))}: "
+                f"{_clean_inline(component_name)}: "
                 f"{_clean_inline(recommendation.get('action', ''))}"
             )
             story.append(Paragraph(text, styles["BodyText"]))

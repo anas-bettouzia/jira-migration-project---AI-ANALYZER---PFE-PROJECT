@@ -113,6 +113,8 @@ def parse_groovy_file(file_info: dict) -> JiraComponent:
 
     component = JiraComponent(
         component_id=component_id,
+        component_name=filename,
+        component_name_source="extracted",
         component_type=component_type,
         plugin=plugin,
         location=JiraComponentLocation(

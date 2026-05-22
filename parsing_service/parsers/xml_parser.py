@@ -120,6 +120,8 @@ def parse_xml_streaming(file_path: str) -> ParsedJiraData:
 
                         comp = JiraComponent(
                             component_id=comp_id,
+                            component_name=elem.attrib.get("name", ""),
+                            component_name_source="extracted",
                             component_type=component_type,
                             plugin="native",
                             location=JiraComponentLocation(
