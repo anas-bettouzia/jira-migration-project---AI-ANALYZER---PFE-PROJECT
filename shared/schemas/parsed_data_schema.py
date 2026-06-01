@@ -60,8 +60,7 @@ class JiraComponent(BaseModel):
     """Represents a detected migration-relevant Jira component."""
 
     component_id: str
-    component_name: Optional[str] = ""
-    component_name_source: Optional[str] = ""
+    component_name: str = ""
     component_type: str
     plugin: str
     location: JiraComponentLocation = Field(default_factory=JiraComponentLocation)

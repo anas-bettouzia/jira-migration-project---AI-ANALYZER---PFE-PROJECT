@@ -5,64 +5,10 @@ Builds a structured migration report from a compatibility matrix.
 """
 
 import uuid
-import os
-import json
-import importlib
 from datetime import datetime
-from functools import lru_cache
 
+from report_service.llm.gemini_client import generate_report_text
 from report_service.llm.prompt_builder import build_report_prompt
-
-
-@lru_cache(maxsize=1)
-def _load_component_mapping() -> dict:
-    """Load component ID -> human name mapping from config/components.json if present."""
-    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    cfg_path = os.path.join(root_dir, "config", "components.json")
-    if not os.path.exists(cfg_path):
-        return {}
-
-    try:
-        with open(cfg_path, "r", encoding="utf-8") as fh:
-            return json.load(fh)
-    except (OSError, json.JSONDecodeError, ValueError):
-        return {}
-
-
-def _get_component_name(component: dict) -> dict:
-    """Return a tuple-like dict with name and source for a component.
-
-    Priority: override mapping by component_id -> component_name -> location.workflow -> "".
-    """
-    mapping = _load_component_mapping()
-    comp_id = component.get("component_id", "")
-
-    if comp_id and comp_id in mapping and mapping.get(comp_id):
-        return {"name": mapping.get(comp_id), "source": "override"}
-
-    if component.get("component_name"):
-        return {
-            "name": component.get("component_name"),
-            "source": component.get("component_name_source", "extracted"),
-        }
-
-    loc = component.get("location", {}) or {}
-    if isinstance(loc, dict) and loc.get("workflow"):
-        return {"name": loc.get("workflow"), "source": "workflow"}
-
-    return {"name": "", "source": ""}
-
-
-def _format_component_display_name(component: dict) -> str:
-    """Return the human-friendly component display name."""
-    name_info = _get_component_name(component)
-    comp_id = component.get("component_id", "")
-    name = name_info.get("name", "")
-    if name and comp_id:
-        return f"{name} ({comp_id})"
-    if name:
-        return name
-    return comp_id
 
 
 def build_report(matrix: dict) -> dict:
@@ -100,18 +46,7 @@ def build_report(matrix: dict) -> dict:
 
     ai_prompt = build_report_prompt(report)
     fallback_text = _build_fallback_ai_summary(report)
-
-    try:
-        gemini_module = importlib.import_module("report_service.llm.gemini_client")
-        generate_report_text = getattr(gemini_module, "generate_report_text")
-        ai_result = generate_report_text(ai_prompt, fallback_text=fallback_text)
-    except (ImportError, ModuleNotFoundError, AttributeError) as err:
-        ai_result = {
-            "text": fallback_text,
-            "used_ai": False,
-            "model": "",
-            "error": str(err),
-        }
+    ai_result = generate_report_text(ai_prompt, fallback_text=fallback_text)
 
     report["ai_summary"] = ai_result.get("text", fallback_text)
     report["ai_used"] = ai_result.get("used_ai", False)
@@ -183,34 +118,29 @@ def _build_risk_overview(summary: dict) -> dict:
 
 def _build_blockers_section(blockers: list[dict]) -> list[dict]:
     """Build blocker section."""
-    out = []
-    for blocker in blockers:
-        name_info = _get_component_name(blocker)
-        out.append({
+    return [
+        {
             "component_id": blocker.get("component_id", ""),
-            "component_name": name_info.get("name"),
-            "component_display_name": _format_component_display_name(blocker),
-            "component_name_source": name_info.get("source"),
+            "component_name": _component_label(blocker),
             "plugin": blocker.get("plugin", ""),
             "risk_level": blocker.get("risk_level", ""),
             "overall_status": blocker.get("overall_status", ""),
-            "recommended_action": blocker.get("recommended_action", ""),
+            "recommended_action": _clean_component_text(
+                blocker.get("recommended_action", ""),
+                blocker,
+            ),
             "confidence": blocker.get("confidence"),
-        })
-
-    return out
+        }
+        for blocker in blockers
+    ]
 
 
 def _build_components_section(components: list[dict]) -> list[dict]:
     """Build component details section."""
-    out = []
-    for component in components:
-        name_info = _get_component_name(component)
-        out.append({
+    return [
+        {
             "component_id": component.get("component_id", ""),
-            "component_name": name_info.get("name"),
-            "component_display_name": _format_component_display_name(component),
-            "component_name_source": name_info.get("source"),
+            "component_name": _component_label(component),
             "component_type": component.get("component_type", ""),
             "plugin": component.get("plugin", ""),
             "location": component.get("location", {}),
@@ -219,13 +149,19 @@ def _build_components_section(components: list[dict]) -> list[dict]:
             "confidence": component.get("confidence"),
             "features_analyzed": component.get("features_analyzed", []),
             "evidence_count": component.get("evidence_count", 0),
-            "reasoning_summary": component.get("reasoning_summary", ""),
-            "recommended_action": component.get("recommended_action", ""),
+            "reasoning_summary": _clean_component_text(
+                component.get("reasoning_summary", ""),
+                component,
+            ),
+            "recommended_action": _clean_component_text(
+                component.get("recommended_action", ""),
+                component,
+            ),
             "ai_reasoning": component.get("ai_reasoning", {}),
             "evidence": component.get("evidence", []),
-        })
-
-    return out
+        }
+        for component in components
+    ]
 
 
 def _build_recommendations_section(components: list[dict]) -> list[dict]:
@@ -237,16 +173,29 @@ def _build_recommendations_section(components: list[dict]) -> list[dict]:
         status = component.get("final_status", component.get("overall_status", ""))
 
         if risk in ("BLOCKER", "MAJOR"):
-            name_info = _get_component_name(component)
             recommendations.append({
                 "priority": risk,
                 "component_id": component.get("component_id", ""),
-                "component_name": name_info.get("name"),
-                "component_display_name": _format_component_display_name(component),
-                "component_name_source": name_info.get("source"),
+                "component_name": _component_label(component),
                 "status": status,
-                "action": component.get("recommended_action", ""),
-                "reason": component.get("reasoning_summary", ""),
+                "action": _clean_component_text(component.get("recommended_action", ""), component),
+                "reason": _clean_component_text(component.get("reasoning_summary", ""), component),
             })
 
     return recommendations
+
+
+def _component_label(component: dict) -> str:
+    """Return the business component name shown in reports."""
+    return component.get("component_name") or component.get("component_id", "")
+
+
+def _clean_component_text(text: str, component: dict) -> str:
+    """Replace technical component IDs in report text with business component names."""
+    component_id = component.get("component_id", "")
+    component_name = component.get("component_name", "")
+
+    if not component_id or not component_name:
+        return text or ""
+
+    return str(text or "").replace(component_id, component_name)
