@@ -138,6 +138,15 @@ services:
       - report_service
     restart: unless-stopped
 
+  frontend:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "83:80"
+    restart: unless-stopped
+
   mongodb:
     image: mongo:6
     container_name: mongo_db
