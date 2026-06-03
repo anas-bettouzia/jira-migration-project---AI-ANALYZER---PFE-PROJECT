@@ -25,7 +25,7 @@ services:
 
   gateway:
     build:
-      context: .
+      context: ./back
       target: gateway
     container_name: gateway
     ports:
@@ -40,7 +40,7 @@ services:
 
   parsing_service:
     build:
-      context: .
+      context: ./back
       target: parsing_service
     container_name: parsing_service
     ports:
@@ -59,7 +59,7 @@ services:
 
   compatibility_service:
     build:
-      context: .
+      context: ./back
       target: compatibility_service
     container_name: compatibility_service
     ports:
@@ -79,7 +79,7 @@ services:
 
   knowledge_service:
     build:
-      context: .
+      context: ./back
       dockerfile: knowledge_service/Dockerfile
     container_name: knowledge_service
     ports:
@@ -100,7 +100,7 @@ services:
 
   report_service:
     build:
-      context: .
+      context: ./back
       target: report_service
     container_name: report_service
     ports:
@@ -122,7 +122,7 @@ services:
 
   worker:
     build:
-      context: .
+      context: ./back
       target: worker
     container_name: worker
     ports:
