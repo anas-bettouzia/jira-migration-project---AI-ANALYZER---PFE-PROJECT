@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sun, Moon, Lock, Mail, Loader2 } from 'lucide-react'; 
 import { authService } from '../../services/authService';
 import { useAuthStore } from '../../store/useAuthStore';
 import logoSpectrum from '../../assets/img/logo-spectrum-groupe.png';
+import GoogleSignInButton from '../../shared/components/GoogleSignInButton';
+import type { AuthResponse } from '../../shared/types/auth';
 
 const Login = () => {
   const [email, setEmail] = useState('admin@test.com');
@@ -33,12 +35,24 @@ const Login = () => {
       const data = await authService.login(email, password);
       setToken(data.token);
       navigate('/analysis'); 
-    } catch (err: any) {
+    } catch {
       setError('Identifiants invalides ou serveur injoignable.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handleGoogleAuthenticated = useCallback(
+    (data: AuthResponse) => {
+      setToken(data.token);
+      navigate('/analysis');
+    },
+    [navigate, setToken]
+  );
+
+  const handleGoogleError = useCallback((message: string) => {
+    setError(message);
+  }, []);
 
   return (
     <div className="min-h-screen flex transition-colors duration-300 bg-slate-50 dark:bg-[#0f172a] font-sans">
@@ -71,6 +85,22 @@ const Login = () => {
 
           {/* Carte de Login */}
           <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-slate-100 dark:border-slate-700">
+            <div className="mb-6">
+              <GoogleSignInButton
+                theme={darkMode ? 'filled_black' : 'outline'}
+                width={360}
+                onAuthenticated={handleGoogleAuthenticated}
+                onError={handleGoogleError}
+              />
+              <div className="mt-6 flex items-center gap-3">
+                <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+                <span className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                  ou
+                </span>
+                <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+              </div>
+            </div>
+
             <form className="space-y-6" onSubmit={handleSubmit}>
               
               <div className="space-y-5">

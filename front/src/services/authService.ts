@@ -1,7 +1,7 @@
+// src/services/authService.ts
 import { api } from '../core/api';
 import type { AuthResponse } from '../shared/types/auth';
 
-// Les identifiants par défaut de ton backend
 export const authService = {
   login: async (email: string, password: string): Promise<AuthResponse> => {
     try {
@@ -16,5 +16,28 @@ export const authService = {
     }
   },
 
-  // Tu pourras ajouter ici des méthodes pour logout ou rafraîchir le token
+  googleLogin: async (credential: string): Promise<AuthResponse> => {
+    try {
+      const response = await api.post<AuthResponse>('/auth/google', {
+        credential,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Erreur lors de la connexion Google :', error);
+      throw error;
+    }
+  },
+
+  register: async (email: string, password: string): Promise<{ message: string }> => {
+    try {
+      const response = await api.post<{ message: string }>('/register', {
+        email,
+        password,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Erreur lors de l'inscription :", error);
+      throw error;
+    }
+  },
 };

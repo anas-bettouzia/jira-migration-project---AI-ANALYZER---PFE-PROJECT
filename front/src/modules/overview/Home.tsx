@@ -1,367 +1,474 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Sun,
-  Moon,
   ArrowRight,
-  Shield,
-  LogOut,
-  UploadCloud,
-  FileText,
   Brain,
-  CheckCircle2,
   Database,
+  FileText,
   GitBranch,
-  Sparkles,
-  ChevronRight
+  LogOut,
+  Menu,
+  Moon,
+  Shield,
+  Sun,
+  UploadCloud,
+  X,
 } from 'lucide-react';
 
+import logoSpectrumDark from '../../assets/img/logo-spectrum-groupe-darkmode.png';
 import logoSpectrum from '../../assets/img/logo-spectrum-groupe.png';
 import LoginModal from '../auth/LoginModal';
+import { MainSidebar } from '../../shared/components/MainSidebar';
 import { useAuthStore } from '../../store/useAuthStore';
+
+const THEME_KEY = 'jira-migration-theme';
 
 const Home = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLight, setIsLight] = useState(() => {
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    if (savedTheme) return savedTheme === 'light';
+    return !window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
   const [scrolled, setScrolled] = useState(false);
 
   const navigate = useNavigate();
   const { isAuthenticated, logout } = useAuthStore();
+  const logo = isLight ? logoSpectrum : logoSpectrumDark;
 
-  // Gestion du scroll pour la navbar
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
+    const handleScroll = () => setScrolled(window.scrollY > 18);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const toggleDarkMode = () => {
-    setDarkMode((prev) => !prev);
-    document.documentElement.classList.toggle('dark');
-  };
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', !isLight);
+    localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark');
+  }, [isLight]);
+
+  const featureCards = useMemo(
+    () => [
+      {
+        icon: <UploadCloud size={24} />,
+        title: 'Import multi-format',
+        desc: 'Upload Jira Data Center exports, Groovy scripts, XML files, and ZIP packages into one audit flow.',
+        tone: 'blue',
+      },
+      {
+        icon: <Shield size={24} />,
+        title: 'Risk detection',
+        desc: 'Identify deprecated APIs, custom-field conflicts, marketplace gaps, and cloud blockers early.',
+        tone: 'green',
+      },
+      {
+        icon: <Brain size={24} />,
+        title: 'AI recommendations',
+        desc: 'Generate structured guidance backed by Atlassian migration logic and internal compatibility rules.',
+        tone: 'purple',
+      },
+    ] as const,
+    [],
+  );
 
   const handleMainAction = () => {
-    isAuthenticated ? navigate('/analysis') : setIsModalOpen(true);
+    if (isAuthenticated) {
+      navigate('/analysis');
+      return;
+    }
+    setIsModalOpen(true);
   };
 
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  // Variants pour Framer Motion
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 }
+    setIsMobileMenuOpen(false);
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-50 dark:bg-[#020617] transition-colors duration-500 font-sans text-slate-900 dark:text-slate-100">
-      
-      {/* BACKGROUND ELEMENTS */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-24 left-1/2 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-blue-500/10 blur-[120px] dark:bg-blue-600/20" />
-        <div className="absolute right-[-10%] top-1/4 h-[400px] w-[400px] rounded-full bg-orange-400/5 blur-[100px] dark:bg-orange-500/10" />
-        <div className="absolute left-[-5%] bottom-1/4 h-[400px] w-[400px] rounded-full bg-cyan-400/5 blur-[100px] dark:bg-cyan-500/10" />
-      </div>
+    <div className="min-h-screen bg-[#eef2fb] text-[#111b3f] transition-colors duration-300 dark:bg-[#071126] dark:text-white">
+      {isAuthenticated && <MainSidebar activePage="overview" />}
 
-      {/* NAVBAR */}
-      <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-        scrolled 
-        ? 'bg-white/70 dark:bg-slate-950/70 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 py-3' 
-        : 'bg-transparent py-5'
-      }`}>
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <button onClick={() => navigate('/')} className="flex items-center gap-3 group">
-            <div className="relative">
-                <img
-                    src={logoSpectrum}
-                    alt="Spectrum Groupe"
-                    className={`h-10 transition-all duration-300 group-hover:scale-105 ${darkMode ? 'brightness-200' : ''}`}
-                />
-            </div>
-          </button>
-
-          <div className="hidden lg:flex items-center gap-10 text-sm font-semibold text-slate-600 dark:text-slate-400">
-            {['features', 'pipeline', 'reports'].map((id) => (
-              <button 
-                key={id}
-                onClick={() => scrollToSection(id)} 
-                className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors capitalize relative group"
-              >
-                {id}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all group-hover:w-full" />
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-4">
-            <button
-              onClick={toggleDarkMode}
-              className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-yellow-400 hover:ring-2 ring-slate-200 dark:ring-slate-700 transition-all"
-            >
-              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+      <div className={isAuthenticated ? 'md:pl-[72px]' : ''}>
+        <nav
+          className={`fixed left-0 top-0 z-40 w-full transition-all duration-300 ${
+            isAuthenticated ? 'md:left-[72px] md:w-[calc(100%-72px)]' : ''
+          } ${
+            scrolled
+              ? 'border-b border-[#dce4f4] bg-white/92 py-3 shadow-sm backdrop-blur dark:border-white/10 dark:bg-[#0c1730]/92'
+              : 'border-b border-transparent bg-transparent py-5'
+          }`}
+        >
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+            <button onClick={() => navigate('/')} className="flex items-center gap-3" aria-label="Go to home">
+              <img src={logo} alt="Spectrum Groupe" className={`${isLight ? 'h-9' : 'h-12'} w-auto object-contain`} />
             </button>
 
-            {isAuthenticated ? (
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => navigate('/analysis')}
-                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-600/20 active:scale-95"
-                >
-                  Dashboard
-                </button>
-                <button
-                  onClick={logout}
-                  className="p-2.5 rounded-xl bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all"
-                >
-                  <LogOut size={18} />
-                </button>
-              </div>
-            ) : (
+            <div className="hidden items-center gap-8 text-sm font-bold text-[#64708d] dark:text-white/58 lg:flex">
+              <button onClick={() => scrollToSection('features')} className="transition hover:text-[#2f80ed]">Features</button>
+              <button onClick={() => scrollToSection('pipeline')} className="transition hover:text-[#2f80ed]">Pipeline</button>
+              <button onClick={() => scrollToSection('reports')} className="transition hover:text-[#2f80ed]">Reports</button>
+            </div>
+
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => setIsModalOpen(true)}
-                className="px-6 py-2.5 bg-slate-900 dark:bg-white dark:text-slate-900 text-white font-bold rounded-xl hover:shadow-xl transition-all active:scale-95"
+                onClick={() => setIsMobileMenuOpen((value) => !value)}
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] text-[#64708d] transition dark:border-white/10 dark:bg-white/5 dark:text-white/70 lg:hidden"
+                aria-label="Toggle navigation"
               >
-                Connexion
+                {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
               </button>
-            )}
-          </div>
-        </div>
-      </nav>
 
-      {/* HERO SECTION */}
-      <main className="pt-40 pb-20 px-6">
-        <section className="max-w-7xl mx-auto">
-          <div className="grid gap-16 lg:grid-cols-[1.1fr_0.9fr] items-center">
-            
-            {/* Left Content */}
-            <motion.div 
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center lg:text-left"
+              <button
+                onClick={() => setIsLight((value) => !value)}
+                className="flex items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-3 py-2 text-xs font-bold text-[#64708d] transition dark:border-white/10 dark:bg-white/5 dark:text-white/70"
+                aria-label="Toggle color mode"
+              >
+                <span className="flex h-5 w-9 items-center rounded-full bg-[#dce4f1] p-0.5 dark:bg-[#2c3a57]">
+                  <span className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${isLight ? 'translate-x-0' : 'translate-x-4'}`} />
+                </span>
+                {isLight ? <Sun size={14} className="text-amber-500" /> : <Moon size={14} />}
+                <span className="hidden sm:inline">{isLight ? 'Light' : 'Dark'}</span>
+              </button>
+
+              {isAuthenticated ? (
+                <>
+                  <button
+                    onClick={() => navigate('/analysis')}
+                    className="rounded-xl bg-[#2f80ed] px-4 py-2 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#256fdb]"
+                  >
+                    Open analysis
+                  </button>
+                  <button
+                    onClick={logout}
+                    className="hidden h-10 w-10 items-center justify-center rounded-xl border border-[#d7e0ef] text-[#64708d] transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-white/10 dark:text-white/60 dark:hover:bg-red-500/10 dark:hover:text-red-300 sm:flex"
+                    aria-label="Log out"
+                  >
+                    <LogOut size={17} />
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="rounded-xl bg-[#111b3f] px-4 py-2 text-sm font-black text-white transition hover:bg-[#1d2b5b] dark:bg-white dark:text-[#111b3f]"
+                >
+                  Sign in
+                </button>
+              )}
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {isMobileMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="mx-4 mt-3 rounded-2xl border border-[#dbe4f2] bg-white p-2 shadow-lg shadow-[#1d2b5b]/8 dark:border-white/10 dark:bg-[#101d3a] lg:hidden"
+              >
+                <button onClick={() => scrollToSection('features')} className="block w-full rounded-xl px-4 py-3 text-left text-sm font-black text-[#64708d] hover:bg-[#f8faff] dark:text-white/65 dark:hover:bg-white/6">Features</button>
+                <button onClick={() => scrollToSection('pipeline')} className="block w-full rounded-xl px-4 py-3 text-left text-sm font-black text-[#64708d] hover:bg-[#f8faff] dark:text-white/65 dark:hover:bg-white/6">Pipeline</button>
+                <button onClick={() => scrollToSection('reports')} className="block w-full rounded-xl px-4 py-3 text-left text-sm font-black text-[#64708d] hover:bg-[#f8faff] dark:text-white/65 dark:hover:bg-white/6">Reports</button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </nav>
+
+        <main className="px-4 pb-20 pt-32 sm:px-6 lg:px-8">
+          <section className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.03fr_0.97fr]">
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45 }}
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 text-xs font-bold mb-8 border border-blue-100 dark:border-blue-800 animate-pulse">
-                <Sparkles size={14} />
-                <span>Propulsé par l'Intelligence Artificielle</span>
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#bdd5fa] bg-[#f5f9ff] px-4 py-2 text-xs font-black text-[#2f80ed] dark:border-[#2f80ed]/35 dark:bg-[#10264d] dark:text-[#8bbdff]">
+                <span className="h-2 w-2 rounded-full bg-[#2f80ed]" />
+                AI Migration Solutions
               </div>
 
-              <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-[1.1] mb-8">
-                Auditez votre <br />
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500">
-                  Migration Jira
-                </span> <br />
-                en un clic.
+              <h1 className="max-w-4xl text-4xl font-black leading-[1.05] tracking-tight sm:text-6xl">
+                Audit your Jira Cloud migration before it becomes risky.
               </h1>
 
-              <p className="max-w-xl mx-auto lg:mx-0 text-lg text-slate-600 dark:text-slate-400 leading-relaxed mb-10">
-                Analysez vos exports Data Center, identifiez les bloqueurs critiques et générez des rapports d'aide à la décision grâce à notre moteur RAG hybride.
+              <p className="mt-6 max-w-2xl text-lg leading-8 text-[#64708d] dark:text-white/62">
+                Upload your Jira Data Center package, detect compatibility blockers, and generate a decision-ready migration report from one controlled pipeline.
               </p>
 
-              <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4">
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <button
                   onClick={handleMainAction}
-                  className="group px-8 py-4 bg-blue-600 text-white font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-blue-700 hover:shadow-2xl hover:shadow-blue-600/30 transition-all hover:-translate-y-1"
+                  className="group flex items-center justify-center gap-3 rounded-xl bg-[#2f80ed] px-6 py-4 text-sm font-black text-white shadow-xl shadow-blue-500/20 transition hover:-translate-y-0.5 hover:bg-[#256fdb]"
                 >
-                  {isAuthenticated ? "Accéder à l'analyse" : "Démarrer l'audit gratuit"}
-                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                  {isAuthenticated ? 'Start a new analysis' : 'Start migration audit'}
+                  <ArrowRight size={18} className="transition group-hover:translate-x-1" />
                 </button>
                 <button
                   onClick={() => scrollToSection('pipeline')}
-                  className="px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-[#d7e0ef] bg-white px-6 py-4 text-sm font-black text-[#64708d] transition hover:border-[#bdd5fa] hover:text-[#2f80ed] dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/8"
                 >
-                  Découvrir le process
+                  View pipeline
                 </button>
               </div>
 
-              {/* Stats rapides */}
-              <div className="mt-12 grid grid-cols-3 gap-4 border-t border-slate-200 dark:border-slate-800 pt-10">
-                {[
-                  { label: 'Précision IA', value: '99%' },
-                  { label: 'Format', value: 'PDF / JSON' },
-                  { label: 'Vitesse', value: '< 2min' },
-                ].map((s) => (
-                  <div key={s.label}>
-                    <p className="text-2xl font-black text-slate-900 dark:text-white">{s.value}</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-500 uppercase tracking-wider font-bold">{s.label}</p>
-                  </div>
-                ))}
+              <div className="mt-10 grid max-w-2xl grid-cols-3 gap-3 border-t border-[#dce4f4] pt-7 dark:border-white/10">
+                <HeroMetric value="3" label="Pipeline stages" />
+                <HeroMetric value="PDF" label="Report output" />
+                <HeroMetric value="<2m" label="Fast preview" />
               </div>
             </motion.div>
 
-            {/* Right Preview Card (Bento Style) */}
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="relative group"
-            >
-              <div className="absolute -inset-4 bg-gradient-to-tr from-blue-600/20 to-cyan-400/20 rounded-[3rem] blur-2xl group-hover:opacity-100 transition-opacity opacity-0" />
-              
-              <div className="relative rounded-[2.5rem] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-8 backdrop-blur-sm bg-white/90 dark:bg-slate-900/90">
-                <div className="flex items-start justify-between mb-8">
-                  <div>
-                    <h3 className="text-xl font-black">Ready for Cloud</h3>
-                    <p className="text-sm text-slate-500">Instance : Spectrum-Prod-DC</p>
-                  </div>
-                  <div className="px-3 py-1 rounded-lg bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-black border border-green-100 dark:border-green-500/20">
-                    ANALYSE TERMINÉE
-                  </div>
-                </div>
+            <HeroProductPreview />
+          </section>
 
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Score global</p>
-                    <div className="text-4xl font-black text-blue-600 mt-2">84<span className="text-sm text-slate-400">/100</span></div>
-                  </div>
-                  <div className="p-6 rounded-3xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20">
-                    <p className="text-xs font-bold text-red-500 uppercase">Blockers</p>
-                    <div className="text-4xl font-black text-red-600 mt-2">02</div>
-                  </div>
-                </div>
+          <section className="mx-auto mt-8 grid max-w-7xl gap-3 md:grid-cols-3">
+            <ProductHighlight icon={<Shield size={18} />} label="Secure intake" text="Files move through an authenticated analysis flow." />
+            <ProductHighlight icon={<Brain size={18} />} label="AI assisted" text="Recommendations stay visible and reviewable." />
+            <ProductHighlight icon={<FileText size={18} />} label="Report ready" text="Outputs are structured for migration decisions." />
+          </section>
 
-                <div className="space-y-3">
-                    {['Groovy Scripts', 'Custom Fields', 'Marketplace Apps'].map((item, i) => (
-                        <div key={item} className="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
-                            <span className="font-bold text-sm">{item}</span>
-                            <CheckCircle2 size={18} className={i === 2 ? "text-orange-500" : "text-green-500"} />
-                        </div>
-                    ))}
-                </div>
+          <section id="features" className="mx-auto mt-24 max-w-7xl">
+            <SectionHeading eyebrow="Features" title="A clearer way to prepare Jira Cloud migration." />
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+              {featureCards.map((feature) => (
+                <FeatureCard key={feature.title} {...feature} />
+              ))}
+            </div>
+          </section>
 
-                <div className="mt-8 p-4 rounded-2xl bg-slate-900 text-white flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
-                            <Brain size={20} />
-                        </div>
-                        <div>
-                            <p className="text-[10px] uppercase font-black text-blue-300">Recommandation IA</p>
-                            <p className="text-xs font-medium italic">"Mettre à jour ScriptRunner vers v6.4..."</p>
-                        </div>
-                    </div>
-                    <ChevronRight size={18} className="text-slate-500" />
+          <section id="pipeline" className="mx-auto mt-24 max-w-7xl overflow-hidden rounded-[22px] bg-[#111b3f] p-6 text-white shadow-xl shadow-[#111b3f]/10 sm:p-8 lg:p-10">
+            <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.25em] text-[#8bbdff]">Pipeline</p>
+                <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">From package upload to report-ready recommendations.</h2>
+                <p className="mt-4 text-sm leading-7 text-white/58">
+                  The pipeline keeps technical parsing, compatibility checks, and report generation visible from the first upload to the final decision.
+                </p>
+                <div className="mt-6 rounded-2xl border border-white/10 bg-white/7 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-wide text-white/35">Operational promise</p>
+                  <p className="mt-2 text-sm leading-6 text-white/72">
+                    Every stage produces traceable output, so migration teams can review what happened before acting on AI recommendations.
+                  </p>
                 </div>
               </div>
-            </motion.div>
-          </div>
-        </section>
 
-        {/* FEATURES SECTION */}
-        <section id="features" className="mt-40">
-          <motion.div 
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={containerVariants}
-            className="text-center mb-16"
-          >
-            <p className="text-blue-600 font-black text-sm uppercase tracking-[0.3em] mb-4">Fonctionnalités</p>
-            <h2 className="text-4xl md:text-5xl font-black">Tout ce qu'il vous faut pour réussir.</h2>
-          </motion.div>
+              <div className="grid gap-3">
+                <PipelineCard step="01" icon={<Database size={22} />} title="Prepare data" desc="Normalize exports, scripts, and metadata into a readable package." active />
+                <PipelineCard step="02" icon={<GitBranch size={22} />} title="Map rules" desc="Compare detected patterns with cloud migration compatibility checks." />
+                <PipelineCard step="03" icon={<FileText size={22} />} title="Generate report" desc="Turn findings into a readable action plan for migration stakeholders." />
+              </div>
+            </div>
+          </section>
 
-          <div className="grid gap-8 md:grid-cols-3">
-            {[
-              { icon: <UploadCloud size={28} />, title: 'Import Multi-format', desc: 'Prend en charge les exports XML, les scripts Groovy et les archives ZIP complexes de Jira DC.', color: 'blue' },
-              { icon: <Shield size={28} />, title: 'Analyse de Risque', desc: 'Identification automatique des API dépréciées et des incompatibilités de schémas Cloud.', color: 'green' },
-              { icon: <Brain size={28} />, title: 'Intelligence RAG', desc: 'Croisement de vos données avec la documentation Atlassian officielle mise à jour en temps réel.', color: 'purple' },
-            ].map((f) => (
-              <motion.div 
-                key={f.title}
-                variants={itemVariants}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                whileHover={{ y: -10 }}
-                className="p-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] shadow-sm hover:shadow-2xl transition-all"
+          <section id="reports" className="mx-auto mt-24 max-w-7xl rounded-[22px] border border-[#dbe4f2] bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#101d3a] sm:p-8">
+            <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.25em] text-[#2f80ed]">Reports</p>
+                <h2 className="mt-3 text-3xl font-black tracking-tight">Decision-ready outputs for migration teams.</h2>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-[#64708d] dark:text-white/58">
+                  Export findings as structured reports that can be reviewed by administrators, project owners, and cloud migration stakeholders.
+                </p>
+                <button
+                  onClick={handleMainAction}
+                  className="mt-6 inline-flex items-center justify-center gap-3 rounded-xl bg-[#2f80ed] px-6 py-4 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#256fdb]"
+                >
+                  Open analysis
+                  <ArrowRight size={18} />
+                </button>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                <ReportArtifact icon={<Brain size={18} />} title="Executive summary" text="Clear AI summary for decision makers." />
+                <ReportArtifact icon={<Shield size={18} />} title="Risk register" text="Blockers, review items, and cloud readiness indicators." />
+                <ReportArtifact icon={<FileText size={18} />} title="Export formats" text="PDF and JSON outputs for review or integration." />
+              </div>
+            </div>
+          </section>
+
+          <section className="mx-auto mt-10 max-w-7xl rounded-[22px] bg-[#2f80ed] p-6 text-white shadow-xl shadow-blue-500/20 sm:p-8">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.25em] text-white/60">Next step</p>
+                <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Ready to audit your migration package?</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-white/72">
+                  Start with one export package and turn migration uncertainty into a structured readiness report.
+                </p>
+              </div>
+              <button
+                onClick={handleMainAction}
+                className="inline-flex items-center justify-center gap-3 rounded-xl bg-white px-6 py-4 text-sm font-black text-[#111b3f] transition hover:-translate-y-0.5"
               >
-                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-8 bg-${f.color}-50 dark:bg-${f.color}-500/10 text-${f.color}-600`}>
-                  {f.icon}
-                </div>
-                <h3 className="text-xl font-black mb-4">{f.title}</h3>
-                <p className="text-slate-500 dark:text-slate-400 leading-relaxed">{f.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-
-        {/* PIPELINE SECTION */}
-        <section id="pipeline" className="mt-40 rounded-[3rem] bg-slate-900 dark:bg-slate-950 p-12 lg:p-20 text-white overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-1/2 h-full bg-blue-600/10 blur-[120px] -z-0" />
-          
-          <div className="relative z-10 grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <p className="text-blue-400 font-black text-sm uppercase tracking-[0.3em] mb-4">Pipeline</p>
-              <h2 className="text-4xl md:text-5xl font-black mb-8">Un flux de travail <br />entièrement automatisé.</h2>
-              <div className="space-y-6">
-                {[
-                  { step: '01', title: 'Extraction', text: 'Analyse profonde de la structure XML et Groovy.' },
-                  { step: '02', title: 'Mapping', text: 'Correspondance avec les schémas Jira Cloud.' },
-                  { step: '03', title: 'Evaluation IA', text: 'Validation par Gemini Pro & Base de connaissances RAG.' }
-                ].map(s => (
-                  <div key={s.step} className="flex gap-6 items-start group">
-                    <span className="text-3xl font-black text-blue-500/30 group-hover:text-blue-500 transition-colors">{s.step}</span>
-                    <div>
-                      <h4 className="text-lg font-bold mb-1">{s.title}</h4>
-                      <p className="text-slate-400">{s.text}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                {isAuthenticated ? 'Open analysis' : 'Sign in to start'}
+                <ArrowRight size={18} />
+              </button>
             </div>
+          </section>
+        </main>
 
-            <div className="grid grid-cols-2 gap-4">
-               {[Database, GitBranch, Brain, FileText].map((Icon, idx) => (
-                 <div key={idx} className="p-8 rounded-3xl bg-white/5 border border-white/10 flex flex-col items-center gap-4 hover:bg-white/10 transition-colors">
-                    <Icon size={32} className="text-blue-400" />
-                    <span className="text-xs font-black uppercase tracking-widest text-slate-500">Service {idx + 1}</span>
-                 </div>
-               ))}
-            </div>
-          </div>
-        </section>
+        <footer className="border-t border-[#dce4f4] px-6 py-8 text-center dark:border-white/10">
+          <img src={logo} alt="Spectrum Groupe" className={`${isLight ? 'h-7' : 'h-10'} mx-auto w-auto object-contain opacity-70`} />
+          <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-[#8a96b3] dark:text-white/40">
+            © 2026 Spectrum Groupe · Jira Cloud Migration Intelligence
+          </p>
+        </footer>
+      </div>
 
-        {/* CTA FINAL */}
-        <section className="mt-40 text-center relative">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-blue-600/20 blur-[120px] -z-10" />
-          <h2 className="text-4xl md:text-6xl font-black mb-8 tracking-tight">
-            Prêt à simplifier votre <br /> passage au Cloud ?
-          </h2>
-          <button
-            onClick={handleMainAction}
-            className="px-12 py-5 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 transition-all shadow-2xl shadow-blue-600/40 hover:-translate-y-1 inline-flex items-center gap-3"
-          >
-            Commencer l'analyse maintenant
-            <ArrowRight size={22} />
-          </button>
-        </section>
-      </main>
-
-      <footer className="border-t border-slate-200 dark:border-slate-800 py-12 text-center">
-        <div className="flex justify-center items-center gap-6 mb-6">
-            <img src={logoSpectrum} alt="Logo" className={`h-6 opacity-50 ${darkMode ? 'brightness-200' : ''}`} />
-        </div>
-        <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.2em]">
-          © 2026 Spectrum Groupe • Jira Cloud Migration Intelligence
-        </p>
-      </footer>
-
-      {/* LOGIN MODAL */}
       <AnimatePresence>
-        {isModalOpen && (
-          <LoginModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-        )}
+        {isModalOpen && <LoginModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />}
       </AnimatePresence>
     </div>
   );
 };
+
+const HeroMetric = ({ value, label }: { value: string; label: string }) => (
+  <div>
+    <p className="text-2xl font-black">{value}</p>
+    <p className="mt-1 text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/40">{label}</p>
+  </div>
+);
+
+const ProductHighlight = ({ icon, label, text }: { icon: React.ReactNode; label: string; text: string }) => (
+  <article className="flex items-start gap-3 rounded-2xl border border-[#dbe4f2] bg-white/75 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eaf3ff] text-[#2f80ed] dark:bg-[#10264d] dark:text-[#8bbdff]">
+      {icon}
+    </span>
+    <div>
+      <h3 className="text-sm font-black">{label}</h3>
+      <p className="mt-1 text-xs leading-5 text-[#64708d] dark:text-white/55">{text}</p>
+    </div>
+  </article>
+);
+
+const HeroProductPreview = () => (
+  <motion.div
+    initial={{ opacity: 0, y: 22 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.45, delay: 0.08 }}
+    className="rounded-[22px] bg-white p-4 shadow-xl shadow-[#1d2b5b]/8 ring-1 ring-[#dbe4f2] dark:bg-[#101d3a] dark:ring-white/10"
+  >
+    <div className="overflow-hidden rounded-[18px] border border-[#dbe4f2] dark:border-white/10">
+      <div className="flex items-center justify-between bg-[#f8faff] px-5 py-4 dark:bg-white/5">
+        <div>
+          <p className="text-xs font-black uppercase text-[#8a96b3] dark:text-white/45">Live report preview</p>
+          <h2 className="mt-1 text-lg font-black">Spectrum-Prod-DC</h2>
+        </div>
+        <span className="rounded-full bg-[#e9fbf4] px-3 py-1.5 text-[10px] font-black uppercase text-[#159866] dark:bg-[#23d18b]/12 dark:text-[#67e8b9]">
+          Ready
+        </span>
+      </div>
+
+      <div className="grid gap-4 p-5 md:grid-cols-[160px_1fr]">
+        <div className="rounded-2xl bg-[#eaf3ff] p-5 text-center text-[#2f80ed] dark:bg-[#2f80ed]/12 dark:text-[#8bbdff]">
+          <p className="text-[10px] font-black uppercase opacity-70">Migration score</p>
+          <p className="mt-3 text-5xl font-black">84</p>
+          <p className="text-xs font-black opacity-60">/100 readiness</p>
+        </div>
+
+        <div className="space-y-3">
+          <PreviewRow label="Data preparation" value="Complete" tone="green" progress={100} />
+          <PreviewRow label="Compatibility analysis" value="2 blockers" tone="red" progress={72} />
+          <PreviewRow label="AI report generation" value="Ready" tone="blue" progress={100} />
+        </div>
+      </div>
+
+      <div className="grid gap-3 px-5 pb-5 sm:grid-cols-2">
+        <PreviewFinding title="ScriptRunner update" text="Upgrade path required before migration." tone="warning" />
+        <PreviewFinding title="Marketplace apps" text="4 apps mapped to Cloud equivalents." tone="success" />
+      </div>
+
+      <div className="m-5 mt-0 rounded-2xl bg-[#111b3f] p-4 text-white dark:bg-[#071126]">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#2f80ed]">
+              <Brain size={20} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase text-[#8bbdff]">AI recommendation</p>
+              <p className="truncate text-xs text-white/75">Prioritize app compatibility and automation review.</p>
+            </div>
+          </div>
+          <span className="rounded-lg bg-white/8 px-3 py-2 text-[10px] font-black uppercase text-white/70">Report</span>
+        </div>
+      </div>
+    </div>
+  </motion.div>
+);
+
+const PreviewRow = ({ label, value, tone, progress }: { label: string; value: string; tone: 'green' | 'red' | 'blue'; progress: number }) => {
+  const color = tone === 'green' ? 'bg-[#23d18b]' : tone === 'red' ? 'bg-[#e54848]' : 'bg-[#2f80ed]';
+  const textColor = tone === 'green' ? 'text-[#159866] dark:text-[#67e8b9]' : tone === 'red' ? 'text-[#e54848] dark:text-red-300' : 'text-[#2f80ed] dark:text-[#8bbdff]';
+
+  return (
+    <div className="rounded-2xl border border-[#edf1f8] bg-white p-3 dark:border-white/10 dark:bg-white/5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs font-black">{label}</span>
+        <span className={`text-[10px] font-black uppercase ${textColor}`}>{value}</span>
+      </div>
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#dfe8f6] dark:bg-white/10">
+        <span className={`block h-full rounded-full ${color}`} style={{ width: `${progress}%` }} />
+      </div>
+    </div>
+  );
+};
+
+const PreviewFinding = ({ title, text, tone }: { title: string; text: string; tone: 'warning' | 'success' }) => (
+  <div className={`rounded-2xl border p-4 ${tone === 'warning' ? 'border-[#ffd36d] bg-[#fff9e6] text-[#9b4f00] dark:border-[#f59e0b]/30 dark:bg-[#f59e0b]/10 dark:text-[#ffbe4d]' : 'border-green-200 bg-[#e9fbf4] text-[#159866] dark:border-[#23d18b]/20 dark:bg-[#23d18b]/12 dark:text-[#67e8b9]'}`}>
+    <h3 className="text-xs font-black">{title}</h3>
+    <p className="mt-1 text-xs leading-5 opacity-75">{text}</p>
+  </div>
+);
+
+const SectionHeading = ({ eyebrow, title }: { eyebrow: string; title: string }) => (
+  <div>
+    <p className="text-xs font-black uppercase tracking-[0.25em] text-[#2f80ed]">{eyebrow}</p>
+    <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-tight sm:text-4xl">{title}</h2>
+  </div>
+);
+
+const featureToneClasses = {
+  blue: 'bg-[#eaf3ff] text-[#2f80ed] dark:bg-[#2f80ed]/12 dark:text-[#8bbdff]',
+  green: 'bg-[#e9fbf4] text-[#159866] dark:bg-[#23d18b]/12 dark:text-[#67e8b9]',
+  purple: 'bg-[#f3eefe] text-[#7c3aed] dark:bg-[#7c3aed]/14 dark:text-[#c4b5fd]',
+};
+
+const FeatureCard = ({ icon, title, desc, tone }: { icon: React.ReactNode; title: string; desc: string; tone: keyof typeof featureToneClasses }) => (
+  <article className="rounded-[18px] border border-[#dbe4f2] bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-[#1d2b5b]/8 dark:border-white/10 dark:bg-[#101d3a]">
+    <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-2xl ${featureToneClasses[tone]}`}>{icon}</div>
+    <h3 className="text-lg font-black">{title}</h3>
+    <p className="mt-3 text-sm leading-7 text-[#64708d] dark:text-white/58">{desc}</p>
+  </article>
+);
+
+const PipelineCard = ({ step, icon, title, desc, active }: { step: string; icon: React.ReactNode; title: string; desc: string; active?: boolean }) => (
+  <div className={`rounded-2xl border p-5 transition ${active ? 'border-[#2f80ed]/45 bg-[#2f80ed]/14' : 'border-white/10 bg-white/7'}`}>
+    <div className="flex items-start gap-4">
+      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${active ? 'bg-[#2f80ed] text-white' : 'bg-white/8 text-[#8bbdff]'}`}>
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-black uppercase tracking-wide text-white/35">{step}</span>
+          {active && <span className="rounded-full bg-[#23d18b]/16 px-2 py-0.5 text-[9px] font-black uppercase text-[#67e8b9]">First stage</span>}
+        </div>
+        <h3 className="mt-1 text-sm font-black">{title}</h3>
+        <p className="mt-2 text-xs leading-5 text-white/55">{desc}</p>
+      </div>
+    </div>
+  </div>
+);
+
+const ReportArtifact = ({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) => (
+  <article className="rounded-2xl border border-[#edf1f8] bg-[#f8faff] p-4 dark:border-white/10 dark:bg-white/5">
+    <div className="flex items-start gap-3">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#2f80ed] shadow-sm dark:bg-[#10264d] dark:text-[#8bbdff]">
+        {icon}
+      </span>
+      <div>
+        <h3 className="text-sm font-black">{title}</h3>
+        <p className="mt-1 text-xs leading-5 text-[#64708d] dark:text-white/55">{text}</p>
+      </div>
+    </div>
+  </article>
+);
 
 export default Home;

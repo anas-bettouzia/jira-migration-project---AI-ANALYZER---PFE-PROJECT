@@ -19,7 +19,7 @@ function App() {
           />
           <Route 
             path="/reports/:reportId" 
-            element={<ReportPage />} 
+            element={token ? <ReportPage /> : <Navigate to="/" />} 
           />
           <Route 
             path="/login" 

@@ -22,7 +22,8 @@ export interface ReportData {
   total_components?: number;
   migration_recommendation?: string;
   security_status?: string;
-  details?: any;
+  details?: unknown;
+  sections?: ReportSections;
   ai_insights?: string;
   ai_summary?: string;
   ai_used?: boolean;
@@ -30,7 +31,38 @@ export interface ReportData {
   ai_model?: string;
   analysis_id?: string;
   matrix_id?: string;
-  [key: string]: any; // Accepter d'autres champs
+  [key: string]: unknown; // Accepter d'autres champs
+}
+
+export interface ReportComponent {
+  component_id?: string;
+  component_name?: string;
+  component_type?: string;
+  plugin?: string;
+  location?: Record<string, unknown>;
+  final_status?: string;
+  final_risk?: string;
+  risk_level?: string;
+  overall_status?: string;
+  confidence?: number;
+  reasoning_summary?: string;
+  recommended_action?: string;
+  features_analyzed?: Array<string | { feature?: string }>;
+}
+
+export interface ReportRecommendation {
+  priority?: string;
+  component_id?: string;
+  component_name?: string;
+  status?: string;
+  action?: string;
+  reason?: string;
+}
+
+export interface ReportSections {
+  components?: ReportComponent[];
+  blockers?: ReportComponent[];
+  recommendations?: ReportRecommendation[];
 }
 
 export const reportService = {

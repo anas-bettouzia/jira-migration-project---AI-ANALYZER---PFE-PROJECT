@@ -1,40 +1,101 @@
-import React, { useState } from 'react';
+// src/modules/auth/LoginModal.tsx
+import React, { useCallback, useState } from 'react';
 import { Lock, Mail, Loader2, X } from 'lucide-react';
 import { authService } from '../../services/authService';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
+import GoogleSignInButton from '../../shared/components/GoogleSignInButton';
+import type { AuthResponse } from '../../shared/types/auth';
 
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+// 1. Expressions régulières miroir du backend Flask
+const EMAIL_REGEX = /^[\w.-]+@[\w.-]+\.\w+$/;
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\w\W]{8,}$/;
+
+const getAuthErrorMessage = (error: unknown, isLogin: boolean) => {
+  const response = (error as { response?: { data?: { error?: string } } }).response;
+  return response?.data?.error || (isLogin ? 'Identifiants invalides.' : 'Erreur lors de l\'inscription.');
+};
+
 const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
-  const [email, setEmail] = useState('admin@test.com');
-  const [password, setPassword] = useState('1234');
+  const [isLogin, setIsLogin] = useState(true); // Bascule Login / Register
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
   const navigate = useNavigate();
   const setToken = useAuthStore((state) => state.setToken);
 
-  if (!isOpen) return null;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    
+    // 2. Validations Frontend exclusives au mode INSCRIPTION (Register)
+    if (!isLogin) {
+      if (!EMAIL_REGEX.test(email.trim())) {
+        setError("Le format de l'adresse email est invalide.");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!PASSWORD_REGEX.test(password)) {
+        setError(
+          "Le mot de passe doit contenir au moins 8 caractères, " +
+          "une majuscule, une minuscule et un chiffre."
+        );
+        setIsLoading(false);
+        return;
+      }
+    }
+
     try {
-      const data = await authService.login(email, password);
-      setToken(data.token);
+      if (isLogin) {
+        // Logique de Connexion
+        const data = await authService.login(email, password);
+        setToken(data.token);
+      } else {
+        // Logique d'Inscription
+        await authService.register(email, password);
+        // Si l'inscription réussit, on connecte l'utilisateur automatiquement
+        const data = await authService.login(email, password);
+        setToken(data.token);
+      }
+      
       onClose(); // Fermer la modal
       navigate('/analysis'); 
-    } catch (err) {
-      setError('Identifiants invalides.');
+    } catch (error) {
+      // Récupération dynamique du dictionnaire d'erreur personnalisé renvoyé par Flask
+      setError(getAuthErrorMessage(error, isLogin));
     } finally {
       setIsLoading(false);
     }
   };
+
+  const toggleMode = () => {
+    setIsLogin(!isLogin);
+    setError(''); // On efface les erreurs quand on change de mode
+  };
+
+  const handleGoogleAuthenticated = useCallback(
+    (data: AuthResponse) => {
+      setToken(data.token);
+      onClose();
+      navigate('/analysis');
+    },
+    [navigate, onClose, setToken]
+  );
+
+  const handleGoogleError = useCallback((message: string) => {
+    setError(message);
+  }, []);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -53,8 +114,27 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
         </button>
 
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Connexion</h2>
-          <p className="text-sm text-slate-500 mt-2">Accédez à votre assistant de migration</p>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+            {isLogin ? 'Connexion' : 'Créer un compte'}
+          </h2>
+          <p className="text-sm text-slate-500 mt-2">
+            {isLogin ? 'Accédez à votre assistant de migration' : 'Rejoignez-nous pour commencer'}
+          </p>
+        </div>
+
+        <div className="mb-6">
+          <GoogleSignInButton
+            width={352}
+            onAuthenticated={handleGoogleAuthenticated}
+            onError={handleGoogleError}
+          />
+          <div className="mt-5 flex items-center gap-3">
+            <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+              ou
+            </span>
+            <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -65,6 +145,8 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input 
                   type="email" 
+                  required
+                  placeholder="nom@exemple.com"
                   className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -77,6 +159,8 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input 
                   type="password" 
+                  required
+                  placeholder="••••••••"
                   className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -90,11 +174,26 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-4 bg-[var(--spectrum-blue)] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 flex justify-center items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all"
+            className="w-full py-4 bg-[var(--spectrum-blue)] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 flex justify-center items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-70 disabled:hover:scale-100"
           >
-            {isLoading ? <Loader2 className="animate-spin" size={20} /> : "S'identifier"}
+            {isLoading ? <Loader2 className="animate-spin" size={20} /> : (isLogin ? "S'identifier" : "S'inscrire")}
           </button>
         </form>
+
+        {/* Bouton de bascule Login / Register */}
+        <div className="mt-6 text-center">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {isLogin ? "Pas encore de compte ?" : "Déjà un compte ?"}
+            <button 
+              onClick={toggleMode}
+              type="button"
+              className="ml-1.5 font-bold text-[var(--spectrum-blue)] hover:underline"
+            >
+              {isLogin ? "Créer un compte" : "Se connecter"}
+            </button>
+          </p>
+        </div>
+
       </div>
     </div>
   );

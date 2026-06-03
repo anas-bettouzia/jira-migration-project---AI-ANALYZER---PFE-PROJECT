@@ -1,354 +1,703 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Download, 
-  FileJson, 
-  AlertTriangle, 
-  Sparkles,
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Brain,
+  CheckCircle2,
+  Download,
+  FileJson,
+  FileText,
+  Gauge,
   Layers,
+  Loader2,
+  Moon,
+  ShieldAlert,
   ShieldCheck,
-  Zap
+  Sparkles,
+  Sun,
+  XCircle,
+  Zap,
 } from 'lucide-react';
 
-import { reportService, type ReportData } from '../../services/reportService';
+import { MainSidebar } from '../../shared/components/MainSidebar';
+import {
+  reportService,
+  type ReportComponent,
+  type ReportData,
+  type ReportRecommendation,
+} from '../../services/reportService';
+
+type SecurityTone = 'red' | 'yellow' | 'green';
+
+interface SecurityStatus {
+  label: string;
+  tone: SecurityTone;
+  description: string;
+}
+
+interface DetailEntry {
+  title: string;
+  value: unknown;
+}
+
+const THEME_KEY = 'jira-migration-theme';
 
 export const ReportPage: React.FC = () => {
   const { reportId } = useParams<{ reportId: string }>();
   const navigate = useNavigate();
   const [report, setReport] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLight, setIsLight] = useState(() => {
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    if (savedTheme) return savedTheme === 'light';
+    return !window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
 
-    useEffect(() => {
-        const fetchReport = async () => {
-        if (!reportId) return;
-        try {
-            const data = await reportService.getReport(reportId);
-            console.log('📊 Rapport complet reçu:', data);
-            console.log('📊 Statistics:', data.statistics);
-            console.log('📊 Clés de statistics:', Object.keys(data.statistics || {}));
-            console.log('📊 Blocker count:', data?.statistics?.blocker_count);
-            console.log('📊 Total components:', data?.statistics?.total_components);
-            console.log('📊 Security status:', data?.statistics?.security_status);
-            console.log('📊 Compatible count:', data?.statistics?.compatible_count);
-            console.log('📊 Incompatible count:', data?.statistics?.incompatible_count);
-            setReport(data);
-        } catch (error) {
-            console.error("Erreur chargement rapport:", error);
-        } finally {
-            setLoading(false);
-        }
-        };
-        fetchReport();
-    }, [reportId]);
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', !isLight);
+    localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark');
+  }, [isLight]);
 
-    const handleDownload = async (type: 'pdf' | 'json') => {
-        if (reportId) {
-        await reportService.downloadReport(reportId, type);
-        }
+  useEffect(() => {
+    const fetchReport = async () => {
+      if (!reportId) return;
+      try {
+        const data = await reportService.getReport(reportId);
+        setReport(data);
+      } catch (error) {
+        console.error('Erreur chargement rapport:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const formatValue = (value: string | number | undefined | null) => {
-      return value === undefined || value === null ? '-' : value;
-    };
+    fetchReport();
+  }, [reportId]);
 
-    const formatPercentage = (value: number | undefined | null) => {
-      return value === undefined || value === null ? '-' : `${value}%`;
+  const metrics = useMemo(() => {
+    const statistics = report?.statistics;
+    return {
+      score: statistics?.migration_score ?? report?.migration_score ?? 0,
+      blockers: statistics?.blocker_count ?? report?.blocker_count ?? 0,
+      components: statistics?.total_components ?? report?.total_components ?? 0,
+      compatible: statistics?.compatible_count ?? 0,
+      incompatible: statistics?.incompatible_count ?? 0,
+      major: statistics?.major_count ?? 0,
+      recommendation: statistics?.migration_recommendation ?? report?.migration_recommendation,
     };
+  }, [report]);
 
-    const reportScore = report?.statistics?.migration_score ?? report?.migration_score;
-    const reportBlockers = report?.statistics?.blocker_count ?? report?.blocker_count;
-    const reportItems = report?.statistics?.total_components ?? report?.total_components;
-    
-    // Calculer le statut de sécurité basé sur les métriques disponibles
-    const calculateSecurityStatus = () => {
-      const incompatible = report?.statistics?.incompatible_count ?? 0;
-      const blocker = report?.statistics?.blocker_count ?? 0;
-      const major = report?.statistics?.major_count ?? 0;
-      
-      if (incompatible > 0 || blocker > 0) return { label: 'Critique', color: 'red', icon: '🔴' };
-      if (major > 0) return { label: 'Attention', color: 'yellow', icon: '🟡' };
-      return { label: 'Optimal', color: 'green', icon: '🟢' };
+  const securityStatus = useMemo<SecurityStatus>(() => {
+    if (metrics.incompatible > 0 || metrics.blockers > 0) {
+      return {
+        label: 'Critical',
+        tone: 'red',
+        description: 'Blocking issues must be resolved before migration.',
+      };
+    }
+
+    if (metrics.major > 0) {
+      return {
+        label: 'Review',
+        tone: 'yellow',
+        description: 'Major findings require validation by the migration team.',
+      };
+    }
+
+    return {
+      label: 'Healthy',
+      tone: 'green',
+      description: 'No critical migration blockers detected.',
     };
-    
-    const reportSecurity = calculateSecurityStatus();
-    const reportRecommendation = report?.statistics?.migration_recommendation ?? report?.migration_recommendation;
+  }, [metrics.blockers, metrics.incompatible, metrics.major]);
 
-    const hasSummary = Boolean(report?.summary && typeof report.summary === 'string' && report.summary.length > 0);
+  const detailEntries = useMemo(() => normalizeDetails(report?.details), [report?.details]);
+  const componentFindings = useMemo(() => report?.sections?.components ?? [], [report?.sections?.components]);
+  const prioritizedRecommendations = useMemo(
+    () => report?.sections?.recommendations ?? [],
+    [report?.sections?.recommendations],
+  );
+  const sanitizedAiSummary = useMemo(() => sanitizeReportText(report?.ai_summary ?? '', report), [report]);
+  const hasSummary = Boolean(report?.summary && typeof report.summary === 'string' && report.summary.length > 0);
+
+  const handleDownload = async (type: 'pdf' | 'json') => {
+    if (!reportId) return;
+    await reportService.downloadReport(reportId, type);
+  };
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 dark:bg-[#020617]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <p className="mt-4 text-slate-500 font-bold">Chargement du rapport détaillé...</p>
+      <div className="min-h-screen bg-[#eef2fb] text-[#111b3f] transition-colors duration-300 dark:bg-[#071126] dark:text-white">
+        <MainSidebar activePage="reports" />
+        <div className="flex min-h-screen items-center justify-center md:pl-[72px]">
+          <div className="flex flex-col items-center">
+            <Loader2 className="animate-spin text-[#2f80ed]" size={34} />
+            <p className="mt-4 text-sm font-black text-[#64708d] dark:text-white/60">Loading migration report...</p>
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (!report) return <div className="p-20 text-center font-bold">Rapport introuvable.</div>;
-
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#020617] text-slate-900 dark:text-white">
-      <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <button 
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-slate-500 hover:text-blue-600 font-bold transition-colors"
-          >
-            <ArrowLeft size={18} /> Retour
-          </button>
-          
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => handleDownload('pdf')}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 title='Télécharger PDF'"
+  if (!report) {
+    return (
+      <div className="min-h-screen bg-[#eef2fb] text-[#111b3f] transition-colors duration-300 dark:bg-[#071126] dark:text-white">
+        <MainSidebar activePage="reports" />
+        <div className="flex min-h-screen items-center justify-center px-6 md:pl-[72px]">
+          <div className="max-w-md rounded-2xl border border-[#dbe4f2] bg-white p-8 text-center shadow-sm dark:border-white/10 dark:bg-[#101d3a]">
+            <XCircle className="mx-auto text-red-500" size={34} />
+            <h1 className="mt-4 text-xl font-black">Report not found</h1>
+            <p className="mt-2 text-sm text-[#64708d] dark:text-white/58">The requested migration report could not be loaded.</p>
+            <button
+              onClick={() => navigate('/analysis')}
+              className="mt-6 rounded-xl bg-[#2f80ed] px-5 py-3 text-sm font-black text-white"
             >
-              <Download size={20} />
+              Back to analysis
             </button>
-            <button 
-              onClick={() => handleDownload('json')}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-400 title='Télécharger JSON'"
-            >
-              <FileJson size={20} />
-            </button>
-            <span className="ml-4 text-xs font-mono text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
-              ID: {reportId?.substring(0, 8)}...
-            </span>
           </div>
         </div>
-      </header>
+      </div>
+    );
+  }
 
-      <main className="max-w-7xl mx-auto py-10 px-6">
-        <div className="grid lg:grid-cols-3 gap-8 mb-12">
-          <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-8 shadow-xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center">
-            <div className="relative mb-4">
-              <svg className="w-32 h-32 transform -rotate-90">
-                <circle className="text-slate-100 dark:text-slate-800" strokeWidth="10" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64"/>
-                <circle className="text-blue-600" strokeWidth="10" strokeDasharray={364} strokeDashoffset={364 - (364 * (reportScore ?? 0)) / 100} strokeLinecap="round" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64"/>
-              </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-3xl font-black">
-                {formatPercentage(reportScore)}
-              </span>
-            </div>
-            <h3 className="font-black text-xl text-center">Score de migration</h3>
-          </div>
+  return (
+    <div className="min-h-screen bg-[#eef2fb] text-[#111b3f] transition-colors duration-300 dark:bg-[#071126] dark:text-white">
+      <MainSidebar activePage="reports" />
 
-          <div className="lg:col-span-2 bg-gradient-to-br from-blue-700 to-indigo-900 rounded-[2rem] p-8 text-white shadow-2xl relative overflow-hidden">
-            <Sparkles className="absolute top-4 right-4 text-blue-300/30" size={60} />
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 bg-blue-400/20 rounded-lg"><Zap size={20} /></div>
-                <h3 className="text-xl font-black">Recommandation stratégique</h3>
+      <div className="min-h-screen md:pl-[72px]">
+        <header className="sticky top-0 z-30 border-b border-[#dce4f4] bg-white/95 backdrop-blur transition-colors duration-300 dark:border-white/10 dark:bg-[#0c1730]/95">
+          <div className="flex h-[62px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+            <div className="flex min-w-0 items-center gap-3">
+              <button
+                onClick={() => navigate(-1)}
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#d7e0ef] text-[#64708d] transition hover:border-[#bdd5fa] hover:text-[#2f80ed] dark:border-white/10 dark:text-white/65 dark:hover:bg-white/6"
+                aria-label="Go back"
+              >
+                <ArrowLeft size={18} />
+              </button>
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">Migration report</p>
+                <h1 className="truncate text-base font-black sm:text-lg">Report {shortId(reportId)}</h1>
               </div>
-              <p className="text-blue-50 leading-relaxed text-lg italic">
-                {reportRecommendation || 'Aucune recommandation stratégique disponible pour ce rapport.'}
-              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsLight((value) => !value)}
+                className="hidden items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-3 py-2 text-xs font-bold text-[#64708d] transition dark:border-white/10 dark:bg-white/5 dark:text-white/70 sm:flex"
+                aria-label="Toggle color mode"
+              >
+                <span className="flex h-5 w-9 items-center rounded-full bg-[#dce4f1] p-0.5 dark:bg-[#2c3a57]">
+                  <span className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${isLight ? 'translate-x-0' : 'translate-x-4'}`} />
+                </span>
+                {isLight ? <Sun size={14} className="text-amber-500" /> : <Moon size={14} />}
+                {isLight ? 'Light' : 'Dark'}
+              </button>
+              <button
+                onClick={() => handleDownload('json')}
+                className="flex items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-3 py-2 text-sm font-bold text-[#64708d] transition hover:border-[#bdd5fa] hover:text-[#2f80ed] dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/8"
+              >
+                <FileJson size={16} />
+                JSON
+              </button>
+              <button
+                onClick={() => handleDownload('pdf')}
+                className="flex items-center gap-2 rounded-xl bg-[#2f80ed] px-4 py-2 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#256fdb]"
+              >
+                <Download size={16} />
+                PDF
+              </button>
             </div>
           </div>
-        </div>
+        </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <DetailStat icon={<AlertTriangle className="text-red-500"/>} label="Blockers critiques" value={formatValue(reportBlockers)} color="red" />
-          <DetailStat icon={<Layers className="text-blue-500"/>} label="Éléments analysés" value={formatValue(reportItems)} color="blue" />
-          <SecurityStat status={reportSecurity} />
-        </div>
+        <main className="px-4 py-6 sm:px-6 lg:px-8">
+          <section className="mx-auto max-w-7xl">
+            <div className="mb-6 grid gap-4 lg:grid-cols-[1fr_360px]">
+              <div className="rounded-[22px] bg-white p-6 shadow-sm ring-1 ring-[#dbe4f2] dark:bg-[#101d3a] dark:ring-white/10 sm:p-8">
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#bdd5fa] bg-[#f5f9ff] px-4 py-2 text-xs font-black text-[#2f80ed] dark:border-[#2f80ed]/35 dark:bg-[#10264d] dark:text-[#8bbdff]">
+                      <Sparkles size={14} />
+                      AI-generated migration assessment
+                    </div>
+                    <h2 className="max-w-3xl text-3xl font-black tracking-tight sm:text-4xl">Cloud readiness report</h2>
+                    <p className="mt-4 max-w-3xl text-sm leading-7 text-[#64708d] dark:text-white/60">
+                      {metrics.recommendation || 'No strategic recommendation is available for this report yet.'}
+                    </p>
+                  </div>
 
-        <div className="grid gap-6 lg:grid-cols-3 mb-12">
-          <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 p-8">
-            <h3 className="text-2xl font-black mb-4">Aperçu du rapport</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InfoCard label="Report ID" value={report.report_id} />
-              <InfoCard label="Analyse ID" value={report.analysis_id ?? '-'} />
-              <InfoCard label="Matrix ID" value={report.matrix_id ?? '-'} />
-              <InfoCard label="Modèle IA" value={report.ai_model ?? 'Non renseigné'} />
-            </div>
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InfoCard label="IA utilisée" value={report.ai_used ? 'Oui' : 'Non'} />
-              <InfoCard label="Erreur IA" value={report.ai_error ?? 'Aucune'} />
-            </div>
-          </div>
+                  <ScoreRing score={metrics.score} />
+                </div>
+              </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 p-8">
-            <h3 className="text-2xl font-black mb-4">Statut du rapport</h3>
-            <div className="space-y-4 text-slate-700 dark:text-slate-200">
-              <DetailLine label="Résumé disponible" value={hasSummary ? 'Oui' : 'Non'} />
-              <DetailLine label="Dernière mise à jour" value={formatValue(report.updated_at ?? report.created_at)} />
-              <DetailLine label="Source du rapport" value={report.report_source ?? 'Backend'} />
+              <SecurityPanel status={securityStatus} />
             </div>
-          </div>
-        </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-800 p-8">
-          <h3 className="text-2xl font-black mb-6">Détails et observations</h3>
+            <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <MetricCard icon={<AlertTriangle size={20} />} label="Critical blockers" value={metrics.blockers} tone="red" />
+              <MetricCard icon={<Layers size={20} />} label="Components" value={metrics.components} tone="blue" />
+              <MetricCard icon={<CheckCircle2 size={20} />} label="Compatible" value={metrics.compatible} tone="green" />
+              <MetricCard icon={<ShieldAlert size={20} />} label="Incompatible" value={metrics.incompatible} tone="yellow" />
+            </div>
 
-          {report.ai_summary && (
-            <div className="mb-5 p-6 rounded-3xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900">
-              <h4 className="text-lg font-bold mb-4 text-blue-900 dark:text-blue-100">Résumé IA</h4>
-              <AISummaryRenderer content={report.ai_summary} />
-            </div>
-          )}
+            <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
+              <section className="space-y-6">
+                {report.ai_summary && (
+                  <ContentPanel title="AI executive summary" icon={<Brain size={18} />}>
+                    <AISummaryRenderer content={sanitizedAiSummary} />
+                  </ContentPanel>
+                )}
 
-          {report.ai_insights && (
-            <div className="mb-5 p-5 rounded-3xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
-              <h4 className="text-lg font-bold mb-2">Insights IA</h4>
-              <p className="text-slate-700 dark:text-slate-200 leading-relaxed">
-                {report.ai_insights}
-              </p>
-            </div>
-          )}
+                {componentFindings.length > 0 && (
+                  <ContentPanel title="Component findings" icon={<Layers size={18} />}>
+                    <div className="space-y-3">
+                      {componentFindings.map((component, index) => (
+                        <ComponentFindingCard
+                          key={`${component.component_id ?? componentDisplayName(component, index)}-${index}`}
+                          component={component}
+                          index={index}
+                          report={report}
+                        />
+                      ))}
+                    </div>
+                  </ContentPanel>
+                )}
 
-          {report.details ? (
-            <div className="space-y-4">
-              {Array.isArray(report.details) ? (
-                report.details.map((detail, index) => (
-                  <ReportDetailRow key={index} detail={detail} />
-                ))
-              ) : typeof report.details === 'object' ? (
-                Object.entries(report.details).map(([key, value]) => (
-                  <ReportDetailRow key={key} detail={{ title: key, value }} />
-                ))
-              ) : (
-                <ReportDetailRow detail={{ title: 'Détail', value: report.details }} />
-              )}
+                {prioritizedRecommendations.length > 0 && (
+                  <ContentPanel title="Prioritized recommendations" icon={<AlertTriangle size={18} />}>
+                    <div className="space-y-3">
+                      {prioritizedRecommendations.map((recommendation, index) => (
+                        <RecommendationCard
+                          key={`${recommendation.component_id ?? recommendation.component_name ?? 'recommendation'}-${index}`}
+                          recommendation={recommendation}
+                          index={index}
+                          report={report}
+                        />
+                      ))}
+                    </div>
+                  </ContentPanel>
+                )}
+
+                {report.ai_insights && (
+                  <ContentPanel title="AI insights" icon={<Zap size={18} />}>
+                    <p className="text-sm leading-7 text-[#64708d] dark:text-white/68">{report.ai_insights}</p>
+                  </ContentPanel>
+                )}
+
+                <ContentPanel title="Details and observations" icon={<FileText size={18} />}>
+                  {detailEntries.length > 0 ? (
+                    <div className="space-y-3">
+                      {detailEntries.map((detail) => (
+                        <ReportDetailRow key={detail.title} detail={detail} report={report} />
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState text="No detailed report observations are available for this report." />
+                  )}
+                </ContentPanel>
+              </section>
+
+              <aside className="space-y-6">
+                <ContentPanel title="Report metadata" icon={<Gauge size={18} />}>
+                  <div className="space-y-3">
+                    <InfoLine label="Report ID" value={report.report_id} />
+                    <InfoLine label="Analysis ID" value={report.analysis_id} />
+                    <InfoLine label="Matrix ID" value={report.matrix_id} />
+                    <InfoLine label="AI model" value={report.ai_model || 'Not provided'} />
+                    <InfoLine label="AI used" value={report.ai_used ? 'Yes' : 'No'} />
+                    <InfoLine label="Summary available" value={hasSummary ? 'Yes' : 'No'} />
+                    <InfoLine label="Updated at" value={formatValue(report.updated_at ?? report.created_at)} />
+                    <InfoLine label="Source" value={report.report_source || 'Backend'} />
+                  </div>
+                </ContentPanel>
+
+                {report.ai_error && (
+                  <ContentPanel title="AI error" icon={<AlertTriangle size={18} />}>
+                    <p className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm leading-7 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+                      {report.ai_error}
+                    </p>
+                  </ContentPanel>
+                )}
+              </aside>
             </div>
-          ) : (
-            <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
-              <p className="text-slate-600 dark:text-slate-200">Aucun détail de rapport n'est disponible pour ce rapport. Vérifiez que le rapport a bien été généré et enregistré.</p>
-            </div>
-          )}
-        </div>
-      </main>
+          </section>
+        </main>
+      </div>
     </div>
   );
 };
 
-const DetailStat = ({ icon, label, value, color }: any) => {
-  const colorClasses: any = {
-    red: "bg-red-50 dark:bg-red-900/20",
-    blue: "bg-blue-50 dark:bg-blue-900/20",
-    green: "bg-green-50 dark:bg-green-900/20"
-  };
+const shortId = (value?: string) => (value ? `${value.substring(0, 8)}...` : '-');
+
+const formatValue = (value: unknown) => {
+  if (value === undefined || value === null || value === '') return '-';
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return JSON.stringify(value);
+};
+
+const locationLabel = (location?: Record<string, unknown>) => {
+  if (!location) return '';
+
+  const workflow = formatValue(location.workflow);
+  const transition = formatValue(location.transition);
+  const filePath = formatValue(location.file_path);
+
+  if (workflow !== '-') return workflow;
+  if (transition !== '-') return transition;
+  if (filePath !== '-') return humanizeFileName(filePath);
+
+  return '';
+};
+
+const humanizeFileName = (value: string) => {
+  const filename = value.split(/[\\/]/).pop() ?? value;
+  const stem = filename.replace(/\.[^.]+$/, '');
+  const withoutPrefix = stem.replace(/^\d+[_\s-]*/, '');
+  const spaced = withoutPrefix.replace(/[_-]+/g, ' ').trim();
+
+  if (!spaced) return filename;
+
+  return spaced
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+const componentDisplayName = (component: ReportComponent | ReportRecommendation, index = 0) => {
+  const name = component.component_name?.trim();
+  if (name) return name;
+
+  if ('location' in component) {
+    const label = locationLabel(component.location);
+    if (label) return label;
+  }
+
+  return `Component ${index + 1}`;
+};
+
+const sanitizeReportText = (text: string, report?: ReportData | null) => {
+  if (!text || !report?.sections) return text;
+
+  const aliases = new Map<string, string>();
+
+  report.sections.components?.forEach((component, index) => {
+    if (component.component_id) {
+      aliases.set(component.component_id, componentDisplayName(component, index));
+    }
+  });
+
+  report.sections.blockers?.forEach((component, index) => {
+    if (component.component_id) {
+      aliases.set(component.component_id, componentDisplayName(component, index));
+    }
+  });
+
+  report.sections.recommendations?.forEach((recommendation, index) => {
+    if (recommendation.component_id) {
+      aliases.set(recommendation.component_id, componentDisplayName(recommendation, index));
+    }
+  });
+
+  let sanitizedText = text;
+  aliases.forEach((label, technicalId) => {
+    sanitizedText = sanitizedText.split(technicalId).join(label);
+  });
+
+  return sanitizedText;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+);
+
+const normalizeDetails = (details: unknown): DetailEntry[] => {
+  if (!details) return [];
+
+  if (Array.isArray(details)) {
+    return details.map((detail, index) => {
+      if (isRecord(detail)) {
+        const title = detail.title ?? detail.name ?? detail.label ?? `Detail ${index + 1}`;
+        return { title: String(title), value: detail.value ?? detail.description ?? detail.message ?? detail };
+      }
+
+      return { title: `Detail ${index + 1}`, value: detail };
+    });
+  }
+
+  if (isRecord(details)) {
+    return Object.entries(details).map(([key, value]) => ({ title: key, value }));
+  }
+
+  return [{ title: 'Detail', value: details }];
+};
+
+const scoreTone = (score: number) => {
+  if (score >= 75) return 'text-[#159866]';
+  if (score >= 50) return 'text-[#f59e0b]';
+  return 'text-[#e54848]';
+};
+
+const ScoreRing = ({ score }: { score: number }) => {
+  const safeScore = Math.min(Math.max(score, 0), 100);
+  const circumference = 364;
 
   return (
-    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
-      <div className={`p-3 rounded-xl ${colorClasses[color]}`}>{icon}</div>
-      <div>
-        <p className="text-xs text-slate-500 uppercase font-black tracking-widest">{label}</p>
-        <p className="text-4xl font-black">{value}</p>
+    <div className="flex shrink-0 flex-col items-center rounded-2xl border border-[#dbe4f2] bg-[#f8faff] p-5 dark:border-white/10 dark:bg-white/5">
+      <div className="relative">
+        <svg className="h-32 w-32 -rotate-90">
+          <circle className="text-[#e3ebf8] dark:text-white/10" strokeWidth="10" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64" />
+          <circle
+            className={scoreTone(safeScore)}
+            strokeWidth="10"
+            strokeDasharray={circumference}
+            strokeDashoffset={circumference - (circumference * safeScore) / 100}
+            strokeLinecap="round"
+            stroke="currentColor"
+            fill="transparent"
+            r="58"
+            cx="64"
+            cy="64"
+          />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center text-3xl font-black">{safeScore}%</span>
       </div>
+      <p className="mt-2 text-xs font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">Migration score</p>
     </div>
   );
 };
 
-const SecurityStat = ({ status }: { status: { label: string; color: string; icon: string } }) => {
-  const colorMap: any = {
-    red: { bg: "bg-red-50 dark:bg-red-900/20", text: "text-red-700 dark:text-red-300", border: "border-red-200 dark:border-red-800" },
-    yellow: { bg: "bg-yellow-50 dark:bg-yellow-900/20", text: "text-yellow-700 dark:text-yellow-300", border: "border-yellow-200 dark:border-yellow-800" },
-    green: { bg: "bg-green-50 dark:bg-green-900/20", text: "text-green-700 dark:text-green-300", border: "border-green-200 dark:border-green-800" }
-  };
+const securityToneClasses = {
+  red: {
+    bg: 'bg-[#fff0f0] dark:bg-red-500/10',
+    text: 'text-[#e54848] dark:text-red-300',
+    border: 'ring-red-200 dark:ring-red-500/20',
+    icon: <AlertTriangle size={22} />,
+  },
+  yellow: {
+    bg: 'bg-[#fff9e6] dark:bg-[#f59e0b]/10',
+    text: 'text-[#9b4f00] dark:text-[#ffbe4d]',
+    border: 'ring-[#ffd36d] dark:ring-[#f59e0b]/25',
+    icon: <ShieldAlert size={22} />,
+  },
+  green: {
+    bg: 'bg-[#e9fbf4] dark:bg-[#23d18b]/12',
+    text: 'text-[#159866] dark:text-[#67e8b9]',
+    border: 'ring-green-200 dark:ring-[#23d18b]/20',
+    icon: <ShieldCheck size={22} />,
+  },
+};
 
-  const colors = colorMap[status.color] || colorMap.green;
+const SecurityPanel = ({ status }: { status: SecurityStatus }) => {
+  const tone = securityToneClasses[status.tone];
 
   return (
-    <div className={`bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4 ${colors.border}`}>
-      <div className={`p-3 rounded-xl ${colors.bg}`}>
-        <ShieldCheck className={`${colors.text}`} size={20} />
-      </div>
-      <div>
-        <p className="text-xs text-slate-500 uppercase font-black tracking-widest">Statut sécurité</p>
-        <p className={`text-4xl font-black ${colors.text}`}>{status.label}</p>
+    <div className={`rounded-[22px] p-6 shadow-sm ring-1 ${tone.bg} ${tone.text} ${tone.border}`}>
+      <div className="flex items-start gap-4">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/70 dark:bg-white/8">
+          {tone.icon}
+        </span>
+        <div>
+          <p className="text-xs font-black uppercase tracking-wide opacity-70">Security status</p>
+          <h3 className="mt-1 text-3xl font-black">{status.label}</h3>
+          <p className="mt-3 text-sm leading-6 opacity-80">{status.description}</p>
+        </div>
       </div>
     </div>
   );
 };
 
-const InfoCard = ({ label, value }: { label: string; value?: string | number }) => (
-  <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 p-4 shadow-sm">
-    <p className="text-xs uppercase text-slate-500 tracking-widest font-bold mb-2">{label}</p>
-    <p className="text-sm text-slate-900 dark:text-slate-100 font-semibold break-all">{value ?? '-'}</p>
+const metricToneClasses = {
+  red: 'bg-[#fff0f0] text-[#e54848] dark:bg-red-500/10 dark:text-red-300',
+  blue: 'bg-[#eaf3ff] text-[#2f80ed] dark:bg-[#2f80ed]/12 dark:text-[#8bbdff]',
+  green: 'bg-[#e9fbf4] text-[#159866] dark:bg-[#23d18b]/12 dark:text-[#67e8b9]',
+  yellow: 'bg-[#fff9e6] text-[#9b4f00] dark:bg-[#f59e0b]/10 dark:text-[#ffbe4d]',
+};
+
+const MetricCard = ({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string | number; tone: keyof typeof metricToneClasses }) => (
+  <article className="rounded-2xl border border-[#dbe4f2] bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#101d3a]">
+    <div className="flex items-center gap-4">
+      <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${metricToneClasses[tone]}`}>{icon}</span>
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">{label}</p>
+        <p className="mt-1 text-3xl font-black">{value}</p>
+      </div>
+    </div>
+  </article>
+);
+
+const riskBadgeClasses: Record<string, string> = {
+  BLOCKER: 'bg-red-50 text-red-700 ring-red-200 dark:bg-red-500/10 dark:text-red-300 dark:ring-red-500/25',
+  MAJOR: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/25',
+  MINOR: 'bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-500/25',
+  INFO: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/25',
+};
+
+const ComponentFindingCard = ({
+  component,
+  index,
+  report,
+}: {
+  component: ReportComponent;
+  index: number;
+  report: ReportData;
+}) => {
+  const risk = component.final_risk ?? component.risk_level ?? 'INFO';
+  const status = component.final_status ?? component.overall_status ?? 'NEEDS_REVIEW';
+  const description = sanitizeReportText(
+    component.reasoning_summary || component.recommended_action || 'No detailed reasoning is available for this component.',
+    report,
+  );
+  const location = locationLabel(component.location);
+
+  return (
+    <article className="rounded-2xl border border-[#edf1f8] bg-[#f8faff] p-4 dark:border-white/10 dark:bg-white/5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h4 className="truncate text-sm font-black text-[#111b3f] dark:text-white">
+            {componentDisplayName(component, index)}
+          </h4>
+          <p className="mt-1 text-xs font-bold text-[#8a96b3] dark:text-white/45">
+            {[component.plugin, component.component_type, location].filter(Boolean).join(' · ') || 'Migration component'}
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase ring-1 ${riskBadgeClasses[risk] ?? riskBadgeClasses.INFO}`}>
+            {risk}
+          </span>
+          <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black uppercase text-[#64708d] ring-1 ring-[#dbe4f2] dark:bg-white/8 dark:text-white/65 dark:ring-white/10">
+            {status}
+          </span>
+        </div>
+      </div>
+      <p className="mt-3 text-sm leading-7 text-[#64708d] dark:text-white/68">{description}</p>
+    </article>
+  );
+};
+
+const RecommendationCard = ({
+  recommendation,
+  index,
+  report,
+}: {
+  recommendation: ReportRecommendation;
+  index: number;
+  report: ReportData;
+}) => {
+  const priority = recommendation.priority ?? 'INFO';
+
+  return (
+    <article className="rounded-2xl border border-[#edf1f8] bg-[#f8faff] p-4 dark:border-white/10 dark:bg-white/5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h4 className="text-sm font-black text-[#111b3f] dark:text-white">
+            {componentDisplayName(recommendation, index)}
+          </h4>
+          <p className="mt-1 text-xs font-bold text-[#8a96b3] dark:text-white/45">
+            {recommendation.status || 'Recommended action'}
+          </p>
+        </div>
+        <span className={`w-fit rounded-full px-3 py-1 text-[10px] font-black uppercase ring-1 ${riskBadgeClasses[priority] ?? riskBadgeClasses.INFO}`}>
+          {priority}
+        </span>
+      </div>
+      <p className="mt-3 text-sm leading-7 text-[#64708d] dark:text-white/68">
+        {sanitizeReportText(recommendation.action || recommendation.reason || 'No action detail is available.', report)}
+      </p>
+    </article>
+  );
+};
+
+const ContentPanel = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => (
+  <section className="rounded-[22px] border border-[#dbe4f2] bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#101d3a]">
+    <div className="mb-5 flex items-center gap-3">
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eaf3ff] text-[#2f80ed] dark:bg-[#10264d] dark:text-[#8bbdff]">
+        {icon}
+      </span>
+      <h3 className="text-xl font-black">{title}</h3>
+    </div>
+    {children}
+  </section>
+);
+
+const InfoLine = ({ label, value }: { label: string; value?: unknown }) => (
+  <div className="rounded-2xl border border-[#edf1f8] bg-[#f8faff] p-4 dark:border-white/10 dark:bg-white/5">
+    <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">{label}</p>
+    <p className="mt-2 break-all text-sm font-semibold text-[#111b3f] dark:text-white/82">{formatValue(value)}</p>
   </div>
 );
 
-const DetailLine = ({ label, value }: { label: string; value?: string | number }) => (
-  <div className="rounded-3xl bg-slate-50 dark:bg-slate-950/40 p-4 border border-slate-200 dark:border-slate-800">
-    <p className="text-xs uppercase tracking-widest text-slate-500 font-black mb-2">{label}</p>
-    <p className="text-sm text-slate-700 dark:text-slate-200">{value ?? '-'}</p>
-  </div>
-);
-
-const ReportDetailRow = ({ detail }: { detail: any }) => {
-  const title = detail.title || detail.name || detail.label || 'Détail';
-  const value = detail.value ?? detail.description ?? detail.message ?? detail;
+const ReportDetailRow = ({ detail, report }: { detail: DetailEntry; report: ReportData }) => {
+  const value = typeof detail.value === 'string' ? detail.value : JSON.stringify(detail.value, null, 2);
 
   return (
-    <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 shadow-sm">
-      <div className="flex items-center justify-between gap-4 mb-3">
-        <span className="text-sm uppercase tracking-widest text-slate-500 font-black">{title}</span>
-      </div>
-      <pre className="whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-200 leading-relaxed">{typeof value === 'string' ? value : JSON.stringify(value, null, 2)}</pre>
-    </div>
+    <article className="rounded-2xl border border-[#edf1f8] bg-[#f8faff] p-4 dark:border-white/10 dark:bg-white/5">
+      <p className="text-xs font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">{detail.title}</p>
+      <pre className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-[#64708d] dark:text-white/68">
+        {sanitizeReportText(value, report)}
+      </pre>
+    </article>
   );
 };
+
+const EmptyState = ({ text }: { text: string }) => (
+  <div className="rounded-2xl border border-dashed border-[#cbd8ea] bg-[#f8faff] p-6 text-center text-sm text-[#64708d] dark:border-white/14 dark:bg-white/5 dark:text-white/52">
+    {text}
+  </div>
+);
 
 const AISummaryRenderer = ({ content }: { content: string }) => {
   const lines = content.split('\n');
-  const elements = [];
+  const elements: React.ReactNode[] = [];
   let i = 0;
 
   while (i < lines.length) {
     const line = lines[i];
+    const trimmedLine = line.trim();
 
-    // Titres H3 (###)
-    if (line.startsWith('###')) {
+    if (trimmedLine.startsWith('###')) {
       elements.push(
-        <h3 key={`h3-${i}`} className="text-lg font-black text-blue-900 dark:text-blue-100 mt-5 mb-3">
-          {line.replace(/^#+\s/, '')}
-        </h3>
+        <h3 key={`h3-${i}`} className="mt-5 text-lg font-black text-[#111b3f] dark:text-white">
+          {trimmedLine.replace(/^#+\s/, '')}
+        </h3>,
       );
-    }
-    // Titres H2 (**)
-    else if (line.startsWith('**') && line.endsWith('**')) {
+    } else if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**')) {
       elements.push(
-        <h2 key={`h2-${i}`} className="text-xl font-black text-blue-900 dark:text-blue-100 mb-3">
-          {line.replace(/\*\*/g, '')}
-        </h2>
+        <h2 key={`h2-${i}`} className="text-xl font-black text-[#111b3f] dark:text-white">
+          {trimmedLine.replace(/\*\*/g, '')}
+        </h2>,
       );
-    }
-    // Listes à puces (*)
-    else if (line.trim().startsWith('*')) {
-      const listItems = [];
+    } else if (trimmedLine.startsWith('*')) {
+      const listItems: React.ReactNode[] = [];
       while (i < lines.length && lines[i].trim().startsWith('*')) {
         listItems.push(
-          <li key={`li-${i}`} className="ml-4 mb-2 text-slate-700 dark:text-slate-200">
+          <li key={`li-${i}`} className="ml-4 text-sm leading-7 text-[#64708d] dark:text-white/68">
             {lines[i].replace(/^\*\s/, '').replace(/\*\*/g, '')}
-          </li>
+          </li>,
         );
         i++;
       }
       elements.push(
-        <ul key={`ul-${i}`} className="list-disc mb-4">
+        <ul key={`ul-${i}`} className="mb-4 list-disc">
           {listItems}
-        </ul>
+        </ul>,
       );
       i--;
-    }
-    // Séparateurs (---)
-    else if (line.trim() === '---') {
-      elements.push(<div key={`hr-${i}`} className="border-t border-blue-200 dark:border-blue-800 my-4" />);
-    }
-    // Texte normal
-    else if (line.trim() !== '') {
+    } else if (trimmedLine === '---') {
+      elements.push(<div key={`hr-${i}`} className="my-4 border-t border-[#dbe4f2] dark:border-white/10" />);
+    } else if (trimmedLine !== '') {
       elements.push(
-        <p key={`p-${i}`} className="text-slate-700 dark:text-slate-200 leading-relaxed mb-3">
+        <p key={`p-${i}`} className="text-sm leading-7 text-[#64708d] dark:text-white/68">
           {line.replace(/\*\*/g, '')}
-        </p>
+        </p>,
       );
     }
 
     i++;
   }
 
-  return <div className="space-y-2">{elements}</div>;
+  return <div className="space-y-3">{elements}</div>;
 };
 
 export default ReportPage;

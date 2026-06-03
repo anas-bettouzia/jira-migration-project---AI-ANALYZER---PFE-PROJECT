@@ -1,11 +1,29 @@
 import { api } from '../core/api';
 
+export interface AnalysisJob {
+  job_id: string;
+  status?: string;
+  job_type?: string;
+  payload?: {
+    filename?: string;
+    [key: string]: unknown;
+  };
+  result?: {
+    report_id?: string;
+    analysis_id?: string;
+    [key: string]: unknown;
+  };
+  created_at?: string;
+  updated_at?: string;
+  error?: string;
+  [key: string]: unknown;
+}
+
 export const analysisService = {
   async uploadFile(file: File) {
     const formData = new FormData();
     formData.append('file', file);
 
-    // On utilise l'instance axios qui a déjà le token et la bonne baseURL
     const response = await api.post('/analyze', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -16,6 +34,26 @@ export const analysisService = {
 
   async getJobStatus(jobId: string) {
     const response = await api.get(`/jobs/${jobId}`);
+    return response.data;
+  },
+
+  async listJobs(limit = 8): Promise<AnalysisJob[]> {
+    const response = await api.get('/jobs', { params: { limit } });
+    return response.data?.jobs ?? [];
+  },
+
+  async deleteReport(reportId: string): Promise<{ message: string }> {
+    const response = await api.delete(`/reports/${reportId}`);
+    return response.data;
+  },
+
+  async archiveReport(reportId: string): Promise<{ message: string; report_id: string }> {
+    const response = await api.post(`/reports/${reportId}/archive`);
+    return response.data;
+  },
+
+  async listArchivedReports(limit = 50) {
+    const response = await api.get('/reports/archived', { params: { limit } });
     return response.data;
   }
 };

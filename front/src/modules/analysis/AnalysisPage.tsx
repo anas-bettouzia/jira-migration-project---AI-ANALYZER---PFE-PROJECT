@@ -1,50 +1,181 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  ArrowLeft,
+  Activity,
+  AlertCircle,
+  Archive,
+  ArrowUpToLine,
+  BookOpen,
   CheckCircle2,
-  Clock,
+  ChevronRight,
+  Download,
   FileJson,
   FileText,
+  Gauge,
+  HelpCircle,
+  Home,
+  Layers3,
   Loader2,
-  LogOut,
+  Moon,
+  MoreVertical,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
   RotateCcw,
-  ShieldAlert,
-  ChevronRight,
-  Info,
-  Download
+  Sun,
+  Trash2,
 } from 'lucide-react';
 
 import { FileUploader } from '../../shared/components/FileUploader';
+import { MainSidebar } from '../../shared/components/MainSidebar';
 import { useJobStatus } from '../../hooks/useJobStatus';
-import { useAuthStore } from '../../store/useAuthStore';
+import { analysisService, type AnalysisJob } from '../../services/analysisService';
 import { api } from '../../core/api';
+import logoSpectrumDark from '../../assets/img/logo-spectrum-groupe-darkmode.png';
+import logoSpectrum from '../../assets/img/logo-spectrum-groupe.png';
+
+type JobStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | string | undefined;
 
 export const AnalysisPage: React.FC = () => {
   const [jobId, setJobId] = useState<string | null>(null);
+  const [analysisName, setAnalysisName] = useState('');
+  const [analysisDraftKey, setAnalysisDraftKey] = useState(0);
+  const [recentJobs, setRecentJobs] = useState<AnalysisJob[]>([]);
+  const [recentJobsHasMore, setRecentJobsHasMore] = useState(false);
+  const [recentJobsLimit, setRecentJobsLimit] = useState(6);
+  const [recentJobsLoading, setRecentJobsLoading] = useState(false);
+  const [isLight, setIsLight] = useState(() => {
+    const savedTheme = localStorage.getItem('jira-migration-theme');
+    if (savedTheme) return savedTheme === 'light';
+    return !window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const jobStatus = useJobStatus(jobId);
+  const analysisNameRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  const logout = useAuthStore((state) => state.logout);
 
   const result = jobStatus?.result;
   const summary = result?.summary;
   const reportId = result?.report_id;
+  const activeStage = getActiveStage(jobStatus?.status);
 
   const progress = useMemo(() => {
     if (!jobStatus?.status) return 10;
     if (jobStatus.status === 'QUEUED') return 25;
-    if (jobStatus.status === 'RUNNING') return 65;
+    if (jobStatus.status === 'RUNNING') return 66;
     if (jobStatus.status === 'COMPLETED') return 100;
     if (jobStatus.status === 'FAILED') return 100;
-    return 40;
+    return 45;
   }, [jobStatus?.status]);
 
-  const resetAnalysis = () => setJobId(null);
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', !isLight);
+    localStorage.setItem('jira-migration-theme', isLight ? 'light' : 'dark');
+  }, [isLight]);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchRecentJobs = async () => {
+      setRecentJobsLoading(true);
+      try {
+        const [jobs, reportsResponse] = await Promise.all([
+          analysisService.listJobs(recentJobsLimit),
+          api.get<{ reports?: Array<{ report_id?: string }> }>('/reports'),
+        ]);
+        const activeReportIds = new Set(
+          (reportsResponse.data.reports ?? [])
+            .map((report) => report.report_id)
+            .filter((reportId): reportId is string => Boolean(reportId)),
+        );
+        const visibleJobs = jobs.filter((job) => {
+          const reportIdFromJob = job.result?.report_id;
+          return !reportIdFromJob || activeReportIds.has(reportIdFromJob);
+        });
+
+        if (isMounted) {
+          setRecentJobs(visibleJobs);
+          setRecentJobsHasMore(jobs.length >= recentJobsLimit);
+        }
+      } catch (error) {
+        console.error('Erreur chargement analyses recentes:', error);
+        if (isMounted) {
+          setRecentJobs([]);
+          setRecentJobsHasMore(false);
+        }
+      } finally {
+        if (isMounted) setRecentJobsLoading(false);
+      }
+    };
+
+    fetchRecentJobs();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [jobId, jobStatus?.status, recentJobsLimit]);
+
+  const startNewAnalysis = () => {
+    setJobId(null);
+    setAnalysisName('');
+    setAnalysisDraftKey((key) => key + 1);
+    window.setTimeout(() => analysisNameRef.current?.focus(), 0);
+  };
+
+  const handleUploadSuccess = (id: string) => {
+    setJobId(id);
+  };
+
+  const handleRecentJobClick = (job: AnalysisJob) => {
+    const reportIdFromJob = job.result?.report_id;
+    if (reportIdFromJob && job.status === 'COMPLETED') {
+      navigate(`/reports/${reportIdFromJob}`);
+      return;
+    }
+
+    setJobId(job.job_id);
+    setAnalysisName(getJobTitle(job));
+  };
+
+  const handleDeleteRecentReport = async (job: AnalysisJob) => {
+    const reportIdToDelete = job.result?.report_id;
+    if (!reportIdToDelete) return;
+
+    try {
+      await analysisService.deleteReport(reportIdToDelete);
+      setRecentJobs((jobs) => jobs.filter((item) => item.result?.report_id !== reportIdToDelete));
+
+      if (reportId === reportIdToDelete) {
+        setJobId(null);
+        setAnalysisName('');
+      }
+    } catch (error) {
+      console.error('Erreur suppression rapport:', error);
+      alert('Unable to delete this report.');
+    }
+  };
+
+  const handleArchiveRecentReport = async (job: AnalysisJob) => {
+    const reportIdToArchive = job.result?.report_id;
+    if (!reportIdToArchive) return;
+
+    try {
+      await analysisService.archiveReport(reportIdToArchive);
+      setRecentJobs((jobs) => jobs.filter((item) => item.result?.report_id !== reportIdToArchive));
+
+      if (reportId === reportIdToArchive) {
+        setJobId(null);
+        setAnalysisName('');
+      }
+    } catch (error) {
+      console.error('Erreur archivage rapport:', error);
+      alert('Unable to archive this report.');
+    }
+  };
+
+  const handleLoadMoreRecentJobs = () => {
+    setRecentJobsLimit((limit) => limit + 6);
   };
 
   const downloadFile = async (type: 'json' | 'pdf') => {
@@ -59,251 +190,730 @@ export const AnalysisPage: React.FC = () => {
       link.click();
       link.remove();
     } catch (error) {
-      console.error(`Erreur téléchargement ${type}:`, error);
+      console.error(`Erreur telechargement ${type}:`, error);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#020617] text-slate-900 dark:text-white transition-colors duration-500">
-      {/* HEADER OPTIMISÉ */}
-      <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-slate-500 hover:text-blue-600 transition-all font-bold group"
-          >
-            <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-            <span>Retour</span>
-          </button>
+    <div className="min-h-screen bg-[#eef2fb] text-[#111b3f] transition-colors duration-300 dark:bg-[#071126] dark:text-white">
+      <div className="flex min-h-screen">
+        <MainSidebar activePage="analysis" />
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={resetAnalysis}
-              className="hidden sm:flex px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold hover:bg-blue-600 hover:text-white transition-all items-center gap-2"
-            >
-              <RotateCcw size={16} />
-              Nouvelle analyse
-            </button>
-            <button
-              onClick={handleLogout}
-              className="p-2.5 rounded-xl bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 font-bold hover:bg-red-100 transition-all"
-            >
-              <LogOut size={20} />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto py-12 px-6">
-        {/* HERO SECTION ANALYSE */}
-        <motion.section 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-12"
-        >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-black uppercase tracking-widest mb-4">
-            <ShieldAlert size={14} />
-            Assistant de Migration
-          </div>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
-            Analyse de <span className="text-blue-600">compatibilité</span>
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 max-w-2xl text-lg">
-            Déposez vos exports Jira Data Center. Notre IA analyse la structure, les scripts et les apps pour sécuriser votre passage sur le Cloud.
-          </p>
-        </motion.section>
-
-        <AnimatePresence mode="wait">
-          {!jobId ? (
-            <motion.div 
-              key="uploader"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="grid lg:grid-cols-3 gap-8"
-            >
-              <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 dark:shadow-none p-10 border border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-4 mb-8">
-                    <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/30">
-                        <FileText size={24} />
-                    </div>
-                    <div>
-                        <h2 className="text-2xl font-black">Import des données</h2>
-                        <p className="text-slate-500 dark:text-slate-400 text-sm">Fichiers supportés : .zip, .xml, .groovy</p>
-                    </div>
-                </div>
-                <FileUploader onUploadSuccess={(id) => setJobId(id)} />
-              </div>
-
-              <div className="space-y-4">
-                <InfoCard
-                  title="Pipeline Automatisé"
-                  description="Extraction, Mapping de schémas et validation IA."
-                  icon={<Clock className="text-blue-600" />}
-                />
-                <InfoCard
-                  title="Base RAG"
-                  description="Comparaison avec 10k+ pages de doc Atlassian."
-                  icon={<ShieldAlert className="text-orange-500" />}
-                />
-                <div className="p-6 rounded-[2rem] bg-gradient-to-br from-slate-800 to-slate-950 text-white">
-                    <h4 className="font-black mb-2 flex items-center gap-2">
-                        <Info size={18} className="text-blue-400" />
-                        Note de sécurité
-                    </h4>
-                    <p className="text-xs text-slate-400 leading-relaxed">
-                        Vos données sont traitées localement pour le parsing. Seuls les métadonnées anonymisées sont transmises à l'IA.
-                    </p>
-                </div>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div 
-              key="status"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-8"
-            >
-              {/* SUIVI DU JOB CARTE */}
-              <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl p-8 border border-slate-100 dark:border-slate-800">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
-                  <div className="flex items-center gap-5">
-                    <div className={`p-4 rounded-2xl ${jobStatus?.status === 'FAILED' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'} dark:bg-slate-800`}>
-                        {jobStatus?.status === 'COMPLETED' ? <CheckCircle2 size={32} /> : <Loader2 size={32} className="animate-spin" />}
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-black">État du Pipeline</h2>
-                      <p className="text-xs font-mono text-slate-400 uppercase tracking-tighter">ID: {jobId}</p>
-                    </div>
-                  </div>
-                  <StatusBadge status={jobStatus?.status} />
-                </div>
-
-                {/* PROGRESS BAR AMÉLIORÉE */}
-                <div className="relative h-4 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-4">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    className={`h-full rounded-full ${
-                        jobStatus?.status === 'FAILED' ? 'bg-red-500' : 
-                        jobStatus?.status === 'COMPLETED' ? 'bg-green-500' : 'bg-blue-600'
-                    }`}
-                  />
-                </div>
-                <div className="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    <span>Initialisation</span>
-                    <span>Analyse IA</span>
-                    <span>Rapport final</span>
-                </div>
-              </div>
-
-              {/* RÉSULTATS (SI DISPONIBLES) */}
-              {jobStatus?.status === 'COMPLETED' && (
-                <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="grid gap-6"
+        <div className="flex min-h-screen flex-1 flex-col md:pl-[72px]">
+          <header className="sticky top-0 z-30 border-b border-[#dce4f4] bg-white/95 backdrop-blur transition-colors duration-300 dark:border-white/10 dark:bg-[#0c1730]/95">
+            <div className="flex h-[62px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+              <div className="flex min-w-0 items-center gap-4">
+                <button
+                  onClick={() => navigate('/')}
+                  className="flex items-center gap-3"
+                  aria-label="Go to home"
                 >
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <StatCard label="Migration Score" value={`${summary?.migration_score ?? 0}%`} tone="blue" />
-                    <StatCard label="Bloqueurs" value={summary?.blocker_count ?? 0} tone="red" />
-                    <StatCard label="Composants" value={summary?.total_components ?? 0} tone="slate" />
-                    <StatCard label="IA Validée" value="Oui" tone="green" />
-                  </div>
+                  <img
+                    src={isLight ? logoSpectrum : logoSpectrumDark}
+                    alt="Jira Migration Spectrum Groupe"
+                    className={`${isLight ? 'h-9' : 'h-12'} w-auto object-contain`}
+                  />
+                </button>
+                <div className="hidden h-8 w-px bg-[#d4deee] sm:block" />
+                <div className="hidden items-center gap-2 text-sm sm:flex">
+                  <span className="text-[#8a96b3] dark:text-white/55">Platform</span>
+                  <strong>AI Migration Solutions</strong>
+                </div>
+                <div className="hidden items-center gap-2 rounded-full border border-[#bdd5fa] bg-[#f5f9ff] px-4 py-1.5 text-xs font-bold text-[#2f80ed] lg:flex dark:border-[#2f80ed]/35 dark:bg-[#10264d] dark:text-[#8bbdff]">
+                  <span className="h-2 w-2 rounded-full bg-[#2f80ed]" />
+                  Ready to analyse
+                </div>
+              </div>
 
-                  <div className="bg-gradient-to-r from-blue-700 to-indigo-900 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-10 opacity-10">
-                        <CheckCircle2 size={200} />
-                    </div>
-                    <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-10">
-                      <div className="max-w-2xl text-center lg:text-left">
-                        <h3 className="text-3xl font-black mb-4">Prêt pour l'étape suivante ?</h3>
-                        <p className="text-blue-100 text-lg mb-8 leading-relaxed">
-                          {summary?.migration_recommendation || "L'analyse est terminée. Consultez le rapport pour découvrir la stratégie de migration suggérée par notre IA."}
-                        </p>
-                        <div className="flex flex-wrap justify-center lg:justify-start gap-3">
-                            <MetaItem label="Analyse ID" value={result?.analysis_id} />
-                            <MetaItem label="Report ID" value={result?.report_id} />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsLight((value) => !value)}
+                  className="hidden items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-3 py-2 text-xs font-bold text-[#64708d] transition dark:border-white/10 dark:bg-white/5 dark:text-white/70 sm:flex"
+                  aria-label="Toggle color mode"
+                >
+                  <span className="flex h-5 w-9 items-center rounded-full bg-[#dce4f1] p-0.5 dark:bg-[#2c3a57]">
+                    <span className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${isLight ? 'translate-x-0' : 'translate-x-4'}`} />
+                  </span>
+                  {isLight ? <Sun size={14} className="text-amber-500" /> : <Moon size={14} />}
+                  {isLight ? 'Light' : 'Dark'}
+                </button>
+                <button
+                  onClick={startNewAnalysis}
+                  className="hidden items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-4 py-2 text-sm font-bold text-[#64708d] transition dark:border-white/10 dark:bg-white/5 dark:text-white/70 sm:flex"
+                >
+                  <ArrowUpToLine size={17} />
+                  Upload data
+                </button>
+                <button
+                  onClick={() => reportId && navigate(`/reports/${reportId}`)}
+                  disabled={!reportId}
+                  className="flex items-center gap-2 rounded-xl bg-[#2f80ed] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition disabled:cursor-not-allowed disabled:opacity-55"
+                >
+                  <FileText size={16} />
+                  View report
+                </button>
+              </div>
+            </div>
+          </header>
+
+          <main
+            className="grid flex-1 grid-cols-1 transition-[grid-template-columns] duration-300 lg:grid-cols-[var(--secondary-sidebar)_1fr]"
+            style={{ '--secondary-sidebar': isSidebarCollapsed ? '88px' : '280px' } as React.CSSProperties}
+          >
+            <SecondarySidebar
+              analysisName={analysisName}
+              isCollapsed={isSidebarCollapsed}
+              jobId={jobId}
+              progress={progress}
+              recentJobs={recentJobs}
+              recentJobsHasMore={recentJobsHasMore}
+              recentJobsLoading={recentJobsLoading}
+              startNewAnalysis={startNewAnalysis}
+              onArchiveRecentReport={handleArchiveRecentReport}
+              onDeleteRecentReport={handleDeleteRecentReport}
+              onLoadMoreRecentJobs={handleLoadMoreRecentJobs}
+              onRecentJobClick={handleRecentJobClick}
+              setIsCollapsed={setIsSidebarCollapsed}
+              status={jobStatus?.status}
+            />
+
+            <section className="px-4 py-5 sm:px-6 lg:px-8">
+              <AnimatePresence mode="wait">
+                {!jobId ? (
+                  <motion.div
+                    key="intake"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -12 }}
+                    className="mx-auto max-w-[1015px]"
+                  >
+                    <div className="overflow-hidden rounded-[18px] bg-white shadow-sm ring-1 ring-[#dbe4f2] transition-colors duration-300 dark:bg-[#101d3a] dark:ring-white/10">
+                      <div className="grid lg:grid-cols-[1fr_375px]">
+                        <div className="p-6 sm:p-9">
+                          <div className="mb-4 flex items-center gap-2">
+                            <span className="rounded-full bg-[#2f80ed] px-5 py-2 text-[10px] font-black uppercase text-white">Step 1 of 3</span>
+                            <span className="h-px w-32 bg-[#bdd5fa]" />
+                          </div>
+
+                          <h1 className="text-[22px] font-black leading-tight sm:text-2xl">Import your migration package</h1>
+                          <p className="mt-1 max-w-2xl text-sm leading-5 text-[#64708d] dark:text-white/60">
+                            Upload your Jira Data Center export to let the engine inspect automation logic, detect migration risks, and generate a cloud readiness plan.
+                          </p>
+
+                          <label className="mt-4 block text-xs font-black">Analysis name</label>
+                          <input
+                            ref={analysisNameRef}
+                            value={analysisName}
+                            onChange={(event) => setAnalysisName(event.target.value)}
+                            placeholder="e.g. Finance workspace - DC to Cloud audit"
+                            className="mt-2 h-11 w-full rounded-xl border border-[#d6e0ee] bg-[#f8faff] px-4 text-sm font-semibold outline-none transition placeholder:text-[#c4ccdc] focus:border-[#2f80ed] focus:bg-white focus:ring-4 focus:ring-blue-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/25 dark:focus:bg-[#0c1730] dark:focus:ring-blue-500/20"
+                          />
+
+                          <div className="mt-4">
+                            <FileUploader key={analysisDraftKey} onUploadSuccess={handleUploadSuccess} />
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="flex flex-col gap-3 w-full lg:w-72">
-                        <button
-                          onClick={() => navigate(`/reports/${reportId}`)}
-                          className="w-full py-4 bg-white text-blue-900 font-black rounded-2xl hover:shadow-xl transition-all flex items-center justify-center gap-2 group"
-                        >
-                          Ouvrir le rapport <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                        </button>
-                        <div className="grid grid-cols-2 gap-3">
-                            <button onClick={() => downloadFile('pdf')} className="py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2">
-                                <Download size={14} /> PDF
-                            </button>
-                            <button onClick={() => downloadFile('json')} className="py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2">
-                                <FileJson size={14} /> JSON
-                            </button>
-                        </div>
+                        <PipelinePanel activeStage={activeStage} status={jobStatus?.status} />
                       </div>
                     </div>
-                  </div>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
-    </div>
-  );
-};
+                    <ResourceCards />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="status"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -12 }}
+                    className="mx-auto max-w-[1015px] space-y-5"
+                  >
+                    <div className="overflow-hidden rounded-[18px] bg-white shadow-sm ring-1 ring-[#dbe4f2] transition-colors duration-300 dark:bg-[#101d3a] dark:ring-white/10">
+                      <div className="grid lg:grid-cols-[1fr_375px]">
+                        <div className="p-6 sm:p-9">
+                          <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                              <div className="mb-4 flex items-center gap-2">
+                                <span className="rounded-full bg-[#2f80ed] px-5 py-2 text-[10px] font-black uppercase text-white">Step {activeStage} of 3</span>
+                                <span className="h-px w-32 bg-[#bdd5fa]" />
+                              </div>
+                              <h1 className="text-2xl font-black leading-tight">Pipeline in progress</h1>
+                              <p className="mt-1 max-w-xl text-sm text-[#64708d] dark:text-white/60">
+                                {analysisName || 'Migration package'} is moving through the AI compatibility checks.
+                              </p>
+                            </div>
+                            <StatusBadge status={jobStatus?.status} />
+                          </div>
 
-/* SOUS-COMPOSANTS EXTRAITS POUR LA CLARTÉ */
+                          <div className="rounded-2xl border border-[#dbe4f2] bg-[#f8faff] p-5 transition-colors duration-300 dark:border-white/10 dark:bg-white/5">
+                            <div className="mb-3 flex items-center justify-between text-xs font-black uppercase text-[#8a96b3] dark:text-white/45">
+                              <span>Job progress</span>
+                              <span>{progress}%</span>
+                            </div>
+                            <div className="h-3 overflow-hidden rounded-full bg-[#e3ebf8]">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${progress}%` }}
+                                className={`h-full rounded-full ${jobStatus?.status === 'FAILED' ? 'bg-[#ef4444]' : jobStatus?.status === 'COMPLETED' ? 'bg-[#23d18b]' : 'bg-[#2f80ed]'}`}
+                              />
+                            </div>
+                            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                              <StageChip label="Data prep" active={activeStage >= 1} />
+                              <StageChip label="Compatibility" active={activeStage >= 2} />
+                              <StageChip label="AI report" active={activeStage >= 3} />
+                            </div>
+                          </div>
 
-const StatusBadge = ({ status }: { status?: string }) => {
-  const isPending = status === 'QUEUED' || status === 'RUNNING' || !status;
-  return (
-    <div className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 ${
-      status === 'COMPLETED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30' :
-      status === 'FAILED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30' :
-      'bg-blue-100 text-blue-700 dark:bg-blue-900/30'
-    }`}>
-      {isPending && <Loader2 size={14} className="animate-spin" />}
-      {status || 'INITIALIZING'}
-    </div>
-  );
-};
+                          {jobStatus?.status === 'COMPLETED' && (
+                            <div className="mt-5 grid gap-4 sm:grid-cols-4">
+                              <StatCard label="Migration score" value={`${summary?.migration_score ?? 0}%`} tone="blue" />
+                              <StatCard label="Blockers" value={summary?.blocker_count ?? 0} tone="red" />
+                              <StatCard label="Components" value={summary?.total_components ?? 0} tone="slate" />
+                              <StatCard label="AI validated" value="Yes" tone="green" />
+                            </div>
+                          )}
 
-const StatCard = ({ label, value, tone }: { label: string, value: string | number, tone: any }) => {
-  const colors = {
-    blue: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20',
-    red: 'text-red-600 bg-red-50 dark:bg-red-900/20',
-    green: 'text-green-600 bg-green-50 dark:bg-green-900/20',
-    slate: 'text-slate-600 bg-slate-50 dark:bg-slate-800',
-  };
-  return (
-    <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
-      <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-2">{label}</p>
-      <div className={`text-2xl font-black inline-block px-3 py-1 rounded-lg ${colors[tone as keyof typeof colors]}`}>
-        {value}
+                          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-sm">
+                            <button
+                              onClick={startNewAnalysis}
+                              className="flex items-center gap-2 rounded-xl border border-[#d7e0ef] px-4 py-3 font-bold text-[#64708d] transition dark:border-white/10 dark:text-white/65 dark:hover:bg-white/5"
+                            >
+                              <RotateCcw size={16} />
+                              Clear
+                            </button>
+                            {jobStatus?.status === 'COMPLETED' && (
+                              <div className="flex flex-wrap gap-2">
+                                <button onClick={() => downloadFile('pdf')} className="flex items-center gap-2 rounded-xl border border-[#d7e0ef] px-4 py-3 font-bold text-[#64708d] transition dark:border-white/10 dark:text-white/65 dark:hover:bg-white/5">
+                                  <Download size={16} />
+                                  PDF
+                                </button>
+                                <button onClick={() => downloadFile('json')} className="flex items-center gap-2 rounded-xl border border-[#d7e0ef] px-4 py-3 font-bold text-[#64708d] transition dark:border-white/10 dark:text-white/65 dark:hover:bg-white/5">
+                                  <FileJson size={16} />
+                                  JSON
+                                </button>
+                                <button
+                                  onClick={() => navigate(`/reports/${reportId}`)}
+                                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#6b8cff] to-[#c462e8] px-5 py-3 font-black text-white shadow-lg shadow-purple-500/20"
+                                >
+                                  View report
+                                  <ChevronRight size={17} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <PipelinePanel activeStage={activeStage} status={jobStatus?.status} />
+                      </div>
+                    </div>
+                    <ResourceCards />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </section>
+          </main>
+        </div>
       </div>
     </div>
   );
 };
 
-const InfoCard = ({ title, description, icon }: { title: string, description: string, icon: React.ReactNode }) => (
-  <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 flex gap-4">
-    <div className="shrink-0 w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
-      {icon}
+const getActiveStage = (status: JobStatus) => {
+  if (status === 'COMPLETED') return 3;
+  if (status === 'RUNNING') return 2;
+  return 1;
+};
+
+const getJobTitle = (job: AnalysisJob) => {
+  const filename = job.payload?.filename;
+  if (filename) return filename.replace(/\.[^/.]+$/, '');
+  return `Analysis ${job.job_id.substring(0, 8)}`;
+};
+
+const getJobProgress = (status?: string) => {
+  if (status === 'QUEUED' || status === 'STARTED') return 25;
+  if (status === 'RUNNING') return 66;
+  if (status === 'COMPLETED' || status === 'FAILED') return 100;
+  return 10;
+};
+
+const getJobStatusTone = (status?: string) => {
+  if (status === 'COMPLETED') return 'bg-[#e9fbf4] text-[#159866] dark:bg-[#23d18b]/12 dark:text-[#67e8b9]';
+  if (status === 'FAILED') return 'bg-[#fff0f0] text-[#e54848] dark:bg-red-500/10 dark:text-red-300';
+  return 'bg-[#eaf3ff] text-[#2f80ed] dark:bg-[#2f80ed]/12 dark:text-[#8bbdff]';
+};
+
+const formatJobDate = (value?: string) => {
+  if (!value) return 'Recent';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Recent';
+  return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date);
+};
+
+const SecondarySidebar = ({
+  analysisName,
+  isCollapsed,
+  jobId,
+  onArchiveRecentReport,
+  onDeleteRecentReport,
+  onRecentJobClick,
+  progress,
+  recentJobs,
+  recentJobsHasMore,
+  recentJobsLoading,
+  onLoadMoreRecentJobs,
+  startNewAnalysis,
+  setIsCollapsed,
+  status,
+}: {
+  analysisName: string;
+  isCollapsed: boolean;
+  jobId: string | null;
+  onArchiveRecentReport: (job: AnalysisJob) => void;
+  onDeleteRecentReport: (job: AnalysisJob) => void;
+  onLoadMoreRecentJobs: () => void;
+  onRecentJobClick: (job: AnalysisJob) => void;
+  progress: number;
+  recentJobs: AnalysisJob[];
+  recentJobsHasMore: boolean;
+  recentJobsLoading: boolean;
+  startNewAnalysis: () => void;
+  setIsCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
+  status?: string;
+}) => (
+  <section className={`hidden border-r border-[#dce4f4] bg-white py-5 transition-all duration-300 dark:border-white/10 dark:bg-[#0c1730] lg:flex lg:min-h-[calc(100vh-62px)] lg:flex-col ${isCollapsed ? 'items-center px-3' : 'px-4'}`}>
+    {isCollapsed ? (
+      <>
+        <button
+          onClick={() => setIsCollapsed(false)}
+          className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl border border-[#dbe4f2] text-[#64708d] transition hover:border-[#bdd5fa] hover:bg-[#f8faff] hover:text-[#2f80ed] dark:border-white/10 dark:text-white/60 dark:hover:bg-white/6 dark:hover:text-white"
+          aria-label="Open sidebar"
+          title="Open sidebar"
+        >
+          <PanelLeftOpen size={19} />
+        </button>
+        <button
+          onClick={startNewAnalysis}
+          className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#2f80ed] text-white shadow-lg shadow-blue-500/20 transition hover:-translate-y-0.5 hover:bg-[#256fdb]"
+          aria-label="New analysis"
+          title="New analysis"
+        >
+          <Plus size={20} />
+        </button>
+
+        <div className="flex flex-col items-center gap-3">
+          <CompactSidebarButton icon={<Gauge size={19} />} active={recentJobs.length > 0} label={`${recentJobs.length} recent`} />
+          <CompactSidebarButton icon={<FileText size={18} />} active={Boolean(jobId)} label="Audit" />
+          <CompactSidebarButton icon={<AlertCircle size={18} />} tone="warning" label="AI" />
+        </div>
+
+        <div className="mt-auto flex flex-col items-center gap-3 pb-2">
+          <CompactSidebarButton icon={<HelpCircle size={18} />} label="Help" />
+          <CompactSidebarButton icon={<BookOpen size={18} />} label="Log" />
+        </div>
+      </>
+    ) : (
+      <>
+        <div>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <button
+              onClick={startNewAnalysis}
+              className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-[#2f80ed] px-4 py-3 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:-translate-y-0.5 hover:bg-[#256fdb]"
+            >
+              <Plus size={17} />
+              New analysis
+            </button>
+            <button
+              onClick={() => setIsCollapsed(true)}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#dbe4f2] text-[#64708d] transition hover:border-[#bdd5fa] hover:bg-[#f8faff] hover:text-[#2f80ed] dark:border-white/10 dark:text-white/60 dark:hover:bg-white/6 dark:hover:text-white"
+              aria-label="Collapse sidebar"
+              title="Collapse sidebar"
+            >
+              <PanelLeftClose size={18} />
+            </button>
+          </div>
+
+          <div className="mb-3 flex items-center justify-between px-1">
+            <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">Recent analyses</p>
+            <span className="rounded-full bg-[#eef4ff] px-2 py-1 text-[10px] font-black text-[#2f80ed] dark:bg-white/6 dark:text-[#8bbdff]">
+              {recentJobsLoading ? 'Loading' : recentJobs.length ? `${recentJobs.length} recent` : 'Empty'}
+            </span>
+          </div>
+
+          {recentJobsLoading ? (
+            <div className="rounded-2xl border border-[#dbe4f2] bg-[#f8faff] p-5 text-center dark:border-white/10 dark:bg-white/5">
+              <Loader2 className="mx-auto animate-spin text-[#2f80ed]" size={22} />
+              <p className="mt-3 text-xs font-bold text-[#8a96b3] dark:text-white/45">Loading recent analyses...</p>
+            </div>
+          ) : recentJobs.length > 0 ? (
+            <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
+              {recentJobs.map((job) => (
+                <RecentJobItem
+                  key={job.job_id}
+                  active={job.job_id === jobId}
+                  job={job}
+                  onArchiveReport={() => onArchiveRecentReport(job)}
+                  onDeleteReport={() => onDeleteRecentReport(job)}
+                  onClick={() => onRecentJobClick(job)}
+                />
+              ))}
+              {recentJobsHasMore && (
+                <button
+                  onClick={onLoadMoreRecentJobs}
+                  className="w-full rounded-xl px-3 py-2.5 text-xs font-black text-[#64708d] transition hover:bg-[#f8faff] hover:text-[#2f80ed] dark:text-white/60 dark:hover:bg-white/6 dark:hover:text-[#8bbdff]"
+                >
+                  Load more
+                </button>
+              )}
+            </div>
+          ) : jobId ? (
+            <button className="w-full rounded-2xl border border-[#dbe4f2] bg-[#f8faff] p-4 text-left shadow-sm transition hover:border-[#bdd5fa] hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/8">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eaf3ff] text-[#2f80ed] dark:bg-[#10264d] dark:text-[#8bbdff]">
+                    <FileText size={18} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-[#111b3f] dark:text-white">{analysisName || 'Migration package'}</p>
+                    <p className="mt-0.5 text-xs text-[#8a96b3] dark:text-white/45">Current workspace audit</p>
+                  </div>
+                </div>
+                <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[#23d18b] shadow-[0_0_0_4px_rgba(35,209,139,0.16)]" />
+              </div>
+              <div className="mb-2 flex items-center justify-between text-[10px] font-black uppercase text-[#8a96b3] dark:text-white/45">
+                <span>{status || 'Initializing'}</span>
+                <span>{progress}%</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-[#dfe8f6] dark:bg-white/10">
+                <span className="block h-full rounded-full bg-[#2f80ed]" style={{ width: `${progress}%` }} />
+              </div>
+            </button>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-[#cbd8ea] bg-[#f8faff] px-4 py-5 text-center dark:border-white/14 dark:bg-white/5">
+              <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#2f80ed] shadow-sm dark:bg-[#10264d] dark:text-[#8bbdff]">
+                <Gauge size={20} />
+              </span>
+              <h3 className="mt-3 text-sm font-black text-[#111b3f] dark:text-white">No analyses yet</h3>
+              <p className="mt-1 text-xs leading-5 text-[#8a96b3] dark:text-white/45">
+                Your completed migration audits will appear here for quick access.
+              </p>
+            </div>
+          )}
+
+          <div className="mt-4 rounded-2xl border border-[#dbe4f2] bg-white p-4 dark:border-white/10 dark:bg-white/5">
+            <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">Workspace status</p>
+            <div className="mt-3 space-y-3">
+              <SidebarMetric label="Data package" value={jobId ? 'Uploaded' : 'Waiting'} active={Boolean(jobId)} />
+              <SidebarMetric label="Cloud readiness" value={status === 'COMPLETED' ? 'Ready' : 'Pending'} active={status === 'COMPLETED'} />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-auto space-y-4 pb-2">
+          <div className="rounded-lg border border-[#ffd36d] bg-[#fff9e6] px-4 py-3 text-sm text-[#9b4f00] dark:border-[#f59e0b]/35 dark:bg-[#f59e0b]/10 dark:text-[#ffbe4d]">
+            <div className="mb-1 flex items-center gap-2 font-black">
+              <AlertCircle size={16} />
+              AI may make mistakes.
+            </div>
+            <p>Verify output before migration.</p>
+          </div>
+          <div className="space-y-3 px-1 text-base text-[#8291b3] dark:text-white/55">
+            <button className="flex items-center gap-2 transition hover:text-[#2f80ed]">
+              <HelpCircle size={18} />
+              Help & feedback
+            </button>
+            <button className="flex items-center gap-2 transition hover:text-[#2f80ed]">
+              <BookOpen size={18} />
+              Changelog
+            </button>
+          </div>
+        </div>
+      </>
+    )}
+  </section>
+);
+
+const CompactSidebarButton = ({ icon, label, active, tone }: { icon: React.ReactNode; label: string; active?: boolean; tone?: 'warning' }) => (
+  <button
+    className={`flex h-12 w-12 items-center justify-center rounded-2xl border transition ${
+      tone === 'warning'
+        ? 'border-[#ffd36d] bg-[#fff9e6] text-[#9b4f00] dark:border-[#f59e0b]/35 dark:bg-[#f59e0b]/10 dark:text-[#ffbe4d]'
+        : active
+          ? 'border-[#bdd5fa] bg-[#eaf3ff] text-[#2f80ed] dark:border-[#2f80ed]/35 dark:bg-[#10264d] dark:text-[#8bbdff]'
+          : 'border-[#dbe4f2] bg-white text-[#8291b3] hover:border-[#bdd5fa] hover:text-[#2f80ed] dark:border-white/10 dark:bg-white/5 dark:text-white/55 dark:hover:bg-white/8 dark:hover:text-white'
+    }`}
+    aria-label={label}
+    title={label}
+  >
+    {icon}
+  </button>
+);
+
+const RecentJobItem = ({
+  job,
+  active,
+  onClick,
+  onArchiveReport,
+  onDeleteReport,
+}: {
+  job: AnalysisJob;
+  active: boolean;
+  onClick: () => void;
+  onArchiveReport: () => void;
+  onDeleteReport: () => void;
+}) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const progress = getJobProgress(job.status);
+  const isCompleted = job.status === 'COMPLETED' && Boolean(job.result?.report_id);
+  const hasReport = Boolean(job.result?.report_id);
+
+  const toggleMenu = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMenuOpen((prev) => !prev);
+  };
+
+  const handleArchiveAction = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMenuOpen(false);
+    onArchiveReport();
+  };
+
+  const handleDeleteAction = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMenuOpen(false);
+    onDeleteReport();
+  };
+
+  const closeMenuOnLeave = () => {
+    if (isMenuOpen) setIsMenuOpen(false);
+  };
+
+  return (
+    <div
+      onClick={onClick}
+      onMouseLeave={closeMenuOnLeave}
+      role="button"
+      tabIndex={0}
+      className={`relative w-full cursor-pointer rounded-2xl border p-3 text-left transition ${
+        active
+          ? 'border-[#bdd5fa] bg-[#eaf3ff] dark:border-[#2f80ed]/35 dark:bg-[#10264d]'
+          : 'border-[#dbe4f2] bg-[#f8faff] hover:border-[#bdd5fa] hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/8'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${active ? 'bg-white text-[#2f80ed] dark:bg-white/8 dark:text-[#8bbdff]' : 'bg-white text-[#64708d] dark:bg-[#0c1730] dark:text-white/60'}`}>
+            <FileText size={16} />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-black text-[#111b3f] dark:text-white">{getJobTitle(job)}</p>
+            <p className="mt-0.5 text-xs text-[#8a96b3] dark:text-white/45">{formatJobDate(job.updated_at ?? job.created_at)}</p>
+          </div>
+        </div>
+        
+        <div className="flex shrink-0 items-center gap-1">
+          <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black uppercase ${getJobStatusTone(job.status)}`}>
+            {isCompleted ? 'Report' : job.status || 'Job'}
+          </span>
+          
+          <div className="relative">
+            <button
+              onClick={toggleMenu}
+              className="flex h-6 w-6 items-center justify-center rounded-full text-[#8a96b3] transition hover:bg-[#dbe4f2] dark:text-white/45 dark:hover:bg-white/10"
+            >
+              <MoreVertical size={14} />
+            </button>
+            
+            {/* Menu Dropdown */}
+            {isMenuOpen && (
+              <div className="absolute right-0 top-full z-50 mt-1 w-32 overflow-hidden rounded-xl border border-[#dbe4f2] bg-white shadow-lg dark:border-white/10 dark:bg-[#0c1730]">
+                {hasReport ? (
+                  <>
+                    <button
+                      onClick={handleArchiveAction}
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-xs font-bold text-[#64708d] transition hover:bg-[#f8faff] dark:text-white/70 dark:hover:bg-white/5"
+                    >
+                      <Archive size={13} />
+                      Archive
+                    </button>
+                    <button
+                      onClick={handleDeleteAction}
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-xs font-bold text-[#e54848] transition hover:bg-[#fff0f0] dark:text-red-400 dark:hover:bg-red-500/10"
+                    >
+                      <Trash2 size={13} />
+                      Delete
+                    </button>
+                  </>
+                ) : (
+                  <span className="block px-3 py-2.5 text-xs font-bold text-[#8a96b3] dark:text-white/35">
+                    No report yet
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#dfe8f6] dark:bg-white/10">
+        <span className={`block h-full rounded-full ${job.status === 'FAILED' ? 'bg-[#e54848]' : job.status === 'COMPLETED' ? 'bg-[#23d18b]' : 'bg-[#2f80ed]'}`} style={{ width: `${progress}%` }} />
+      </div>
     </div>
-    <div>
-      <h4 className="font-black text-sm mb-1">{title}</h4>
-      <p className="text-xs text-slate-500 leading-relaxed">{description}</p>
+  );
+};
+
+const SidebarMetric = ({ label, value, active }: { label: string; value: string; active: boolean }) => (
+  <div className="flex items-center justify-between gap-3">
+    <div className="flex min-w-0 items-center gap-2">
+      <span className={`h-2 w-2 shrink-0 rounded-full ${active ? 'bg-[#23d18b]' : 'bg-[#c6d0e3] dark:bg-white/20'}`} />
+      <span className="truncate text-xs font-semibold text-[#64708d] dark:text-white/58">{label}</span>
+    </div>
+    <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black ${active ? 'bg-[#e9fbf4] text-[#159866] dark:bg-[#23d18b]/12 dark:text-[#67e8b9]' : 'bg-[#eef2f8] text-[#8a96b3] dark:bg-white/6 dark:text-white/45'}`}>
+      {value}
+    </span>
+  </div>
+);
+
+const PipelinePanel = ({ activeStage, status }: { activeStage: number; status: JobStatus }) => (
+  <aside className="bg-[#162762] p-6 text-white sm:p-7">
+    <h2 className="text-base font-black">AI Analysis Pipeline</h2>
+    <p className="mt-1 text-sm text-white/48">AI-powered DC to Cloud compatibility analysis</p>
+
+    <div className="mt-4 rounded-2xl bg-white/8 p-4 ring-1 ring-white/8">
+      <div className="flex items-start gap-3">
+        <span className="mt-1 h-3.5 w-3.5 rounded-full bg-[#34d399]" />
+        <div>
+          <p className="text-sm font-black">{status ? 'Pipeline active' : 'Live pipeline ready'}</p>
+          <p className="text-xs text-white/58">{status ? 'Processing package upload' : 'Waiting for package upload'}</p>
+        </div>
+      </div>
+    </div>
+
+    <div className="mt-7 space-y-0">
+      <PipelineStep number="01" eyebrow="Data ready" title="Data preparation" text="Upload, parsing, and data normalization." active={activeStage === 1} done={activeStage > 1} connectorState={activeStage > 1 ? 'done' : 'next'} />
+      <PipelineStep number="02" eyebrow="Current stage" title="Compatibility analysis" text="Feature detection and rule-based evaluation." active={activeStage === 2} done={activeStage > 2} connectorState={activeStage > 2 ? 'done' : activeStage === 2 ? 'active' : 'idle'} />
+      <PipelineStep number="03" eyebrow="Final output" title="AI report generation" text="AI-powered migration assessment report." active={activeStage === 3} done={false} />
+    </div>
+
+    <div className="mt-5 rounded-2xl border border-[#f59e0b]/30 bg-[#f59e0b]/10 p-4 text-xs leading-5 text-[#ffb43b]">
+      <div className="flex gap-2">
+        <AlertCircle size={15} className="mt-0.5 shrink-0" />
+        <p>AI recommendations should be reviewed before production migration.</p>
+      </div>
+    </div>
+  </aside>
+);
+
+const PipelineStep = ({
+  number,
+  eyebrow,
+  title,
+  text,
+  active,
+  done,
+  connectorState,
+}: {
+  number: string;
+  eyebrow: string;
+  title: string;
+  text: string;
+  active: boolean;
+  done: boolean;
+  connectorState?: 'done' | 'active' | 'next' | 'idle';
+}) => (
+  <div className="relative flex gap-4 pb-6 last:pb-0">
+    <div className="relative flex w-11 shrink-0 justify-center">
+      {connectorState && (
+        <span
+          className={`absolute left-1/2 top-11 h-[calc(100%-2.75rem)] w-[2px] -translate-x-1/2 rounded-full ${
+            connectorState === 'done'
+              ? 'bg-[#31d4a2]'
+              : connectorState === 'active'
+                ? 'bg-gradient-to-b from-[#31d4a2] to-white/18'
+                : connectorState === 'next'
+                  ? 'bg-gradient-to-b from-[#2f80ed] to-white/18'
+                  : 'bg-white/14'
+          }`}
+        />
+      )}
+      <div className={`relative z-10 flex h-11 w-11 items-center justify-center rounded-full text-[11px] font-black shadow-lg transition ${
+        active
+          ? 'bg-[#2f80ed] text-white shadow-[#2f80ed]/35 ring-4 ring-[#2f80ed]/20'
+          : done
+            ? 'bg-[#31d4a2] text-[#0b2144] shadow-[#31d4a2]/20 ring-4 ring-[#31d4a2]/15'
+            : 'bg-white/12 text-white/72 shadow-black/10 ring-1 ring-white/10'
+      }`}>
+        {done ? <CheckCircle2 size={17} /> : number}
+      </div>
+    </div>
+    <div className={`flex-1 rounded-2xl p-4 ring-1 ${active ? 'bg-[#1d438a] ring-[#2f80ed]/55' : 'bg-white/8 ring-white/8'}`}>
+      <p className={`text-[10px] font-black uppercase ${active || done ? 'text-[#34d399]' : 'text-white/35'}`}>{eyebrow}</p>
+      <h3 className="mt-1 text-sm font-black">{title}</h3>
+      <p className="text-xs text-white/55">{text}</p>
     </div>
   </div>
 );
 
-const MetaItem = ({ label, value }: { label: string, value?: string }) => (
-    <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl">
-        <p className="text-[10px] font-black text-blue-300 uppercase opacity-70 mb-0.5">{label}</p>
-        <p className="text-[11px] font-mono opacity-90">{value?.substring(0, 12)}...</p>
+const StatusBadge = ({ status }: { status?: string }) => {
+  const isPending = status === 'QUEUED' || status === 'RUNNING' || !status;
+  return (
+    <div className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black uppercase ${status === 'COMPLETED' ? 'bg-[#dcfce7] text-[#15803d]' : status === 'FAILED' ? 'bg-[#fee2e2] text-[#b91c1c]' : 'bg-[#dbeafe] text-[#1d4ed8]'}`}>
+      {isPending && <Loader2 size={14} className="animate-spin" />}
+      {status || 'Initializing'}
     </div>
+  );
+};
+
+const StageChip = ({ label, active }: { label: string; active: boolean }) => (
+  <div className={`rounded-xl px-3 py-3 text-xs font-black ${active ? 'bg-white text-[#2f80ed] ring-1 ring-[#bdd5fa] dark:bg-[#10264d] dark:text-[#8bbdff] dark:ring-[#2f80ed]/35' : 'bg-[#edf2fb] text-[#8a96b3] dark:bg-white/5 dark:text-white/40'}`}>
+    {label}
+  </div>
 );
+
+const StatCard = ({ label, value, tone }: { label: string; value: string | number; tone: 'blue' | 'red' | 'green' | 'slate' }) => {
+  const colors = {
+    blue: 'bg-[#eaf3ff] text-[#2f80ed]',
+    red: 'bg-[#fff0f0] text-[#e54848]',
+    green: 'bg-[#e9fbf4] text-[#159866]',
+    slate: 'bg-[#eef2f8] text-[#64708d]',
+  };
+
+  return (
+    <div className="rounded-2xl border border-[#dbe4f2] bg-white p-4 transition-colors duration-300 dark:border-white/10 dark:bg-white/5">
+      <p className="text-[10px] font-black uppercase text-[#8a96b3] dark:text-white/45">{label}</p>
+      <p className={`mt-2 inline-flex rounded-lg px-3 py-1 text-xl font-black ${colors[tone]}`}>{value}</p>
+    </div>
+  );
+};
+
+const ResourceCards = () => (
+  <div className="mt-16 grid gap-4 md:grid-cols-3">
+    <ResourceCard icon={<Home size={17} />} eyebrow="Documentation" title="Need help exporting?" text="From v9.19 onwards, export directly." action="View documentation" tone="blue" />
+    <ResourceCard icon={<Layers3 size={17} />} eyebrow="Spectrum Academy" title="Formations Atlassian" text="Montez en competences avec nos experts." action="Discover trainings" tone="purple" />
+    <ResourceCard icon={<Activity size={17} />} eyebrow="Spectrum Benchmark" title="Analyses du marche" text="Livres blancs et analyses avancees." action="Read benchmarks" tone="pink" />
+  </div>
+);
+
+const ResourceCard = ({ icon, eyebrow, title, text, action, tone }: { icon: React.ReactNode; eyebrow: string; title: string; text: string; action: string; tone: 'blue' | 'purple' | 'pink' }) => {
+  const tones = {
+    blue: 'border-t-[#2f80ed] text-[#2f80ed] bg-[#eaf3ff]',
+    purple: 'border-t-[#7c3aed] text-[#7c3aed] bg-[#f3eefe]',
+    pink: 'border-t-[#ec1681] text-[#ec1681] bg-[#fff0f7]',
+  };
+
+  return (
+    <article className={`rounded-[18px] border-t-4 bg-white p-5 shadow-sm transition-colors duration-300 dark:bg-[#101d3a] ${tones[tone]}`}>
+      <div className="flex gap-3">
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tones[tone]}`}>{icon}</div>
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase text-[#8a96b3] dark:text-white/45">{eyebrow}</p>
+          <h3 className="text-sm font-black leading-4">{title}</h3>
+          <p className="mt-1 text-xs text-[#64708d] dark:text-white/60">{text}</p>
+          <button className="mt-3 text-xs font-black">
+            {action} <ChevronRight className="inline" size={13} />
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+};
+
 export default AnalysisPage;
