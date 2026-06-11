@@ -13,6 +13,7 @@ class UserRepository:
         self.db = db or get_mongo_db()
         self.collection = self.db.users
         self.collection.create_index("email", unique=True)
+        self.collection.create_index("reset_password_token_hash", sparse=True)
 
     def create_user(self, email: str, password_hash: str, role: str = "user") -> dict:
         """Insert a new user document."""
@@ -76,3 +77,51 @@ class UserRepository:
     def get_user_by_email(self, email: str) -> Optional[dict]:
         """Retrieve a user document by email."""
         return self.collection.find_one({"email": email})
+
+    def save_password_reset_token(
+        self,
+        email: str,
+        token_hash: str,
+        expires_at: datetime,
+    ) -> None:
+        """Store a password reset token hash for a user."""
+        self.collection.update_one(
+            {"email": email},
+            {
+                "$set": {
+                    "reset_password_token_hash": token_hash,
+                    "reset_password_expires_at": expires_at,
+                    "updated_at": datetime.utcnow().isoformat(),
+                }
+            },
+        )
+
+    def get_user_by_password_reset_token(
+        self,
+        email: str,
+        token_hash: str,
+    ) -> Optional[dict]:
+        """Retrieve a user by email and password reset token hash."""
+        return self.collection.find_one(
+            {
+                "email": email,
+                "reset_password_token_hash": token_hash,
+            }
+        )
+
+    def update_password_and_clear_reset(self, email: str, password_hash: str) -> None:
+        """Update a user's password and remove reset token fields."""
+        self.collection.update_one(
+            {"email": email},
+            {
+                "$set": {
+                    "password_hash": password_hash,
+                    "auth_provider": "local",
+                    "updated_at": datetime.utcnow().isoformat(),
+                },
+                "$unset": {
+                    "reset_password_token_hash": "",
+                    "reset_password_expires_at": "",
+                },
+            },
+        )

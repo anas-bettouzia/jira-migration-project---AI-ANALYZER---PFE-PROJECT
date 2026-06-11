@@ -1,54 +1,72 @@
 // src/modules/auth/LoginModal.tsx
 import React, { useCallback, useState } from 'react';
 import { Lock, Mail, Loader2, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/authService';
 import { useAuthStore } from '../../store/useAuthStore';
-import { useNavigate } from 'react-router-dom';
 import GoogleSignInButton from '../../shared/components/GoogleSignInButton';
 import type { AuthResponse } from '../../shared/types/auth';
+import { EMAIL_ERROR, EMAIL_REGEX, PASSWORD_ERROR, PASSWORD_REGEX } from '../../services/validation';
 
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-// 1. Expressions régulières miroir du backend Flask
-const EMAIL_REGEX = /^[\w.-]+@[\w.-]+\.\w+$/;
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\w\W]{8,}$/;
-
 const getAuthErrorMessage = (error: unknown, isLogin: boolean) => {
   const response = (error as { response?: { data?: { error?: string } } }).response;
-  return response?.data?.error || (isLogin ? 'Identifiants invalides.' : 'Erreur lors de l\'inscription.');
+  return response?.data?.error || (isLogin ? 'Identifiants invalides.' : "Erreur lors de l'inscription.");
 };
 
 const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
-  const [isLogin, setIsLogin] = useState(true); // Bascule Login / Register
+  const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const navigate = useNavigate();
   const setToken = useAuthStore((state) => state.setToken);
+
+  const resetFeedback = () => {
+    setError('');
+    setSuccess('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
-    
-    // 2. Validations Frontend exclusives au mode INSCRIPTION (Register)
+    resetFeedback();
+
+    if (isForgotPassword) {
+      if (!EMAIL_REGEX.test(email.trim())) {
+        setError(EMAIL_ERROR);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const data = await authService.requestPasswordReset(email.trim());
+        setSuccess(data.message);
+      } catch (error) {
+        setError(getAuthErrorMessage(error, false));
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     if (!isLogin) {
       if (!EMAIL_REGEX.test(email.trim())) {
-        setError("Le format de l'adresse email est invalide.");
+        setError(EMAIL_ERROR);
         setIsLoading(false);
         return;
       }
 
       if (!PASSWORD_REGEX.test(password)) {
-        setError(
-          "Le mot de passe doit contenir au moins 8 caractères, " +
-          "une majuscule, une minuscule et un chiffre."
-        );
+        setError(PASSWORD_ERROR);
         setIsLoading(false);
         return;
       }
@@ -56,21 +74,17 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
     try {
       if (isLogin) {
-        // Logique de Connexion
         const data = await authService.login(email, password);
         setToken(data.token);
       } else {
-        // Logique d'Inscription
         await authService.register(email, password);
-        // Si l'inscription réussit, on connecte l'utilisateur automatiquement
         const data = await authService.login(email, password);
         setToken(data.token);
       }
-      
-      onClose(); // Fermer la modal
-      navigate('/analysis'); 
+
+      onClose();
+      navigate('/analysis');
     } catch (error) {
-      // Récupération dynamique du dictionnaire d'erreur personnalisé renvoyé par Flask
       setError(getAuthErrorMessage(error, isLogin));
     } finally {
       setIsLoading(false);
@@ -79,7 +93,8 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
   const toggleMode = () => {
     setIsLogin(!isLogin);
-    setError(''); // On efface les erreurs quand on change de mode
+    setIsForgotPassword(false);
+    resetFeedback();
   };
 
   const handleGoogleAuthenticated = useCallback(
@@ -97,45 +112,47 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
   if (!isOpen) return null;
 
+  const title = isForgotPassword ? 'Reinitialiser le mot de passe' : isLogin ? 'Connexion' : 'Creer un compte';
+  const subtitle = isForgotPassword
+    ? 'Recevez un lien de reinitialisation par email'
+    : isLogin
+      ? 'Accedez a votre assistant de migration'
+      : 'Rejoignez-nous pour commencer';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Overlay avec flou */}
-      <div 
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
+      <div
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
-      {/* Contenu de la Modal */}
       <div className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-[2rem] shadow-2xl border border-white/20 dark:border-slate-800 p-8 animate-in fade-in zoom-in duration-300">
-        
-        {/* Bouton Fermer */}
-        <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+        <button
+          onClick={onClose}
+          className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+        >
           <X size={24} />
         </button>
 
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-            {isLogin ? 'Connexion' : 'Créer un compte'}
-          </h2>
-          <p className="text-sm text-slate-500 mt-2">
-            {isLogin ? 'Accédez à votre assistant de migration' : 'Rejoignez-nous pour commencer'}
-          </p>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{title}</h2>
+          <p className="text-sm text-slate-500 mt-2">{subtitle}</p>
         </div>
 
-        <div className="mb-6">
-          <GoogleSignInButton
-            width={352}
-            onAuthenticated={handleGoogleAuthenticated}
-            onError={handleGoogleError}
-          />
-          <div className="mt-5 flex items-center gap-3">
-            <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-              ou
-            </span>
-            <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+        {!isForgotPassword && (
+          <div className="mb-6">
+            <GoogleSignInButton
+              width={352}
+              onAuthenticated={handleGoogleAuthenticated}
+              onError={handleGoogleError}
+            />
+            <div className="mt-5 flex items-center gap-3">
+              <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">ou</span>
+              <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+            </div>
           </div>
-        </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-4">
@@ -143,8 +160,8 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
               <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Email</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input 
-                  type="email" 
+                <input
+                  type="email"
                   required
                   placeholder="nom@exemple.com"
                   className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
@@ -153,47 +170,83 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                 />
               </div>
             </div>
-            <div>
-              <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Mot de passe</label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input 
-                  type="password" 
-                  required
-                  placeholder="••••••••"
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+
+            {!isForgotPassword && (
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Mot de passe</label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    type="password"
+                    required
+                    placeholder="********"
+                    className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {error && <p className="text-red-500 text-xs font-bold text-center animate-shake">{error}</p>}
+          {success && <p className="text-emerald-600 text-xs font-bold text-center">{success}</p>}
 
           <button
             type="submit"
             disabled={isLoading}
             className="w-full py-4 bg-[var(--spectrum-blue)] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 flex justify-center items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-70 disabled:hover:scale-100"
           >
-            {isLoading ? <Loader2 className="animate-spin" size={20} /> : (isLogin ? "S'identifier" : "S'inscrire")}
+            {isLoading ? (
+              <Loader2 className="animate-spin" size={20} />
+            ) : isForgotPassword ? (
+              'Envoyer le lien'
+            ) : isLogin ? (
+              "S'identifier"
+            ) : (
+              "S'inscrire"
+            )}
           </button>
         </form>
 
-        {/* Bouton de bascule Login / Register */}
         <div className="mt-6 text-center">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {isLogin ? "Pas encore de compte ?" : "Déjà un compte ?"}
-            <button 
-              onClick={toggleMode}
+          {isLogin && !isForgotPassword && (
+            <button
+              onClick={() => {
+                setIsForgotPassword(true);
+                resetFeedback();
+              }}
               type="button"
-              className="ml-1.5 font-bold text-[var(--spectrum-blue)] hover:underline"
+              className="mb-3 text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
             >
-              {isLogin ? "Créer un compte" : "Se connecter"}
+              Mot de passe oublie ?
             </button>
-          </p>
-        </div>
+          )}
 
+          {isForgotPassword ? (
+            <button
+              onClick={() => {
+                setIsForgotPassword(false);
+                resetFeedback();
+              }}
+              type="button"
+              className="text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
+            >
+              Retour a la connexion
+            </button>
+          ) : (
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {isLogin ? 'Pas encore de compte ?' : 'Deja un compte ?'}
+              <button
+                onClick={toggleMode}
+                type="button"
+                className="ml-1.5 font-bold text-[var(--spectrum-blue)] hover:underline"
+              >
+                {isLogin ? 'Creer un compte' : 'Se connecter'}
+              </button>
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

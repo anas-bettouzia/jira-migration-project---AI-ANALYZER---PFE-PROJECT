@@ -7,7 +7,12 @@ import logging
 import os
 import sys
 import re
-from datetime import timedelta
+import hashlib
+import secrets
+import smtplib
+from datetime import datetime, timedelta
+from email.message import EmailMessage
+from urllib.parse import urlencode
 
 from dotenv import load_dotenv
 from flasgger import Swagger
@@ -48,8 +53,85 @@ KNOWLEDGE_SERVICE_URL = os.getenv("KNOWLEDGE_SERVICE_URL", "http://knowledge_ser
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 REQUEST_TIMEOUT = 180
 
-EMAIL_REGEX = r"^[\w\.-]+@[\w\.-]+\.\w+$"
+EMAIL_REGEX = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.(com|fr)$"
 PASSWORD_REGEX = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\w\W]{8,}$"
+PASSWORD_RESET_TOKEN_MINUTES = int(os.getenv("PASSWORD_RESET_TOKEN_MINUTES", "30"))
+
+
+def _normalize_email(email: str) -> str:
+    """Return a consistently stored email value."""
+    return email.strip().lower()
+
+
+def _is_valid_email(email: str) -> bool:
+    """Validate email format and allowed top-level domains."""
+    return bool(re.fullmatch(EMAIL_REGEX, email, flags=re.IGNORECASE))
+
+
+def _is_valid_password(password: str) -> bool:
+    """Validate password strength requirements."""
+    return bool(re.fullmatch(PASSWORD_REGEX, password))
+
+
+def _hash_reset_token(token: str) -> str:
+    """Hash a reset token before storing or comparing it."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _password_reset_link(email: str, token: str) -> str:
+    """Build a frontend password reset URL."""
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+    query = urlencode({"email": email, "token": token})
+    return f"{frontend_url}/reset-password?{query}"
+
+
+def _send_password_reset_email(email: str, reset_link: str) -> None:
+    """Send a password reset email, or log the link when SMTP is not configured."""
+    smtp_host = os.getenv("SMTP_HOST")
+    if not smtp_host:
+        logger.warning(
+            "SMTP_HOST is not configured. Password reset link for %s: %s",
+            email,
+            reset_link,
+        )
+        return
+
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_username = os.getenv("SMTP_USERNAME", "")
+    smtp_password = os.getenv("SMTP_PASSWORD", "")
+    smtp_from = os.getenv("SMTP_FROM", smtp_username or "no-reply@jira-migration.local")
+    smtp_use_tls = os.getenv("SMTP_USE_TLS", "true").lower() in {"1", "true", "yes"}
+
+    message = EmailMessage()
+    message["Subject"] = "Reinitialisation de votre mot de passe"
+    message["From"] = smtp_from
+    message["To"] = email
+    message.set_content(
+        "Bonjour,\n\n"
+        "Vous avez demande la reinitialisation de votre mot de passe.\n"
+        f"Cliquez sur ce lien pour choisir un nouveau mot de passe: {reset_link}\n\n"
+        f"Ce lien expire dans {PASSWORD_RESET_TOKEN_MINUTES} minutes.\n"
+        "Si vous n'etes pas a l'origine de cette demande, ignorez cet email.\n"
+    )
+
+    with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
+        if smtp_use_tls:
+            smtp.starttls()
+        if smtp_username and smtp_password:
+            smtp.login(smtp_username, smtp_password)
+        smtp.send_message(message)
+
+
+def _reset_token_is_expired(expires_at) -> bool:
+    """Return True when a stored reset token expiration is in the past."""
+    if isinstance(expires_at, str):
+        try:
+            expires_at = datetime.fromisoformat(expires_at)
+        except ValueError:
+            return True
+    if not isinstance(expires_at, datetime):
+        return True
+    return expires_at < datetime.utcnow()
 
 def _ensure_admin_user(user_repo: UserRepository) -> None:
     """Create default admin user from env variables if it does not exist."""
@@ -170,7 +252,7 @@ def create_app():
         if not data:
             return jsonify({"error": "Request body is required"}), 400
 
-        user = user_repo.get_user_by_email(data.get("email", ""))
+        user = user_repo.get_user_by_email(_normalize_email(data.get("email", "")))
         password_hash = user.get("password_hash") if user else None
         if password_hash and check_password_hash(password_hash, data.get("password", "")):
             token = create_access_token(identity=user["email"])
@@ -201,12 +283,15 @@ def create_app():
             logger.warning("Google authentication failed: %s", error)
             return jsonify({"error": "Invalid Google credential"}), 401
 
-        email = google_payload.get("email")
+        email = _normalize_email(google_payload.get("email", ""))
         email_verified = google_payload.get("email_verified")
         google_user_id = google_payload.get("sub")
 
         if not email or not google_user_id:
             return jsonify({"error": "Google credential is missing required profile data"}), 401
+
+        if not _is_valid_email(email):
+            return jsonify({"error": "Only valid .com and .fr email addresses are accepted"}), 400
 
         if email_verified is not True:
             return jsonify({"error": "Google account email is not verified"}), 401
@@ -249,14 +334,16 @@ def create_app():
         if not data:
             return jsonify({"error": "Request body is required"}), 400
 
-        email = data.get("email", "").strip()
+        email = _normalize_email(data.get("email", ""))
         password = data.get("password", "")
 
         if not email or not password:
             return jsonify({"error": "Email and password are required"}), 400
 
-        if not re.match(EMAIL_REGEX, email):
-            return jsonify({"error": "Le format de l'adresse email est invalide."}), 400
+        if not _is_valid_email(email):
+            return jsonify({
+                "error": "L'adresse email doit etre valide et se terminer par .com ou .fr."
+            }), 400
 
         if not re.match(PASSWORD_REGEX, password):
             return jsonify({
@@ -271,6 +358,86 @@ def create_app():
 
         user_repo.create_user(email, generate_password_hash(password), role="user")
         return jsonify({"message": "User registered successfully"}), 201
+
+    @app.route("/api/password/forgot", methods=["POST"])
+    def forgot_password():
+        """Create a password reset token and email the reset link."""
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"error": "Request body is required"}), 400
+
+        email = _normalize_email(data.get("email", ""))
+        if not _is_valid_email(email):
+            return jsonify({
+                "error": "L'adresse email doit etre valide et se terminer par .com ou .fr."
+            }), 400
+
+        generic_message = {
+            "message": (
+                "Si un compte existe pour cet email, un lien de "
+                "reinitialisation a ete envoye."
+            )
+        }
+
+        user = user_repo.get_user_by_email(email)
+        if user:
+            token = secrets.token_urlsafe(32)
+            expires_at = datetime.utcnow() + timedelta(
+                minutes=PASSWORD_RESET_TOKEN_MINUTES,
+            )
+            user_repo.save_password_reset_token(
+                email,
+                _hash_reset_token(token),
+                expires_at,
+            )
+            reset_link = _password_reset_link(email, token)
+            try:
+                _send_password_reset_email(email, reset_link)
+            except (OSError, smtplib.SMTPException) as error:
+                logger.error(
+                    "Failed to send password reset email to %s: %s",
+                    email,
+                    error,
+                )
+                return jsonify({"error": "Impossible d'envoyer l'email de reinitialisation."}), 502
+
+        return jsonify(generic_message), 200
+
+    @app.route("/api/password/reset", methods=["POST"])
+    def reset_password():
+        """Reset a user's password with a valid reset token."""
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"error": "Request body is required"}), 400
+
+        email = _normalize_email(data.get("email", ""))
+        token = data.get("token", "")
+        password = data.get("password", "")
+
+        if not email or not token or not password:
+            return jsonify({"error": "Email, token and password are required"}), 400
+
+        if not _is_valid_email(email):
+            return jsonify({
+                "error": "L'adresse email doit etre valide et se terminer par .com ou .fr."
+            }), 400
+
+        if not _is_valid_password(password):
+            return jsonify({
+                "error": (
+                    "Le mot de passe doit contenir au moins 8 caracteres, "
+                    "une majuscule, une minuscule et un chiffre."
+                )
+            }), 400
+
+        user = user_repo.get_user_by_password_reset_token(email, _hash_reset_token(token))
+        if not user or _reset_token_is_expired(user.get("reset_password_expires_at")):
+            return jsonify({"error": "Le lien de reinitialisation est invalide ou expire."}), 400
+
+        user_repo.update_password_and_clear_reset(email, generate_password_hash(password))
+        return jsonify({"message": "Mot de passe mis a jour avec succes."}), 200
 
     @app.route("/api/me", methods=["GET"])
     @jwt_required()

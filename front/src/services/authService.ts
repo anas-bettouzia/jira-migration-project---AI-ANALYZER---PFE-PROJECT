@@ -40,4 +40,34 @@ export const authService = {
       throw error;
     }
   },
+
+  requestPasswordReset: async (email: string): Promise<{ message: string }> => {
+    try {
+      const response = await api.post<{ message: string }>('/password/forgot', {
+        email,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Erreur lors de la demande de reinitialisation :', error);
+      throw error;
+    }
+  },
+
+  resetPassword: async (
+    email: string,
+    token: string,
+    password: string
+  ): Promise<{ message: string }> => {
+    try {
+      const response = await api.post<{ message: string }>('/password/reset', {
+        email,
+        token,
+        password,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Erreur lors de la reinitialisation du mot de passe :', error);
+      throw error;
+    }
+  },
 };

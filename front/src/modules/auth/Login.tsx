@@ -6,12 +6,15 @@ import { useAuthStore } from '../../store/useAuthStore';
 import logoSpectrum from '../../assets/img/logo-spectrum-groupe.png';
 import GoogleSignInButton from '../../shared/components/GoogleSignInButton';
 import type { AuthResponse } from '../../shared/types/auth';
+import { EMAIL_ERROR, EMAIL_REGEX } from '../../services/validation';
 
 const Login = () => {
   const [email, setEmail] = useState('admin@test.com');
   const [password, setPassword] = useState('1234');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetLoading, setIsResetLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   
   const navigate = useNavigate();
@@ -30,6 +33,7 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setSuccess('');
 
     try {
       const data = await authService.login(email, password);
@@ -39,6 +43,27 @@ const Login = () => {
       setError('Identifiants invalides ou serveur injoignable.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setError('');
+    setSuccess('');
+
+    if (!EMAIL_REGEX.test(email.trim())) {
+      setError(EMAIL_ERROR);
+      return;
+    }
+
+    try {
+      setIsResetLoading(true);
+      const data = await authService.requestPasswordReset(email.trim());
+      setSuccess(data.message);
+    } catch (error) {
+      const response = (error as { response?: { data?: { error?: string } } }).response;
+      setError(response?.data?.error || "Impossible d'envoyer le lien de reinitialisation.");
+    } finally {
+      setIsResetLoading(false);
     }
   };
 
@@ -151,6 +176,12 @@ const Login = () => {
                 </div>
               )}
 
+              {success && (
+                <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 text-sm font-medium border border-emerald-100 dark:border-emerald-800 text-center">
+                  {success}
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={isLoading}
@@ -161,6 +192,17 @@ const Login = () => {
                 ) : 'Se connecter'}
               </button>
             </form>
+
+            <div className="mt-5 text-center">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={isResetLoading}
+                className="text-sm font-bold text-[var(--spectrum-blue)] hover:underline disabled:opacity-60"
+              >
+                {isResetLoading ? 'Envoi du lien...' : 'Mot de passe oublie ?'}
+              </button>
+            </div>
           </div>
 
           <div className="text-center space-y-4">

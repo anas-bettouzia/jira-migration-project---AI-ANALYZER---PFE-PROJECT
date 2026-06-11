@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useAuthStore } from './store/useAuthStore';
 import Home from './modules/overview/Home';
 import Login from './modules/auth/Login';
+import ResetPassword from './modules/auth/ResetPassword';
 import { AnalysisPage } from './modules/analysis/AnalysisPage';
 import { ReportPage } from './modules/reports/ReportPage';
 
@@ -25,6 +26,7 @@ function App() {
             path="/login" 
             element={token ? <Navigate to="/" /> : <Login />} 
           />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>
