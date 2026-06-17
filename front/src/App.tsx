@@ -26,7 +26,7 @@ function App() {
             path="/login" 
             element={token ? <Navigate to="/" /> : <Login />} 
           />
-          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/reset-password" element={<Home />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>

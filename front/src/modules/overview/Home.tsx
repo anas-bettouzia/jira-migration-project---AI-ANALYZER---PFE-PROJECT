@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
@@ -19,6 +19,7 @@ import {
 import logoSpectrumDark from '../../assets/img/logo-spectrum-groupe-darkmode.png';
 import logoSpectrum from '../../assets/img/logo-spectrum-groupe.png';
 import LoginModal from '../auth/LoginModal';
+import ResetPassword from '../auth/ResetPassword';
 import { MainSidebar } from '../../shared/components/MainSidebar';
 import { useAuthStore } from '../../store/useAuthStore';
 
@@ -26,8 +27,10 @@ const THEME_KEY = 'jira-migration-theme';
 
 const Home = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const [isLight, setIsLight] = useState(() => {
     const savedTheme = localStorage.getItem(THEME_KEY);
     if (savedTheme) return savedTheme === 'light';
@@ -58,6 +61,10 @@ const Home = () => {
       setSearchParams(nextParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    setIsResetModalOpen(location.pathname === '/reset-password');
+  }, [location.pathname]);
 
   const featureCards = useMemo(
     () => [
@@ -325,6 +332,15 @@ const Home = () => {
 
       <AnimatePresence>
         {isModalOpen && <LoginModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />}
+        {isResetModalOpen && (
+          <ResetPassword
+            isModal
+            onClose={() => {
+              setIsResetModalOpen(false);
+              navigate('/');
+            }}
+          />
+        )}
       </AnimatePresence>
     </div>
   );
