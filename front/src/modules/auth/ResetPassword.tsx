@@ -84,22 +84,24 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
   return (
     <div className={wrapperClass}>
       {isModal && (
-        <>
-          <div
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
-            onClick={handleClose}
-          />
-          <button
-            type="button"
-            onClick={handleClose}
-            className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
-          >
-            <X size={24} />
-          </button>
-        </>
+        <div
+          className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+          onClick={handleClose}
+        />
       )}
 
       <div className={cardClass}>
+        {/* Bouton de fermeture identique au LoginModal placé à l'intérieur de la Card */}
+        {isModal && (
+          <button
+            onClick={handleClose}
+            className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+            type="button"
+          >
+            <X size={24} />
+          </button>
+        )}
+
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
             Nouveau mot de passe
