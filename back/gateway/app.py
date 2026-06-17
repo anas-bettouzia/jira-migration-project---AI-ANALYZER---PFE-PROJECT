@@ -89,9 +89,15 @@ def _send_password_reset_email(email: str, reset_link: str) -> None:
     """Send a password reset email, or log a warning when SMTP is not configured."""
     smtp_host = os.getenv("SMTP_HOST")
     if not smtp_host:
+        smtp_keys = [
+            key
+            for key in sorted(os.environ)
+            if key.startswith("SMTP_")
+        ]
         logger.warning(
-            "SMTP_HOST is not configured. Set SMTP_HOST in Portainer or .env "
-            "and redeploy the service.",
+            "SMTP_HOST is not configured. Present SMTP keys: %s. "
+            "Check Portainer variables and redeploy the service.",
+            smtp_keys,
         )
         return
 
