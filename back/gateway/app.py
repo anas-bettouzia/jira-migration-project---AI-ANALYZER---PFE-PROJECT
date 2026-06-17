@@ -85,8 +85,53 @@ def _password_reset_link(email: str, token: str) -> str:
     return f"{frontend_url}/reset-password?{query}"
 
 
-def _send_password_reset_email(email: str, reset_link: str) -> None:
-    """Send a password reset email, or log a warning when SMTP is not configured."""
+def _password_reset_message(reset_link: str) -> str:
+    """Return the password reset email body."""
+    return (
+        "Bonjour,\n\n"
+        "Vous avez demande la reinitialisation de votre mot de passe.\n"
+        f"Cliquez sur ce lien pour choisir un nouveau mot de passe: {reset_link}\n\n"
+        f"Ce lien expire dans {PASSWORD_RESET_TOKEN_MINUTES} minutes.\n"
+        "Si vous n'etes pas a l'origine de cette demande, ignorez cet email.\n"
+    )
+
+
+def _send_password_reset_email_sendgrid(email: str, reset_link: str) -> None:
+    """Send a password reset email using SendGrid, with SMTP fallback."""
+    api_key = os.getenv("SENDGRID_API_KEY")
+    if not api_key:
+        logger.warning("SENDGRID_API_KEY is not configured. Falling back to SMTP.")
+        return _send_password_reset_email_smtp(email, reset_link)
+
+    sender = os.getenv("SMTP_FROM", os.getenv("SENDGRID_FROM", "no-reply@jira-migration.local"))
+    payload = {
+        "personalizations": [{"to": [{"email": email}]}],
+        "from": {"email": sender},
+        "subject": "Reinitialisation de votre mot de passe",
+        "content": [
+            {"type": "text/plain", "value": _password_reset_message(reset_link)}
+        ],
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    try:
+        response = requests.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            json=payload,
+            headers=headers,
+            timeout=REQUEST_TIMEOUT,
+        )
+        response.raise_for_status()
+        logger.info("Password reset email sent via SendGrid to %s", email)
+    except requests.RequestException as error:
+        logger.warning("SendGrid send failed, falling back to SMTP: %s", error)
+        return _send_password_reset_email_smtp(email, reset_link)
+
+
+def _send_password_reset_email_smtp(email: str, reset_link: str) -> None:
+    """Send a password reset email via SMTP."""
     smtp_host = os.getenv("SMTP_HOST")
     if not smtp_host:
         smtp_keys = [
@@ -94,12 +139,10 @@ def _send_password_reset_email(email: str, reset_link: str) -> None:
             for key in sorted(os.environ)
             if key.startswith("SMTP_")
         ]
-        logger.warning(
-            "SMTP_HOST is not configured. Present SMTP keys: %s. "
-            "Check Portainer variables and redeploy the service.",
-            smtp_keys,
+        raise RuntimeError(
+            f"SMTP_HOST is not configured. Present SMTP keys: {smtp_keys}. "
+            "Check Portainer variables and redeploy the service."
         )
-        return
 
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
     smtp_username = os.getenv("SMTP_USERNAME", "")
@@ -112,13 +155,7 @@ def _send_password_reset_email(email: str, reset_link: str) -> None:
     message["Subject"] = "Reinitialisation de votre mot de passe"
     message["From"] = smtp_from
     message["To"] = email
-    message.set_content(
-        "Bonjour,\n\n"
-        "Vous avez demande la reinitialisation de votre mot de passe.\n"
-        f"Cliquez sur ce lien pour choisir un nouveau mot de passe: {reset_link}\n\n"
-        f"Ce lien expire dans {PASSWORD_RESET_TOKEN_MINUTES} minutes.\n"
-        "Si vous n'etes pas a l'origine de cette demande, ignorez cet email.\n"
-    )
+    message.set_content(_password_reset_message(reset_link))
 
     try:
         if smtp_use_ssl or smtp_port == 465:
@@ -136,6 +173,21 @@ def _send_password_reset_email(email: str, reset_link: str) -> None:
     except Exception:
         logger.exception("Failed to send password reset email to %s", email)
         raise
+
+
+def _send_password_reset_email(email: str, reset_link: str) -> None:
+    """Send a password reset email using the selected delivery provider."""
+    provider = os.getenv("EMAIL_PROVIDER", "sendgrid").strip().lower()
+    if provider == "smtp":
+        return _send_password_reset_email_smtp(email, reset_link)
+    if provider == "sendgrid":
+        return _send_password_reset_email_sendgrid(email, reset_link)
+
+    logger.warning(
+        "Unsupported EMAIL_PROVIDER=%s. Defaulting to SendGrid.",
+        provider,
+    )
+    return _send_password_reset_email_sendgrid(email, reset_link)
 
 
 def _reset_token_is_expired(expires_at) -> bool:
@@ -416,13 +468,20 @@ def create_app():
             reset_link = _password_reset_link(email, token)
             try:
                 _send_password_reset_email(email, reset_link)
-            except (OSError, smtplib.SMTPException) as error:
+            except (
+                OSError,
+                smtplib.SMTPException,
+                requests.RequestException,
+                RuntimeError,
+            ) as error:
                 logger.error(
                     "Failed to send password reset email to %s: %s",
                     email,
                     error,
                 )
-                return jsonify({"error": "Impossible d'envoyer l'email de reinitialisation."}), 502
+                return jsonify({
+                    "error": "Impossible d'envoyer l'email de reinitialisation."
+                }), 502
 
         return jsonify(generic_message), 200
 
