@@ -159,9 +159,9 @@ def _send_password_reset_email_smtp(email: str, reset_link: str) -> None:
 
     try:
         if smtp_use_ssl or smtp_port == 465:
-            smtp_connection = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=15)
+            smtp_connection = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10)
         else:
-            smtp_connection = smtplib.SMTP(smtp_host, smtp_port, timeout=7)
+            smtp_connection = smtplib.SMTP(smtp_host, smtp_port, timeout=5)
 
         with smtp_connection as smtp:
             if not smtp_use_ssl and smtp_use_tls:
