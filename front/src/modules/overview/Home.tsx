@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
@@ -27,6 +27,7 @@ const THEME_KEY = 'jira-migration-theme';
 const Home = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isLight, setIsLight] = useState(() => {
     const savedTheme = localStorage.getItem(THEME_KEY);
     if (savedTheme) return savedTheme === 'light';
@@ -48,6 +49,15 @@ const Home = () => {
     document.documentElement.classList.toggle('dark', !isLight);
     localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark');
   }, [isLight]);
+
+  useEffect(() => {
+    if (searchParams.get('auth') === 'login') {
+      setIsModalOpen(true);
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('auth');
+      setSearchParams(nextParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const featureCards = useMemo(
     () => [

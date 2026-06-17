@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Loader2, Lock, Mail, ShieldAlert } from 'lucide-react';
 import { authService } from '../../services/authService';
 import logoSpectrum from '../../assets/img/logo-spectrum-groupe.png';
@@ -11,6 +11,7 @@ const getResetErrorMessage = (error: unknown) => {
 };
 
 const ResetPassword = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialEmail = useMemo(() => searchParams.get('email') || '', [searchParams]);
   const token = useMemo(() => searchParams.get('token') || '', [searchParams]);
@@ -61,19 +62,19 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0f172a] px-4 py-12 font-sans">
+    <div className="min-h-screen flex items-center justify-center bg-slate-950/95 px-4 py-12 font-sans">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <img src={logoSpectrum} alt="Spectrum Groupe" className="h-16 w-auto mx-auto mb-5" />
-          <h1 className="text-3xl font-extrabold text-[#004a99] dark:text-blue-400 tracking-tight">
-            Nouveau mot de passe
-          </h1>
-          <p className="mt-3 text-slate-500 dark:text-slate-400">
-            Choisissez un mot de passe robuste pour recuperer votre compte.
-          </p>
-        </div>
+        <div className="rounded-[2rem] bg-white p-8 shadow-2xl shadow-slate-900/10 dark:bg-slate-950 dark:border dark:border-slate-800">
+          <div className="text-center mb-8">
+            <img src={logoSpectrum} alt="Spectrum Groupe" className="h-14 w-auto mx-auto mb-5" />
+            <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Nouveau mot de passe
+            </h1>
+            <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+              Choisissez un mot de passe robuste pour recuperer votre compte.
+            </p>
+          </div>
 
-        <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-slate-100 dark:border-slate-700">
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-2">
@@ -150,9 +151,13 @@ const ResetPassword = () => {
           </form>
 
           <div className="mt-6 text-center">
-            <Link to="/login" className="text-sm font-bold text-[var(--spectrum-blue)] hover:underline">
-              Retour a la connexion
-            </Link>
+            <button
+              type="button"
+              onClick={() => navigate('/?auth=login')}
+              className="text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
+            >
+              Retour à la connexion
+            </button>
           </div>
         </div>
       </div>
