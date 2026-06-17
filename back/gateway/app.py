@@ -109,11 +109,29 @@ def _password_reset_message_html(reset_link: str) -> str:
 <head>
     <meta charset="UTF-8">
     <style>
-        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-        .header {{ background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px; }}
-        .header h2 {{ color: #0052cc; margin: 0; }}
-        .content {{ margin: 20px 0; }}
+        body {{
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }}
+        .header {{
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }}
+        .header h2 {{
+            color: #0052cc;
+            margin: 0;
+        }}
+        .content {{
+            margin: 20px 0;
+        }}
         .button {{
             display: inline-block;
             background-color: #0052cc;
@@ -123,9 +141,22 @@ def _password_reset_message_html(reset_link: str) -> str:
             border-radius: 5px;
             margin: 20px 0;
         }}
-        .button:hover {{ background-color: #003d99; }}
-        .footer {{ border-top: 1px solid #ddd; padding-top: 20px; margin-top: 30px; color: #666; font-size: 12px; }}
-        .warning {{ background-color: #fff3cd; padding: 12px; border-left: 4px solid #ffc107; margin: 20px 0; }}
+        .button:hover {{
+            background-color: #003d99;
+        }}
+        .footer {{
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+            margin-top: 30px;
+            color: #666;
+            font-size: 12px;
+        }}
+        .warning {{
+            background-color: #fff3cd;
+            padding: 12px;
+            border-left: 4px solid #ffc107;
+            margin: 20px 0;
+        }}
     </style>
 </head>
 <body>
