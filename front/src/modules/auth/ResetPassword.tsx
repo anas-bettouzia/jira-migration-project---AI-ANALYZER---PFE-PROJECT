@@ -92,8 +92,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
           <button
             type="button"
             onClick={handleClose}
-            className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors z-20"
-            aria-label="Fermer"
+            className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
           >
             <X size={24} />
           </button>
