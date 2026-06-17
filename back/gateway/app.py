@@ -170,8 +170,12 @@ def _send_password_reset_email_smtp(email: str, reset_link: str) -> None:
                 smtp.login(smtp_username, smtp_password)
             smtp.send_message(message)
             logger.info("Password reset email sent to %s via SMTP host %s", email, smtp_host)
-    except Exception:
-        logger.exception("Failed to send password reset email to %s", email)
+    except (OSError, smtplib.SMTPException) as error:
+        logger.exception(
+            "Failed to send password reset email to %s: %s",
+            email,
+            error,
+        )
         raise
 
 
@@ -179,9 +183,24 @@ def _send_password_reset_email(email: str, reset_link: str) -> None:
     """Send a password reset email using the selected delivery provider."""
     provider = os.getenv("EMAIL_PROVIDER", "sendgrid").strip().lower()
     if provider == "smtp":
-        return _send_password_reset_email_smtp(email, reset_link)
+        try:
+            return _send_password_reset_email_smtp(email, reset_link)
+        except (OSError, smtplib.SMTPException, requests.RequestException) as error:
+            logger.warning(
+                "SMTP primary failed, falling back to SendGrid: %s",
+                error,
+            )
+            return _send_password_reset_email_sendgrid(email, reset_link)
+
     if provider == "sendgrid":
-        return _send_password_reset_email_sendgrid(email, reset_link)
+        try:
+            return _send_password_reset_email_sendgrid(email, reset_link)
+        except (requests.RequestException, OSError, smtplib.SMTPException) as error:
+            logger.warning(
+                "SendGrid primary failed, falling back to SMTP: %s",
+                error,
+            )
+            return _send_password_reset_email_smtp(email, reset_link)
 
     logger.warning(
         "Unsupported EMAIL_PROVIDER=%s. Defaulting to SendGrid.",
