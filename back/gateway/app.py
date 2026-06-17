@@ -86,13 +86,12 @@ def _password_reset_link(email: str, token: str) -> str:
 
 
 def _send_password_reset_email(email: str, reset_link: str) -> None:
-    """Send a password reset email, or log the link when SMTP is not configured."""
+    """Send a password reset email, or log a warning when SMTP is not configured."""
     smtp_host = os.getenv("SMTP_HOST")
     if not smtp_host:
         logger.warning(
-            "SMTP_HOST is not configured. Password reset link for %s: %s",
-            email,
-            reset_link,
+            "SMTP_HOST is not configured. Set SMTP_HOST in Portainer or .env "
+            "and redeploy the service.",
         )
         return
 
@@ -101,6 +100,7 @@ def _send_password_reset_email(email: str, reset_link: str) -> None:
     smtp_password = os.getenv("SMTP_PASSWORD", "")
     smtp_from = os.getenv("SMTP_FROM", smtp_username or "no-reply@jira-migration.local")
     smtp_use_tls = os.getenv("SMTP_USE_TLS", "true").lower() in {"1", "true", "yes"}
+    smtp_use_ssl = os.getenv("SMTP_USE_SSL", "false").lower() in {"1", "true", "yes"}
 
     message = EmailMessage()
     message["Subject"] = "Reinitialisation de votre mot de passe"
@@ -114,13 +114,22 @@ def _send_password_reset_email(email: str, reset_link: str) -> None:
         "Si vous n'etes pas a l'origine de cette demande, ignorez cet email.\n"
     )
 
-    with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
-        if smtp_use_tls:
-            smtp.starttls()
-        if smtp_username and smtp_password:
-            smtp.login(smtp_username, smtp_password)
-        smtp.send_message(message)
-        logger.info("Password reset email sent to %s via SMTP host %s", email, smtp_host)
+    try:
+        if smtp_use_ssl or smtp_port == 465:
+            smtp_connection = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=15)
+        else:
+            smtp_connection = smtplib.SMTP(smtp_host, smtp_port, timeout=15)
+
+        with smtp_connection as smtp:
+            if not smtp_use_ssl and smtp_use_tls:
+                smtp.starttls()
+            if smtp_username and smtp_password:
+                smtp.login(smtp_username, smtp_password)
+            smtp.send_message(message)
+            logger.info("Password reset email sent to %s via SMTP host %s", email, smtp_host)
+    except Exception:
+        logger.exception("Failed to send password reset email to %s", email)
+        raise
 
 
 def _reset_token_is_expired(expires_at) -> bool:
