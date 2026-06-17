@@ -75,39 +75,45 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
   };
 
   const wrapperClass = isModal
-    ? 'fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4'
+    ? 'fixed inset-0 z-50 flex items-center justify-center p-4'
     : 'min-h-screen flex items-center justify-center bg-slate-950/95 px-4 py-12 font-sans';
 
   const cardClass = isModal
-    ? 'relative w-full max-w-md rounded-[2rem] bg-white p-8 shadow-2xl shadow-slate-900/10 dark:bg-slate-950 dark:border dark:border-slate-800'
+    ? 'relative w-full max-w-md rounded-[2rem] bg-slate-950 border border-white/10 p-8 shadow-2xl shadow-slate-950/40'
     : 'rounded-[2rem] bg-white p-8 shadow-2xl shadow-slate-900/10 dark:bg-slate-950 dark:border dark:border-slate-800';
 
   return (
     <div className={wrapperClass}>
       {isModal && (
-        <button
-          type="button"
-          onClick={handleClose}
-          className="absolute right-4 top-4 z-20 rounded-full bg-white/80 p-2 text-slate-600 shadow-lg transition hover:bg-white"
-        >
-          <X size={20} />
-        </button>
+        <>
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            onClick={handleClose}
+          />
+          <button
+            type="button"
+            onClick={handleClose}
+            className="absolute right-4 top-4 z-20 rounded-full bg-slate-950/90 p-2 text-slate-300 shadow-lg transition hover:bg-slate-900"
+          >
+            <X size={20} />
+          </button>
+        </>
       )}
 
       <div className={cardClass}>
         <div className="text-center mb-8">
           <img src={logoSpectrum} alt="Spectrum Groupe" className="h-14 w-auto mx-auto mb-5" />
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">
             Nouveau mot de passe
           </h1>
-          <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-3 text-sm text-slate-300">
             Choisissez un mot de passe robuste pour recuperer votre compte.
           </p>
         </div>
 
         <form className="space-y-5" onSubmit={handleSubmit}>
           <div>
-            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-2">
+            <label className="text-sm font-semibold text-slate-300 block mb-2">
               Email
             </label>
             <div className="relative">
@@ -115,7 +121,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
               <input
                 type="email"
                 required
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#f39200] outline-none transition-all"
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder:text-slate-500 focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none transition-all"
                 placeholder="nom@exemple.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
