@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle2, Loader2, Lock, Mail, ShieldAlert, X } from 'lucide-react';
+import { Loader2, Lock, Mail, X } from 'lucide-react';
 import { authService } from '../../services/authService';
-import logoSpectrum from '../../assets/img/logo-spectrum-groupe.png';
 import { EMAIL_ERROR, EMAIL_REGEX, PASSWORD_ERROR, PASSWORD_REGEX } from '../../services/validation';
 
 interface ResetPasswordProps {
@@ -12,7 +11,7 @@ interface ResetPasswordProps {
 
 const getResetErrorMessage = (error: unknown) => {
   const response = (error as { response?: { data?: { error?: string } } }).response;
-  return response?.data?.error || 'Impossible de reinitialiser le mot de passe.';
+  return response?.data?.error || 'Impossible de réinitialiser le mot de passe.';
 };
 
 const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
@@ -34,7 +33,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
     setSuccess('');
 
     if (!token) {
-      setError('Le lien de reinitialisation est invalide.');
+      setError('Le lien de réinitialisation est invalide.');
       return;
     }
 
@@ -76,52 +75,52 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
 
   const wrapperClass = isModal
     ? 'fixed inset-0 z-50 flex items-center justify-center p-4'
-    : 'min-h-screen flex items-center justify-center bg-slate-950/95 px-4 py-12 font-sans';
+    : 'min-h-screen flex items-center justify-center bg-[#eef2fb] dark:bg-[#071126] px-4 py-12 font-sans';
 
   const cardClass = isModal
-    ? 'relative w-full max-w-md rounded-[2rem] bg-slate-950 border border-white/10 p-8 shadow-2xl shadow-slate-950/40'
-    : 'rounded-[2rem] bg-white p-8 shadow-2xl shadow-slate-900/10 dark:bg-slate-950 dark:border dark:border-slate-800';
+    ? 'relative bg-white dark:bg-slate-900 w-full max-w-md rounded-[2rem] shadow-2xl border border-white/20 dark:border-slate-800 p-8 animate-in fade-in zoom-in duration-300'
+    : 'w-full max-w-md rounded-[2rem] bg-white p-8 shadow-2xl border border-transparent dark:bg-slate-900 dark:border-slate-800';
 
   return (
     <div className={wrapperClass}>
       {isModal && (
         <>
           <div
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
             onClick={handleClose}
           />
           <button
             type="button"
             onClick={handleClose}
-            className="absolute right-4 top-4 z-20 rounded-full bg-slate-950/90 p-2 text-slate-300 shadow-lg transition hover:bg-slate-900"
+            className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors z-20"
+            aria-label="Fermer"
           >
-            <X size={20} />
+            <X size={24} />
           </button>
         </>
       )}
 
       <div className={cardClass}>
         <div className="text-center mb-8">
-          <img src={logoSpectrum} alt="Spectrum Groupe" className="h-14 w-auto mx-auto mb-5" />
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
             Nouveau mot de passe
-          </h1>
-          <p className="mt-3 text-sm text-slate-300">
-            Choisissez un mot de passe robuste pour recuperer votre compte.
+          </h2>
+          <p className="text-sm text-slate-500 mt-2">
+            Choisissez un mot de passe robuste pour récupérer votre compte.
           </p>
         </div>
 
         <form className="space-y-5" onSubmit={handleSubmit}>
           <div>
-            <label className="text-sm font-semibold text-slate-300 block mb-2">
+            <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">
               Email
             </label>
             <div className="relative">
-              <Mail className="absolute inset-y-0 left-3 my-auto text-slate-400" size={18} />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input
                 type="email"
                 required
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder:text-slate-500 focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none transition-all"
+                className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
                 placeholder="nom@exemple.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -130,15 +129,15 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-2">
+            <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">
               Nouveau mot de passe
             </label>
             <div className="relative">
-              <Lock className="absolute inset-y-0 left-3 my-auto text-slate-400" size={18} />
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input
                 type="password"
                 required
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#f39200] outline-none transition-all"
+                className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
                 placeholder="********"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -147,15 +146,15 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-2">
+            <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">
               Confirmer le mot de passe
             </label>
             <div className="relative">
-              <Lock className="absolute inset-y-0 left-3 my-auto text-slate-400" size={18} />
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input
                 type="password"
                 required
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#f39200] outline-none transition-all"
+                className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
                 placeholder="********"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -163,26 +162,15 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
             </div>
           </div>
 
-          {error && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-medium border border-red-100 dark:border-red-800">
-              <ShieldAlert size={18} className="mt-0.5 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {success && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 text-sm font-medium border border-emerald-100 dark:border-emerald-800">
-              <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
-              <span>{success}</span>
-            </div>
-          )}
+          {error && <p className="text-red-500 text-xs font-bold text-center animate-shake">{error}</p>}
+          {success && <p className="text-emerald-600 text-xs font-bold text-center">{success}</p>}
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-4 bg-[var(--spectrum-blue)] hover:opacity-90 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-70"
+            className="w-full py-4 bg-[var(--spectrum-blue)] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 flex justify-center items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-70 disabled:hover:scale-100"
           >
-            {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Mettre a jour'}
+            {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Mettre à jour'}
           </button>
         </form>
 
