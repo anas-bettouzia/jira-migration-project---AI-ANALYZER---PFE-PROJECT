@@ -86,14 +86,88 @@ def _password_reset_link(email: str, token: str) -> str:
 
 
 def _password_reset_message(reset_link: str) -> str:
-    """Return the password reset email body."""
+    """Return the password reset email body (plain text)."""
     return (
         "Bonjour,\n\n"
-        "Vous avez demande la reinitialisation de votre mot de passe.\n"
-        f"Cliquez sur ce lien pour choisir un nouveau mot de passe: {reset_link}\n\n"
-        f"Ce lien expire dans {PASSWORD_RESET_TOKEN_MINUTES} minutes.\n"
-        "Si vous n'etes pas a l'origine de cette demande, ignorez cet email.\n"
+        "Vous avez demandé la réinitialisation de votre mot de passe pour votre compte "
+        "Jira Migration.\n\n"
+        "Pour définir un nouveau mot de passe, visitez le lien suivant :\n"
+        f"{reset_link}\n\n"
+        f"Ce lien de réinitialisation expirera dans {PASSWORD_RESET_TOKEN_MINUTES} minutes.\n\n"
+        "Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email. "
+        "Votre mot de passe restera inchangé.\n\n"
+        "Cordialement,\n"
+        "L'équipe Jira Migration"
     )
+
+
+def _password_reset_message_html(reset_link: str) -> str:
+    """Return the password reset email body (HTML)."""
+    return f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px; }}
+        .header h2 {{ color: #0052cc; margin: 0; }}
+        .content {{ margin: 20px 0; }}
+        .button {{
+            display: inline-block;
+            background-color: #0052cc;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }}
+        .button:hover {{ background-color: #003d99; }}
+        .footer {{ border-top: 1px solid #ddd; padding-top: 20px; margin-top: 30px; color: #666; font-size: 12px; }}
+        .warning {{ background-color: #fff3cd; padding: 12px; border-left: 4px solid #ffc107; margin: 20px 0; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Réinitialisation de votre mot de passe</h2>
+        </div>
+
+        <div class="content">
+            <p>Bonjour,</p>
+
+            <p>Vous avez demandé la réinitialisation de votre mot de passe pour votre compte
+            <strong>Jira Migration</strong>.</p>
+
+            <p>Pour définir un nouveau mot de passe, cliquez sur le bouton ci-dessous :</p>
+
+            <a href="{reset_link}" class="button">Réinitialiser mon mot de passe</a>
+
+            <p><em>Ou copiez ce lien dans votre navigateur :</em></p>
+            <p style="word-break: break-all; background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+                {reset_link}
+            </p>
+
+            <div class="warning">
+                <strong>⏱️ Important :</strong> Ce lien de réinitialisation expirera dans
+                <strong>{PASSWORD_RESET_TOKEN_MINUTES} minutes</strong>.
+            </div>
+
+            <p><strong>Vous n'avez pas demandé cette réinitialisation ?</strong></p>
+            <p>Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email sans inquiétude.
+            Votre mot de passe restera inchangé.</p>
+        </div>
+
+        <div class="footer">
+            <p>Cordialement,<br>
+            <strong>L'équipe Jira Migration</strong></p>
+            <p>Cet email a été envoyé à votre adresse associée à votre compte.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
 
 
 def _send_password_reset_email_sendgrid(email: str, reset_link: str) -> None:
@@ -107,9 +181,10 @@ def _send_password_reset_email_sendgrid(email: str, reset_link: str) -> None:
     payload = {
         "personalizations": [{"to": [{"email": email}]}],
         "from": {"email": sender},
-        "subject": "Reinitialisation de votre mot de passe",
+        "subject": "Réinitialisation de votre mot de passe",
         "content": [
-            {"type": "text/plain", "value": _password_reset_message(reset_link)}
+            {"type": "text/plain", "value": _password_reset_message(reset_link)},
+            {"type": "text/html", "value": _password_reset_message_html(reset_link)},
         ],
     }
     headers = {
@@ -152,10 +227,11 @@ def _send_password_reset_email_smtp(email: str, reset_link: str) -> None:
     smtp_use_ssl = os.getenv("SMTP_USE_SSL", "false").lower() in {"1", "true", "yes"}
 
     message = EmailMessage()
-    message["Subject"] = "Reinitialisation de votre mot de passe"
+    message["Subject"] = "Réinitialisation de votre mot de passe"
     message["From"] = smtp_from
     message["To"] = email
     message.set_content(_password_reset_message(reset_link))
+    message.add_alternative(_password_reset_message_html(reset_link), subtype="html")
 
     try:
         if smtp_use_ssl or smtp_port == 465:
