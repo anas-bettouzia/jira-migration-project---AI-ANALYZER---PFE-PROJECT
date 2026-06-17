@@ -142,7 +142,11 @@ def _password_reset_message_html(reset_link: str) -> str:
 
             <p>Pour définir un nouveau mot de passe, cliquez sur le bouton ci-dessous :</p>
 
-            <a href="{reset_link}" class="button">Réinitialiser mon mot de passe</a>
+            <a
+                href="{reset_link}"
+                class="button"
+                style="display:inline-block; background-color:#0052cc; color:#ffffff; padding:12px 24px; text-decoration:none; border-radius:5px; font-weight:700;"
+            >Réinitialiser mon mot de passe</a>
 
             <p><em>Ou copiez ce lien dans votre navigateur :</em></p>
             <p style="word-break: break-all; background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
