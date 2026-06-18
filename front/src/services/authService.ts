@@ -1,6 +1,6 @@
 // src/services/authService.ts
 import { api } from '../core/api';
-import type { AuthResponse } from '../shared/types/auth';
+import type { AuthResponse, AuthUser, ProfileUpdateResponse } from '../shared/types/auth';
 
 export const authService = {
   login: async (email: string, password: string): Promise<AuthResponse> => {
@@ -11,7 +11,7 @@ export const authService = {
       });
       return response.data;
     } catch (error) {
-      console.error("Erreur lors de la connexion :", error);
+      console.error('Erreur lors de la connexion :', error);
       throw error;
     }
   },
@@ -37,6 +37,42 @@ export const authService = {
       return response.data;
     } catch (error) {
       console.error("Erreur lors de l'inscription :", error);
+      throw error;
+    }
+  },
+
+  getProfile: async (): Promise<AuthUser> => {
+    try {
+      const response = await api.get<AuthUser>('/me/profile');
+      return response.data;
+    } catch (error) {
+      console.error('Erreur lors du chargement du profil :', error);
+      throw error;
+    }
+  },
+
+  updateProfile: async (email: string): Promise<ProfileUpdateResponse> => {
+    try {
+      const response = await api.put<ProfileUpdateResponse>('/me/profile', { email });
+      return response.data;
+    } catch (error) {
+      console.error('Erreur lors de la mise a jour du profil :', error);
+      throw error;
+    }
+  },
+
+  changePassword: async (
+    currentPassword: string,
+    newPassword: string
+  ): Promise<{ message: string }> => {
+    try {
+      const response = await api.put<{ message: string }>('/me/password', {
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Erreur lors du changement de mot de passe :', error);
       throw error;
     }
   },

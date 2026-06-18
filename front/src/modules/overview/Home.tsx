@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
@@ -7,7 +7,6 @@ import {
   Database,
   FileText,
   GitBranch,
-  LogOut,
   Menu,
   Moon,
   Shield,
@@ -21,6 +20,7 @@ import logoSpectrum from '../../assets/img/logo-spectrum-groupe.png';
 import LoginModal from '../auth/LoginModal';
 import ResetPassword from '../auth/ResetPassword';
 import { MainSidebar } from '../../shared/components/MainSidebar';
+import { ProfileMenu } from '../../shared/components/ProfileMenu';
 import { useAuthStore } from '../../store/useAuthStore';
 
 const THEME_KEY = 'jira-migration-theme';
@@ -29,8 +29,6 @@ const Home = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const location = useLocation();
   const [isLight, setIsLight] = useState(() => {
     const savedTheme = localStorage.getItem(THEME_KEY);
     if (savedTheme) return savedTheme === 'light';
@@ -39,7 +37,7 @@ const Home = () => {
   const [scrolled, setScrolled] = useState(false);
 
   const navigate = useNavigate();
-  const { isAuthenticated, logout } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const logo = isLight ? logoSpectrum : logoSpectrumDark;
 
   useEffect(() => {
@@ -52,15 +50,6 @@ const Home = () => {
     document.documentElement.classList.toggle('dark', !isLight);
     localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark');
   }, [isLight]);
-
-  useEffect(() => {
-    if (searchParams.get('auth') === 'login') {
-      setIsModalOpen(true);
-      const nextParams = new URLSearchParams(searchParams);
-      nextParams.delete('auth');
-      setSearchParams(nextParams, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     setIsResetModalOpen(location.pathname === '/reset-password');
@@ -157,13 +146,8 @@ const Home = () => {
                   >
                     Open analysis
                   </button>
-                  <button
-                    onClick={logout}
-                    className="hidden h-10 w-10 items-center justify-center rounded-xl border border-[#d7e0ef] text-[#64708d] transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-white/10 dark:text-white/60 dark:hover:bg-red-500/10 dark:hover:text-red-300 sm:flex"
-                    aria-label="Log out"
-                  >
-                    <LogOut size={17} />
-                  </button>
+
+                  <ProfileMenu />
                 </>
               ) : (
                 <button

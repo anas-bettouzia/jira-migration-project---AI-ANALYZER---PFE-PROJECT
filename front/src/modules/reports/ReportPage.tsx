@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 
 import { MainSidebar } from '../../shared/components/MainSidebar';
+import { ProfileMenu } from '../../shared/components/ProfileMenu';
 import {
   reportService,
   type ReportComponent,
@@ -208,6 +209,7 @@ export const ReportPage: React.FC = () => {
                 <Download size={16} />
                 PDF
               </button>
+              <ProfileMenu />
             </div>
           </div>
         </header>
@@ -559,7 +561,7 @@ const ComponentFindingCard = ({
             {componentDisplayName(component, index)}
           </h4>
           <p className="mt-1 text-xs font-bold text-[#8a96b3] dark:text-white/45">
-            {[component.plugin, component.component_type, location].filter(Boolean).join(' · ') || 'Migration component'}
+            {[component.plugin, component.component_type, location].filter(Boolean).join(' Â· ') || 'Migration component'}
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">

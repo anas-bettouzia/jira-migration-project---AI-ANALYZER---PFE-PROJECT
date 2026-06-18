@@ -29,6 +29,7 @@ import {
 
 import { FileUploader } from '../../shared/components/FileUploader';
 import { MainSidebar } from '../../shared/components/MainSidebar';
+import { ProfileMenu } from '../../shared/components/ProfileMenu';
 import { useJobStatus } from '../../hooks/useJobStatus';
 import { analysisService, type AnalysisJob } from '../../services/analysisService';
 import { api } from '../../core/api';
@@ -252,6 +253,7 @@ export const AnalysisPage: React.FC = () => {
                   <FileText size={16} />
                   View report
                 </button>
+                <ProfileMenu />
               </div>
             </div>
           </header>

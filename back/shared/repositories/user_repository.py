@@ -78,6 +78,31 @@ class UserRepository:
         """Retrieve a user document by email."""
         return self.collection.find_one({"email": email})
 
+    def update_user_profile(self, current_email: str, new_email: str) -> None:
+        """Update editable user profile fields."""
+        self.collection.update_one(
+            {"email": current_email},
+            {
+                "$set": {
+                    "email": new_email,
+                    "updated_at": datetime.utcnow().isoformat(),
+                }
+            },
+        )
+
+    def update_password(self, email: str, password_hash: str) -> None:
+        """Update a local user's password."""
+        self.collection.update_one(
+            {"email": email},
+            {
+                "$set": {
+                    "password_hash": password_hash,
+                    "auth_provider": "local",
+                    "updated_at": datetime.utcnow().isoformat(),
+                }
+            },
+        )
+
     def save_password_reset_token(
         self,
         email: str,

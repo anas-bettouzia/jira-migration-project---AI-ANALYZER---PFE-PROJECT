@@ -3,6 +3,8 @@ API Gateway service for Jira Migration backend.
 Provides authentication and routing to backend microservices.
 """
 
+# pylint: disable=too-many-lines
+
 import logging
 import os
 import sys
@@ -176,11 +178,22 @@ def _password_reset_message_html(reset_link: str) -> str:
             <a
                 href="{reset_link}"
                 class="button"
-                style="display:inline-block; background-color:#0052cc; color:#ffffff; padding:12px 24px; text-decoration:none; border-radius:5px; font-weight:700;"
+                style="display:inline-block;"
+                style="background-color:#0052cc;"
+                style="color:#ffffff;"
+                style="padding:12px 24px;"
+                style="text-decoration:none;"
+                style="border-radius:5px;"
+                style="font-weight:700;"
             >Réinitialiser mon mot de passe</a>
 
             <p><em>Ou copiez ce lien dans votre navigateur :</em></p>
-            <p style="word-break: break-all; background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+            <p
+                style="word-break: break-all;"
+                style="background-color: #f8f9fa;"
+                style="padding: 10px;"
+                style="border-radius: 5px;"
+            >
                 {reset_link}
             </p>
 
@@ -190,8 +203,11 @@ def _password_reset_message_html(reset_link: str) -> str:
             </div>
 
             <p><strong>Vous n'avez pas demandé cette réinitialisation ?</strong></p>
-            <p>Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email sans inquiétude.
-            Votre mot de passe restera inchangé.</p>
+            <p>
+                Si vous n'êtes pas à l'origine de cette demande, vous pouvez
+                ignorer cet email sans inquiétude. Votre mot de passe restera
+                inchangé.
+            </p>
         </div>
 
         <div class="footer">
@@ -346,6 +362,15 @@ def _ensure_admin_user(user_repo: UserRepository) -> None:
             role="admin",
         )
 
+def _public_user(user: dict) -> dict:
+    """Return user fields that are safe for the frontend."""
+    return {
+        "email": user.get("email"),
+        "name": user.get("name"),
+        "picture": user.get("picture"),
+        "role": user.get("role", "user"),
+        "auth_provider": user.get("auth_provider", "local"),
+    }
 
 def _google_client_ids() -> list[str]:
     """Return configured Google OAuth client IDs."""
@@ -655,6 +680,98 @@ def create_app():
     def me():
         """Return currently authenticated user."""
         return jsonify({"email": get_jwt_identity()}), 200
+    @app.route("/api/me/profile", methods=["GET"])
+    @jwt_required()
+    def get_profile():
+        """Return the authenticated user profile."""
+        email = get_jwt_identity()
+        user = user_repo.get_user_by_email(email)
+        if not user:
+            return jsonify({"error": "Authenticated user was not found."}), 404
+        return jsonify(_public_user(user)), 200
+
+    @app.route("/api/me/profile", methods=["PUT"])
+    @jwt_required()
+    def update_profile():
+        """Update the authenticated user profile."""
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Request body is required"}), 400
+
+        current_email = get_jwt_identity()
+        user = user_repo.get_user_by_email(current_email)
+        if not user:
+            return jsonify({"error": "Authenticated user was not found."}), 404
+
+        new_email = _normalize_email(data.get("email", ""))
+        if not new_email:
+            return jsonify({"error": "Email is required"}), 400
+
+        if not _is_valid_email(new_email):
+            return jsonify(
+                {"error": "L adresse email doit etre valide et se terminer par .com ou .fr."}
+            ), 400
+
+        if new_email != current_email and user_repo.get_user_by_email(new_email):
+            return jsonify({"error": "Email already registered"}), 409
+
+        if new_email != current_email:
+            user_repo.update_user_profile(current_email, new_email)
+            user = user_repo.get_user_by_email(new_email) or {**user, "email": new_email}
+            token = create_access_token(identity=new_email)
+            return jsonify({
+                "message": "Profil mis a jour avec succes.",
+                "user": _public_user(user),
+                "token": token,
+            }), 200
+
+        return jsonify({
+            "message": "Profil mis a jour avec succes.",
+            "user": _public_user(user),
+        }), 200
+
+    @app.route("/api/me/password", methods=["PUT"])
+    @jwt_required()
+    def change_password():
+        """Change the authenticated local user password."""
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Request body is required"}), 400
+
+        current_password = data.get("current_password", "")
+        new_password = data.get("new_password", "")
+        if not current_password or not new_password:
+            return jsonify({"error": "Current password and new password are required"}), 400
+
+        email = get_jwt_identity()
+        user = user_repo.get_user_by_email(email)
+        if not user:
+            return jsonify({"error": "Authenticated user was not found."}), 404
+
+        password_hash = user.get("password_hash")
+        if not password_hash:
+            return jsonify(
+                {
+                    "error": (
+                        "Ce compte utilise Google OAuth. Aucun mot de passe local "
+                        "n est configure."
+                    )
+                }
+            ), 400
+
+        if not check_password_hash(password_hash, current_password):
+            return jsonify({"error": "Le mot de passe actuel est incorrect."}), 400
+
+        if not _is_valid_password(new_password):
+            return jsonify({
+                "error": (
+                    "Le nouveau mot de passe doit contenir au moins 8 caracteres, "
+                    "une majuscule, une minuscule et un chiffre."
+                )
+            }), 400
+
+        user_repo.update_password(email, generate_password_hash(new_password))
+        return jsonify({"message": "Mot de passe mis a jour avec succes."}), 200
 
     @app.route("/api/analyze", methods=["POST"])
     @jwt_required()

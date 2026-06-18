@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart3, Boxes, Gauge, Plus } from 'lucide-react';
 
-import { useAuthStore } from '../../store/useAuthStore';
+import { ProfileMenu } from './ProfileMenu';
 import spectrumMark from '../../assets/img/cropped-favicon-spectrumgroupe.png';
 
 type MainSidebarPage = 'overview' | 'analysis' | 'reports' | 'generate';
@@ -13,13 +13,6 @@ interface MainSidebarProps {
 
 export const MainSidebar: React.FC<MainSidebarProps> = ({ activePage }) => {
   const navigate = useNavigate();
-  const logout = useAuthStore((state) => state.logout);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
-
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-[72px] flex-col items-center border-r border-white/10 bg-[#101b49] py-4 text-white shadow-2xl shadow-[#101b49]/25 md:flex">
       <button
@@ -39,14 +32,10 @@ export const MainSidebar: React.FC<MainSidebarProps> = ({ activePage }) => {
         <MainSidebarItem icon={<Plus size={18} />} label="Generate" active={activePage === 'generate'} />
       </nav>
 
-      <button
-        onClick={handleLogout}
-        className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-xs font-black text-white ring-1 ring-white/12 transition hover:bg-white/16"
-        aria-label="Log out"
-        title="Log out"
-      >
-        JA
-      </button>
+
+      <div className="mb-4">
+        <ProfileMenu variant="sidebar" />
+      </div>
     </aside>
   );
 };
