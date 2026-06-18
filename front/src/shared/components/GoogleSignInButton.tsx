@@ -110,37 +110,45 @@ const GoogleSignInButton = ({
         }
 
         buttonRef.current.innerHTML = '';
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: async (response) => {
-            if (!response.credential) {
-              onError?.('Google did not return a valid credential.');
-              return;
-            }
-
-            setIsAuthenticating(true);
-            try {
-              const data = await authService.googleLogin(response.credential);
-              onAuthenticated(data);
-            } catch (error) {
-              onError?.(getGoogleAuthErrorMessage(error));
-            } finally {
-              if (isMounted) {
-                setIsAuthenticating(false);
+        try {
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: async (response) => {
+              if (!response.credential) {
+                onError?.('Google did not return a valid credential.');
+                return;
               }
-            }
-          },
-        });
 
-        window.google.accounts.id.renderButton(buttonRef.current, {
-          theme,
-          size: 'large',
-          type: 'standard',
-          shape: 'rectangular',
-          text: 'continue_with',
-          logo_alignment: 'left',
-          width,
-        });
+              setIsAuthenticating(true);
+              try {
+                const data = await authService.googleLogin(response.credential);
+                onAuthenticated(data);
+              } catch (error) {
+                onError?.(getGoogleAuthErrorMessage(error));
+              } finally {
+                if (isMounted) {
+                  setIsAuthenticating(false);
+                }
+              }
+            },
+          });
+
+          window.google.accounts.id.renderButton(buttonRef.current, {
+            theme,
+            size: 'large',
+            type: 'standard',
+            shape: 'rectangular',
+            text: 'continue_with',
+            logo_alignment: 'left',
+            width,
+          });
+        } catch (error) {
+          if (isMounted) {
+            setScriptError(
+              'Google sign-in failed to initialize. Check your OAuth client ID and authorized origin.'
+            );
+          }
+        }
       })
       .catch(() => {
         if (isMounted) {
