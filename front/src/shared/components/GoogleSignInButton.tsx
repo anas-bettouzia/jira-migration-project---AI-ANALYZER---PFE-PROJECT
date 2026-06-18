@@ -143,9 +143,11 @@ const GoogleSignInButton = ({
             width,
           });
         } catch (error) {
+          console.error('Google sign-in initialization error:', error);
           if (isMounted) {
             setScriptError(
-              'Google sign-in failed to initialize. Check your OAuth client ID and authorized origin.'
+              `Google sign-in failed to initialize for origin ${window.location.origin}. ` +
+              'Check your OAuth client ID and add this origin to the authorized JavaScript origins.'
             );
           }
         }
