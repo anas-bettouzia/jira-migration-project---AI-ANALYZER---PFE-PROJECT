@@ -1,6 +1,6 @@
 // src/modules/auth/LoginModal.tsx
 import React, { useCallback, useState } from 'react';
-import { Lock, Mail, Loader2, X } from 'lucide-react';
+import { Lock, Mail, Loader2, X, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/authService';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -155,58 +155,66 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input
-                  type="email"
-                  required
-                  placeholder="nom@exemple.com"
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
+          {isForgotPassword && success ? (
+            <div className="flex flex-col items-center gap-4 p-4">
+              <CheckCircle2 size={48} className="text-emerald-600" />
+              <p className="text-emerald-600 text-sm font-bold text-center">{success}</p>
             </div>
-
-            {!isForgotPassword && (
-              <div>
-                <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Mot de passe</label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input
-                    type="password"
-                    required
-                    placeholder="********"
-                    className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
+          ) : (
+            <>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Email</label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input
+                      type="email"
+                      required
+                      placeholder="nom@exemple.com"
+                      className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
                 </div>
+
+                {!isForgotPassword && (
+                  <div>
+                    <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Mot de passe</label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <input
+                        type="password"
+                        required
+                        placeholder="********"
+                        className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {error && <p className="text-red-500 text-xs font-bold text-center animate-shake">{error}</p>}
-          {success && <p className="text-emerald-600 text-xs font-bold text-center">{success}</p>}
+              {error && <p className="text-red-500 text-xs font-bold text-center animate-shake">{error}</p>}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-4 bg-[var(--spectrum-blue)] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 flex justify-center items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-70 disabled:hover:scale-100"
-          >
-            {isLoading ? (
-              <Loader2 className="animate-spin" size={20} />
-            ) : isForgotPassword ? (
-              'Envoyer le lien'
-            ) : isLogin ? (
-              "S'identifier"
-            ) : (
-              "S'inscrire"
-            )}
-          </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-4 bg-[var(--spectrum-blue)] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 flex justify-center items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-70 disabled:hover:scale-100"
+              >
+                {isLoading ? (
+                  <Loader2 className="animate-spin" size={20} />
+                ) : isForgotPassword ? (
+                  'Envoyer le lien'
+                ) : isLogin ? (
+                  "S'identifier"
+                ) : (
+                  "S'inscrire"
+                )}
+              </button>
+            </>
+          )}
         </form>
 
         <div className="mt-6 text-center">
