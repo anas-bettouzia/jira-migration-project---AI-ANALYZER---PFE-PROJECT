@@ -28,10 +28,11 @@ export const authService = {
     }
   },
 
-  register: async (email: string, password: string): Promise<{ message: string }> => {
+  register: async (email: string, username: string, password: string): Promise<{ message: string }> => {
     try {
       const response = await api.post<{ message: string }>('/register', {
         email,
+        username,
         password,
       });
       return response.data;

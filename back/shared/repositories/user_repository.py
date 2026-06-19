@@ -13,12 +13,14 @@ class UserRepository:
         self.db = db or get_mongo_db()
         self.collection = self.db.users
         self.collection.create_index("email", unique=True)
+        self.collection.create_index("username", unique=True)
         self.collection.create_index("reset_password_token_hash", sparse=True)
 
-    def create_user(self, email: str, password_hash: str, role: str = "user") -> dict:
+    def create_user(self, email: str, username: str, password_hash: str, role: str = "user") -> dict:
         """Insert a new user document."""
         user = {
             "email": email,
+            "username": username,
             "password_hash": password_hash,
             "role": role,
             "created_at": datetime.utcnow().isoformat(),
@@ -77,6 +79,10 @@ class UserRepository:
     def get_user_by_email(self, email: str) -> Optional[dict]:
         """Retrieve a user document by email."""
         return self.collection.find_one({"email": email})
+
+    def get_user_by_username(self, username: str) -> Optional[dict]:
+        """Retrieve a user document by username."""
+        return self.collection.find_one({"username": username})
 
     def update_user_profile(self, current_email: str, new_email: str) -> None:
         """Update editable user profile fields."""

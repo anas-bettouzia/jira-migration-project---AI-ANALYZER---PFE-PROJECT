@@ -22,7 +22,9 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -60,6 +62,12 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     }
 
     if (!isLogin) {
+      if (!username.trim()) {
+        setError("Le nom d'utilisateur est requis.");
+        setIsLoading(false);
+        return;
+      }
+
       if (!EMAIL_REGEX.test(email.trim())) {
         setError(EMAIL_ERROR);
         setIsLoading(false);
@@ -71,6 +79,12 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
         setIsLoading(false);
         return;
       }
+
+      if (password !== confirmPassword) {
+        setError('Les mots de passe ne correspondent pas.');
+        setIsLoading(false);
+        return;
+      }
     }
 
     try {
@@ -78,7 +92,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
         const data = await authService.login(email, password);
         setToken(data.token);
       } else {
-        await authService.register(email, password);
+        await authService.register(email, username, password);
         const data = await authService.login(email, password);
         setToken(data.token);
       }
@@ -96,6 +110,9 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     setIsLogin(!isLogin);
     setIsForgotPassword(false);
     resetFeedback();
+    setUsername('');
+    setPassword('');
+    setConfirmPassword('');
   };
 
   const handleGoogleAuthenticated = useCallback(
@@ -203,6 +220,20 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                   </div>
                 </div>
 
+                {!isForgotPassword && !isLogin && (
+                  <div>
+                    <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Nom d'utilisateur</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="exemple123"
+                      className="w-full pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                    />
+                  </div>
+                )}
+
                 {!isForgotPassword && (
                   <div>
                     <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Mot de passe</label>
@@ -215,6 +246,23 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                         className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {!isForgotPassword && !isLogin && (
+                  <div>
+                    <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Confirmer le mot de passe</label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <input
+                        type="password"
+                        required
+                        placeholder="********"
+                        className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
                       />
                     </div>
                   </div>

@@ -345,8 +345,10 @@ def _ensure_admin_user(user_repo: UserRepository) -> None:
         return
 
     if user_repo.get_user_by_email(admin_email) is None:
+        admin_username = os.getenv("GATEWAY_ADMIN_USERNAME") or admin_email.split('@', 1)[0]
         user_repo.create_user(
             admin_email,
+            admin_username,
             generate_password_hash(admin_password),
             role="admin",
         )
@@ -547,10 +549,11 @@ def create_app():
             return jsonify({"error": "Request body is required"}), 400
 
         email = _normalize_email(data.get("email", ""))
+        username = (data.get("username", "") or "").strip()
         password = data.get("password", "")
 
-        if not email or not password:
-            return jsonify({"error": "Email and password are required"}), 400
+        if not username or not email or not password:
+            return jsonify({"error": "Username, email and password are required"}), 400
 
         if not _is_valid_email(email):
             return jsonify({
@@ -568,7 +571,10 @@ def create_app():
         if user_repo.get_user_by_email(email):
             return jsonify({"error": "Email already registered"}), 409
 
-        user_repo.create_user(email, generate_password_hash(password), role="user")
+        if user_repo.get_user_by_username(username):
+            return jsonify({"error": "Username already taken"}), 409
+
+        user_repo.create_user(email, username, generate_password_hash(password), role="user")
         return jsonify({"message": "User registered successfully"}), 201
 
     @app.route("/api/password/forgot", methods=["POST"])
