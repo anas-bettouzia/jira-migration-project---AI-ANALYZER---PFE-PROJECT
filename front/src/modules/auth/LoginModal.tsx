@@ -228,7 +228,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                         type="text"
                         required
                         placeholder="exemple123"
-                        className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
+                        className="w-full pl-4 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                       />
