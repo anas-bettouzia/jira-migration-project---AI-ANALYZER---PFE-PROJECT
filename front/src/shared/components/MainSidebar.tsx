@@ -1,11 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Boxes, Gauge, Plus } from 'lucide-react';
+import { BarChart3, Boxes, Gauge } from 'lucide-react';
 
 import { ProfileMenu } from './ProfileMenu';
 import spectrumMark from '../../assets/img/cropped-favicon-spectrumgroupe.png';
 
-type MainSidebarPage = 'overview' | 'analysis' | 'reports' | 'generate';
+type MainSidebarPage = 'overview' | 'analysis' | 'reports';
 
 interface MainSidebarProps {
   activePage: MainSidebarPage;
@@ -28,11 +28,7 @@ export const MainSidebar: React.FC<MainSidebarProps> = ({ activePage }) => {
         <MainSidebarItem icon={<Boxes size={17} />} label="Overview" active={activePage === 'overview'} onClick={() => navigate('/')} />
         <MainSidebarItem icon={<Gauge size={17} />} label="AI Analysis" active={activePage === 'analysis'} onClick={() => navigate('/analysis')} />
         <MainSidebarItem icon={<BarChart3 size={17} />} label="Reports" active={activePage === 'reports'} />
-        <div className="my-2 h-px w-9 bg-white/10" />
-        <MainSidebarItem icon={<Plus size={18} />} label="Generate" active={activePage === 'generate'} />
       </nav>
-
-
       <div className="mb-4">
         <ProfileMenu variant="sidebar" />
       </div>
@@ -40,7 +36,7 @@ export const MainSidebar: React.FC<MainSidebarProps> = ({ activePage }) => {
   );
 };
 
-const MainSidebarItem = ({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active?: boolean; onClick?: () => void }) => (
+const MainSidebarItem = ({ icon, label, active, onClick }: { icon?: React.ReactNode; label: string; active?: boolean; onClick?: () => void }) => (
   <button
     onClick={onClick}
     className={`group relative flex w-14 flex-col items-center gap-1 rounded-2xl py-2.5 transition ${
