@@ -223,14 +223,16 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                 {!isForgotPassword && !isLogin && (
                   <div>
                     <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Nom d'utilisateur</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="exemple123"
-                      className="w-full pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        placeholder="exemple123"
+                        className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                      />
+                    </div>
                   </div>
                 )}
 
