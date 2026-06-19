@@ -1,5 +1,5 @@
 // src/modules/auth/LoginModal.tsx
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Lock, Mail, Loader2, X, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/authService';
@@ -26,6 +26,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [countdown, setCountdown] = useState(5);
 
   const navigate = useNavigate();
   const setToken = useAuthStore((state) => state.setToken);
@@ -106,6 +107,29 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     [navigate, onClose, setToken]
   );
 
+  useEffect(() => {
+    let timer: number | undefined;
+
+    if (isForgotPassword && success) {
+      setCountdown(5);
+      timer = window.setInterval(() => {
+        setCountdown((c) => {
+          if (c <= 1) {
+            if (timer) clearInterval(timer);
+            setIsForgotPassword(false);
+            resetFeedback();
+            return 0;
+          }
+          return c - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isForgotPassword, success]);
+
   const handleGoogleError = useCallback((message: string) => {
     setError(message);
   }, []);
@@ -159,6 +183,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
             <div className="flex flex-col items-center gap-4 p-4">
               <CheckCircle2 size={48} className="text-emerald-600" />
               <p className="text-emerald-600 text-sm font-bold text-center">{success}</p>
+              <p className="text-sm text-slate-400 mt-2">Redirection dans {countdown}s...</p>
             </div>
           ) : (
             <>
