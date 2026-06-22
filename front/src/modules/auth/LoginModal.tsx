@@ -171,14 +171,42 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     if (typeof window === 'undefined') return;
 
     const renderRecaptcha = () => {
-      console.log('renderRecaptcha called, grecaptcha=', (window as any).grecaptcha, 'render=', (window as any).grecaptcha?.render, 'enterprise=', (window as any).grecaptcha?.enterprise);
-      if (!(window as any).grecaptcha) {
-        return;
+      const grecaptcha = (window as any).grecaptcha;
+      console.log('renderRecaptcha called, grecaptcha=', grecaptcha, 'widgetId=', recaptchaWidgetId);
+      if (!grecaptcha) return;
+
+      const enterpriseRender = grecaptcha.enterprise && grecaptcha.enterprise.render ? grecaptcha.enterprise.render : undefined;
+      const normalRender = grecaptcha.render ? grecaptcha.render : undefined;
+
+      if (enterpriseRender && recaptchaWidgetId === null) {
+        try {
+          const widgetId = enterpriseRender('recaptcha-container', {
+            sitekey: RECAPTCHA_SITE_KEY,
+            callback: (token: string) => {
+              console.log('recaptcha token callback', token);
+              setRecaptchaToken(token);
+            },
+            'error-callback': () => {
+              console.error('reCAPTCHA error callback (enterprise)');
+              setError('Le reCAPTCHA a échoué, veuillez recharger la page.');
+              setRecaptchaToken(undefined);
+            },
+            'expired-callback': () => {
+              console.log('reCAPTCHA expired callback (enterprise)');
+              setRecaptchaToken(undefined);
+            },
+          });
+          console.log('reCAPTCHA enterprise widget rendered', widgetId);
+          setRecaptchaWidgetId(widgetId);
+          return;
+        } catch (err) {
+          console.error('Impossible de rendre le reCAPTCHA enterprise', err);
+        }
       }
 
-      if ((window as any).grecaptcha.enterprise.render && recaptchaWidgetId === null) {
+      if (normalRender && recaptchaWidgetId === null) {
         try {
-          const widgetId = (window as any).grecaptcha.enterprise.render('recaptcha-container', {
+          const widgetId = normalRender('recaptcha-container', {
             sitekey: RECAPTCHA_SITE_KEY,
             callback: (token: string) => {
               console.log('recaptcha token callback', token);
