@@ -171,32 +171,34 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     if (typeof window === 'undefined') return;
 
     const renderRecaptcha = () => {
-      console.log('renderRecaptcha called, grecaptcha=', (window as any).grecaptcha, 'render=', (window as any).grecaptcha?.render);
-      if (!(window as any).grecaptcha || !(window as any).grecaptcha.render || recaptchaWidgetId !== null) {
+      console.log('renderRecaptcha called, grecaptcha=', (window as any).grecaptcha, 'render=', (window as any).grecaptcha?.render, 'enterprise=', (window as any).grecaptcha?.enterprise);
+      if (!(window as any).grecaptcha) {
         return;
       }
 
-      try {
-        const widgetId = (window as any).grecaptcha.render('recaptcha-container', {
-          sitekey: RECAPTCHA_SITE_KEY,
-          callback: (token: string) => {
-            console.log('recaptcha token callback', token);
-            setRecaptchaToken(token);
-          },
-          'error-callback': () => {
-            console.error('reCAPTCHA error callback');
-            setError('Le reCAPTCHA a échoué, veuillez recharger la page.');
-            setRecaptchaToken(undefined);
-          },
-          'expired-callback': () => {
-            console.log('reCAPTCHA expired callback');
-            setRecaptchaToken(undefined);
-          },
-        });
-        console.log('reCAPTCHA widget rendered', widgetId);
-        setRecaptchaWidgetId(widgetId);
-      } catch (err) {
-        console.error('Impossible de rendre le reCAPTCHA', err);
+      if ((window as any).grecaptcha.render && recaptchaWidgetId === null) {
+        try {
+          const widgetId = (window as any).grecaptcha.render('recaptcha-container', {
+            sitekey: RECAPTCHA_SITE_KEY,
+            callback: (token: string) => {
+              console.log('recaptcha token callback', token);
+              setRecaptchaToken(token);
+            },
+            'error-callback': () => {
+              console.error('reCAPTCHA error callback');
+              setError('Le reCAPTCHA a échoué, veuillez recharger la page.');
+              setRecaptchaToken(undefined);
+            },
+            'expired-callback': () => {
+              console.log('reCAPTCHA expired callback');
+              setRecaptchaToken(undefined);
+            },
+          });
+          console.log('reCAPTCHA widget rendered', widgetId);
+          setRecaptchaWidgetId(widgetId);
+        } catch (err) {
+          console.error('Impossible de rendre le reCAPTCHA', err);
+        }
       }
     };
 
@@ -204,7 +206,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     console.log('recaptcha script existing', existing);
     if (!existing) {
       const script = document.createElement('script');
-      script.src = 'https://www.google.com/recaptcha/api.js?render=explicit';
+      script.src = 'https://www.google.com/recaptcha/api.js';
       script.async = true;
       script.defer = true;
       script.setAttribute('data-recaptcha', RECAPTCHA_SITE_KEY);
