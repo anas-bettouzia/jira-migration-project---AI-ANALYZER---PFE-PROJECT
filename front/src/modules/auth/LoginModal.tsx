@@ -235,7 +235,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     if (!existing) {
       const script = document.createElement('script');
       // Force explicit render mode for v2 checkbox widgets
-      script.src = 'https://www.google.com/recaptcha/api.js?render=explicit';
+      script.src = 'https://www.google.com/recaptcha/api.js?render=explicit&hl=en';
       script.async = true;
       script.defer = true;
       script.setAttribute('data-recaptcha', RECAPTCHA_SITE_KEY);
