@@ -176,9 +176,9 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
         return;
       }
 
-      if ((window as any).grecaptcha.render && recaptchaWidgetId === null) {
+      if ((window as any).grecaptcha.enterprise.render && recaptchaWidgetId === null) {
         try {
-          const widgetId = (window as any).grecaptcha.render('recaptcha-container', {
+          const widgetId = (window as any).grecaptcha.enterprise.render('recaptcha-container', {
             sitekey: RECAPTCHA_SITE_KEY,
             callback: (token: string) => {
               console.log('recaptcha token callback', token);
