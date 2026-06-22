@@ -168,47 +168,45 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     if (!RECAPTCHA_SITE_KEY) return;
     if (typeof window === 'undefined') return;
 
-    // Load reCAPTCHA script if not already present
+    const renderRecaptcha = () => {
+      if (!(window as any).grecaptcha || !(window as any).grecaptcha.render || recaptchaWidgetId !== null) {
+        return;
+      }
+
+      try {
+        const widgetId = (window as any).grecaptcha.render('recaptcha-container', {
+          sitekey: RECAPTCHA_SITE_KEY,
+          callback: (token: string) => {
+            setRecaptchaToken(token);
+          },
+          'error-callback': () => {
+            setError('Le reCAPTCHA a échoué, veuillez recharger la page.');
+            setRecaptchaToken(undefined);
+          },
+          'expired-callback': () => {
+            setRecaptchaToken(undefined);
+          },
+        });
+        setRecaptchaWidgetId(widgetId);
+      } catch (err) {
+        console.error('Impossible de rendre le reCAPTCHA', err);
+      }
+    };
+
     const existing = document.querySelector(`script[data-recaptcha="${RECAPTCHA_SITE_KEY}"]`);
     if (!existing) {
       const script = document.createElement('script');
-      script.src = `https://www.google.com/recaptcha/api.js?render=explicit`;
+      script.src = 'https://www.google.com/recaptcha/api.js?render=explicit';
       script.async = true;
       script.defer = true;
       script.setAttribute('data-recaptcha', RECAPTCHA_SITE_KEY);
       document.head.appendChild(script);
 
       script.onload = () => {
-        if ((window as any).grecaptcha && (window as any).grecaptcha.render) {
-          const widgetId = (window as any).grecaptcha.render('recaptcha-container', {
-            sitekey: RECAPTCHA_SITE_KEY,
-            callback: (token: string) => {
-              setRecaptchaToken(token);
-            },
-            'error-callback': () => {
-              setError('Le reCAPTCHA a échoué, veuillez recharger la page.');
-            },
-            'expired-callback': () => {
-              setRecaptchaToken(undefined);
-            },
-          });
-          setRecaptchaWidgetId(widgetId);
-        }
+        renderRecaptcha();
       };
-    } else if ((window as any).grecaptcha && (window as any).grecaptcha.render && recaptchaWidgetId === null) {
-      const widgetId = (window as any).grecaptcha.render('recaptcha-container', {
-        sitekey: RECAPTCHA_SITE_KEY,
-        callback: (token: string) => {
-          setRecaptchaToken(token);
-        },
-        'error-callback': () => {
-          setError('Le reCAPTCHA a échoué, veuillez recharger la page.');
-        },
-        'expired-callback': () => {
-          setRecaptchaToken(undefined);
-        },
-      });
-      setRecaptchaWidgetId(widgetId);
+    } else {
+      renderRecaptcha();
     }
   }, [RECAPTCHA_SITE_KEY, recaptchaWidgetId]);
 
@@ -348,8 +346,12 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
               {error && <p className="text-red-500 text-xs font-bold text-center animate-shake">{error}</p>}
 
-              {RECAPTCHA_SITE_KEY && (
+              {RECAPTCHA_SITE_KEY ? (
                 <div className="flex justify-center" id="recaptcha-container" />
+              ) : (
+                <p className="text-xs text-slate-500 text-center">
+                  reCAPTCHA non configuré.
+                </p>
               )}
 
               <button
