@@ -37,6 +37,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   const navigate = useNavigate();
   const setToken = useAuthStore((state) => state.setToken);
   const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined;
+  console.log('LoginModal: VITE_RECAPTCHA_SITE_KEY=', RECAPTCHA_SITE_KEY);
 
   const resetFeedback = () => {
     setError('');
@@ -165,10 +166,12 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   }, []);
 
   useEffect(() => {
+    console.log('LoginModal useEffect recaptcha, site key=', RECAPTCHA_SITE_KEY, 'widgetId=', recaptchaWidgetId);
     if (!RECAPTCHA_SITE_KEY) return;
     if (typeof window === 'undefined') return;
 
     const renderRecaptcha = () => {
+      console.log('renderRecaptcha called, grecaptcha=', (window as any).grecaptcha, 'render=', (window as any).grecaptcha?.render);
       if (!(window as any).grecaptcha || !(window as any).grecaptcha.render || recaptchaWidgetId !== null) {
         return;
       }
@@ -177,16 +180,20 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
         const widgetId = (window as any).grecaptcha.render('recaptcha-container', {
           sitekey: RECAPTCHA_SITE_KEY,
           callback: (token: string) => {
+            console.log('recaptcha token callback', token);
             setRecaptchaToken(token);
           },
           'error-callback': () => {
+            console.error('reCAPTCHA error callback');
             setError('Le reCAPTCHA a échoué, veuillez recharger la page.');
             setRecaptchaToken(undefined);
           },
           'expired-callback': () => {
+            console.log('reCAPTCHA expired callback');
             setRecaptchaToken(undefined);
           },
         });
+        console.log('reCAPTCHA widget rendered', widgetId);
         setRecaptchaWidgetId(widgetId);
       } catch (err) {
         console.error('Impossible de rendre le reCAPTCHA', err);
@@ -194,6 +201,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     };
 
     const existing = document.querySelector(`script[data-recaptcha="${RECAPTCHA_SITE_KEY}"]`);
+    console.log('recaptcha script existing', existing);
     if (!existing) {
       const script = document.createElement('script');
       script.src = 'https://www.google.com/recaptcha/api.js?render=explicit';
@@ -203,7 +211,13 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
       document.head.appendChild(script);
 
       script.onload = () => {
+        console.log('recaptcha script loaded');
         renderRecaptcha();
+      };
+
+      script.onerror = (error) => {
+        console.error('recaptcha script failed to load', error);
+        setError('Impossible de charger le script reCAPTCHA.');
       };
     } else {
       renderRecaptcha();
