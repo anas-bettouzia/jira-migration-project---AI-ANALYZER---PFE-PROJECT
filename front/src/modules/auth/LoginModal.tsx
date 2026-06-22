@@ -234,7 +234,8 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     console.log('recaptcha script existing', existing);
     if (!existing) {
       const script = document.createElement('script');
-      script.src = 'https://www.google.com/recaptcha/api.js';
+      // Force explicit render mode for v2 checkbox widgets
+      script.src = 'https://www.google.com/recaptcha/api.js?render=explicit';
       script.async = true;
       script.defer = true;
       script.setAttribute('data-recaptcha', RECAPTCHA_SITE_KEY);
@@ -242,7 +243,20 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
       script.onload = () => {
         console.log('recaptcha script loaded');
-        renderRecaptcha();
+        const grecaptcha = (window as any).grecaptcha;
+        if (grecaptcha && typeof grecaptcha.ready === 'function') {
+          try {
+            grecaptcha.ready(() => {
+              renderRecaptcha();
+            });
+          } catch (err) {
+            console.warn('grecaptcha.ready threw, calling renderRecaptcha directly', err);
+            renderRecaptcha();
+          }
+        } else {
+          // Fallback: call render directly if ready isn't available
+          renderRecaptcha();
+        }
       };
 
       script.onerror = (error) => {
