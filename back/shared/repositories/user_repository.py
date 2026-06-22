@@ -13,10 +13,20 @@ class UserRepository:
         self.db = db or get_mongo_db()
         self.collection = self.db.users
         self.collection.create_index("email", unique=True)
-        self.collection.create_index("username", unique=True)
+        self.collection.create_index(
+            "username",
+            unique=True,
+            partialFilterExpression={"username": {"$type": "string"}},
+        )
         self.collection.create_index("reset_password_token_hash", sparse=True)
 
-    def create_user(self, email: str, username: str, password_hash: str, role: str = "user") -> dict:
+    def create_user(
+        self,
+        email: str,
+        username: str,
+        password_hash: str,
+        role: str = "user",
+    ) -> dict:
         """Insert a new user document."""
         user = {
             "email": email,
