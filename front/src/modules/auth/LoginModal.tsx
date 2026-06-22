@@ -31,6 +31,8 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(5);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | undefined>(undefined);
+  const [recaptchaWidgetId, setRecaptchaWidgetId] = useState<number | null>(null);
 
   const navigate = useNavigate();
   const setToken = useAuthStore((state) => state.setToken);
@@ -90,23 +92,13 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
       }
     }
 
-    try {
-      // Execute reCAPTCHA (if configured) and send token to backend
-      let recaptchaToken: string | undefined;
-      if (RECAPTCHA_SITE_KEY && (window as any).grecaptcha) {
-        try {
-          recaptchaToken = await new Promise<string>((resolve, reject) => {
-            (window as any).grecaptcha.ready(() => {
-              (window as any).grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: isLogin ? 'login' : 'register' })
-                .then((token: string) => resolve(token))
-                .catch(reject);
-            });
-          });
-        } catch (err) {
-          console.warn('reCAPTCHA execution failed', err);
-        }
-      }
+    if (RECAPTCHA_SITE_KEY && !recaptchaToken) {
+      setError('Veuillez valider le reCAPTCHA avant de continuer.');
+      setIsLoading(false);
+      return;
+    }
 
+    try {
       if (isLogin) {
         const data = await authService.login(email, password, recaptchaToken);
         setToken(data.token);
@@ -177,18 +169,48 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     if (typeof window === 'undefined') return;
 
     // Load reCAPTCHA script if not already present
-    if (!(window as any).grecaptcha) {
-      const existing = document.querySelector(`script[data-recaptcha="${RECAPTCHA_SITE_KEY}"]`);
-      if (!existing) {
-        const script = document.createElement('script');
-        script.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
-        script.async = true;
-        script.defer = true;
-        script.setAttribute('data-recaptcha', RECAPTCHA_SITE_KEY);
-        document.head.appendChild(script);
-      }
+    const existing = document.querySelector(`script[data-recaptcha="${RECAPTCHA_SITE_KEY}"]`);
+    if (!existing) {
+      const script = document.createElement('script');
+      script.src = `https://www.google.com/recaptcha/api.js?render=explicit`;
+      script.async = true;
+      script.defer = true;
+      script.setAttribute('data-recaptcha', RECAPTCHA_SITE_KEY);
+      document.head.appendChild(script);
+
+      script.onload = () => {
+        if ((window as any).grecaptcha && (window as any).grecaptcha.render) {
+          const widgetId = (window as any).grecaptcha.render('recaptcha-container', {
+            sitekey: RECAPTCHA_SITE_KEY,
+            callback: (token: string) => {
+              setRecaptchaToken(token);
+            },
+            'error-callback': () => {
+              setError('Le reCAPTCHA a échoué, veuillez recharger la page.');
+            },
+            'expired-callback': () => {
+              setRecaptchaToken(undefined);
+            },
+          });
+          setRecaptchaWidgetId(widgetId);
+        }
+      };
+    } else if ((window as any).grecaptcha && (window as any).grecaptcha.render && recaptchaWidgetId === null) {
+      const widgetId = (window as any).grecaptcha.render('recaptcha-container', {
+        sitekey: RECAPTCHA_SITE_KEY,
+        callback: (token: string) => {
+          setRecaptchaToken(token);
+        },
+        'error-callback': () => {
+          setError('Le reCAPTCHA a échoué, veuillez recharger la page.');
+        },
+        'expired-callback': () => {
+          setRecaptchaToken(undefined);
+        },
+      });
+      setRecaptchaWidgetId(widgetId);
     }
-  }, [RECAPTCHA_SITE_KEY]);
+  }, [RECAPTCHA_SITE_KEY, recaptchaWidgetId]);
 
   if (!isOpen) return null;
 
@@ -325,6 +347,10 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
               </div>
 
               {error && <p className="text-red-500 text-xs font-bold text-center animate-shake">{error}</p>}
+
+              {RECAPTCHA_SITE_KEY && (
+                <div className="flex justify-center" id="recaptcha-container" />
+              )}
 
               <button
                 type="submit"
