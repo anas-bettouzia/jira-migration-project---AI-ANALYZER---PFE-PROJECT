@@ -34,6 +34,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
   const navigate = useNavigate();
   const setToken = useAuthStore((state) => state.setToken);
+  const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined;
 
   const resetFeedback = () => {
     setError('');
@@ -90,12 +91,28 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     }
 
     try {
+      // Execute reCAPTCHA (if configured) and send token to backend
+      let recaptchaToken: string | undefined;
+      if (RECAPTCHA_SITE_KEY && (window as any).grecaptcha) {
+        try {
+          recaptchaToken = await new Promise<string>((resolve, reject) => {
+            (window as any).grecaptcha.ready(() => {
+              (window as any).grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: isLogin ? 'login' : 'register' })
+                .then((token: string) => resolve(token))
+                .catch(reject);
+            });
+          });
+        } catch (err) {
+          console.warn('reCAPTCHA execution failed', err);
+        }
+      }
+
       if (isLogin) {
-        const data = await authService.login(email, password);
+        const data = await authService.login(email, password, recaptchaToken);
         setToken(data.token);
       } else {
-        await authService.register(email, username, password);
-        const data = await authService.login(email, password);
+        await authService.register(email, username, password, recaptchaToken);
+        const data = await authService.login(email, password, recaptchaToken);
         setToken(data.token);
       }
 
@@ -154,6 +171,24 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   const handleGoogleError = useCallback((message: string) => {
     setError(message);
   }, []);
+
+  useEffect(() => {
+    if (!RECAPTCHA_SITE_KEY) return;
+    if (typeof window === 'undefined') return;
+
+    // Load reCAPTCHA script if not already present
+    if (!(window as any).grecaptcha) {
+      const existing = document.querySelector(`script[data-recaptcha="${RECAPTCHA_SITE_KEY}"]`);
+      if (!existing) {
+        const script = document.createElement('script');
+        script.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
+        script.async = true;
+        script.defer = true;
+        script.setAttribute('data-recaptcha', RECAPTCHA_SITE_KEY);
+        document.head.appendChild(script);
+      }
+    }
+  }, [RECAPTCHA_SITE_KEY]);
 
   if (!isOpen) return null;
 

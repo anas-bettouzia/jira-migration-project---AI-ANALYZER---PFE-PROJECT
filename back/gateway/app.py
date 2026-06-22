@@ -54,6 +54,8 @@ COMPATIBILITY_SERVICE_URL = os.getenv(
 KNOWLEDGE_SERVICE_URL = os.getenv("KNOWLEDGE_SERVICE_URL", "http://knowledge_service:5003")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 REQUEST_TIMEOUT = 180
+RECAPTCHA_SECRET = os.getenv("RECAPTCHA_SECRET_KEY", "")
+RECAPTCHA_MIN_SCORE = float(os.getenv("RECAPTCHA_MIN_SCORE", "0.5"))
 
 EMAIL_REGEX = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.(com|fr)$"
 PASSWORD_REGEX = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\w\W]{8,}$"
@@ -322,7 +324,56 @@ def _send_password_reset_email(email: str, reset_link: str) -> None:
         "Unsupported EMAIL_PROVIDER=%s. Defaulting to SendGrid.",
         provider,
     )
-    return _send_password_reset_email_sendgrid(email, reset_link)
+
+
+def _verify_recaptcha(token: str, remote_ip: str | None = None) -> dict:
+    """Verify reCAPTCHA token with Google's API.
+
+    Returns the parsed JSON response from Google's verify endpoint.
+    Raises ValueError if verification fails or token is missing.
+    """
+    if not token:
+        raise ValueError("reCAPTCHA token is required")
+
+    if not RECAPTCHA_SECRET:
+        # If no secret configured, fail closed for safety
+        raise ValueError("reCAPTCHA secret key not configured on server")
+
+    url = "https://www.google.com/recaptcha/api/siteverify"
+    payload = {
+        "secret": RECAPTCHA_SECRET,
+        "response": token,
+    }
+    if remote_ip:
+        payload["remoteip"] = remote_ip
+
+    try:
+        resp = requests.post(url, data=payload, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+        result = resp.json()
+    except requests.RequestException as exc:  # pragma: no cover - network
+        logger.exception("reCAPTCHA verification request failed: %s", exc)
+        raise ValueError("reCAPTCHA verification failed") from exc
+
+    # For reCAPTCHA v3 include score check
+    success = bool(result.get("success"))
+    score = result.get("score")
+    # action is intentionally not used here; reCAPTCHA action can be
+    # inspected in logs if needed.
+
+    if not success:
+        raise ValueError("reCAPTCHA verification unsuccessful")
+
+    # If score is present, treat as v3 and require threshold
+    if score is not None:
+        try:
+            s = float(score)
+        except (TypeError, ValueError):
+            s = 0.0
+        if s < RECAPTCHA_MIN_SCORE:
+            raise ValueError(f"reCAPTCHA score too low: {s}")
+
+    return result
 
 
 def _reset_token_is_expired(expires_at) -> bool:
@@ -466,6 +517,14 @@ def create_app():
         if not data:
             return jsonify({"error": "Request body is required"}), 400
 
+        # Verify reCAPTCHA token
+        recaptcha_token = data.get("recaptcha_token")
+        try:
+            _verify_recaptcha(recaptcha_token, request.remote_addr)
+        except ValueError as err:
+            logger.warning("reCAPTCHA validation failed: %s", err)
+            return jsonify({"error": "reCAPTCHA validation failed"}), 400
+
         user = user_repo.get_user_by_email(_normalize_email(data.get("email", "")))
         password_hash = user.get("password_hash") if user else None
         if password_hash and check_password_hash(password_hash, data.get("password", "")):
@@ -551,6 +610,14 @@ def create_app():
         email = _normalize_email(data.get("email", ""))
         username = (data.get("username", "") or "").strip()
         password = data.get("password", "")
+        recaptcha_token = data.get("recaptcha_token")
+
+        # Verify reCAPTCHA for registrations as well
+        try:
+            _verify_recaptcha(recaptcha_token, request.remote_addr)
+        except ValueError as err:
+            logger.warning("reCAPTCHA validation failed (register): %s", err)
+            return jsonify({"error": "reCAPTCHA validation failed"}), 400
 
         if not username or not email or not password:
             return jsonify({"error": "Username, email and password are required"}), 400

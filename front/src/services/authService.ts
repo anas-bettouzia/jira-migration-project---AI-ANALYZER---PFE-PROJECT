@@ -3,12 +3,11 @@ import { api } from '../core/api';
 import type { AuthResponse, AuthUser, ProfileUpdateResponse } from '../shared/types/auth';
 
 export const authService = {
-  login: async (email: string, password: string): Promise<AuthResponse> => {
+  login: async (email: string, password: string, recaptchaToken?: string): Promise<AuthResponse> => {
     try {
-      const response = await api.post<AuthResponse>('/login', {
-        email,
-        password,
-      });
+      const payload: Record<string, unknown> = { email, password };
+      if (recaptchaToken) payload.recaptcha_token = recaptchaToken;
+      const response = await api.post<AuthResponse>('/login', payload);
       return response.data;
     } catch (error) {
       console.error('Erreur lors de la connexion :', error);
@@ -28,13 +27,11 @@ export const authService = {
     }
   },
 
-  register: async (email: string, username: string, password: string): Promise<{ message: string }> => {
+  register: async (email: string, username: string, password: string, recaptchaToken?: string): Promise<{ message: string }> => {
     try {
-      const response = await api.post<{ message: string }>('/register', {
-        email,
-        username,
-        password,
-      });
+      const payload: Record<string, unknown> = { email, username, password };
+      if (recaptchaToken) payload.recaptcha_token = recaptchaToken;
+      const response = await api.post<{ message: string }>('/register', payload);
       return response.data;
     } catch (error) {
       console.error("Erreur lors de l'inscription :", error);
