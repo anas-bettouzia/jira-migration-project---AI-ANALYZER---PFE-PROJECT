@@ -31,6 +31,7 @@ x-common-env: &common-env
   GEMINI_MODEL: ${GEMINI_MODEL}
   TRUSTED_HOSTS: "docker.itspectrum.fr,docker.itspectrum.fr:5001,parsing-service,parsing-service:5001,compatibility-service,compatibility-service:5002,knowledge-service,knowledge-service:5003,report-service,report-service:5004,worker,worker:5005,localhost,localhost:5000,127.0.0.1,127.0.0.1:5000"
   DEBUG: ${DEBUG}
+  RECAPTCHA_SECRET_KEY: ${RECAPTCHA_SECRET_KEY}
 
 services:
 
@@ -155,11 +156,13 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+        VITE_RECAPTCHA_SITE_KEY: ${VITE_RECAPTCHA_SITE_KEY}
     container_name: frontend
     ports:
       - "83:80"
     environment:
       - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
+      - VITE_RECAPTCHA_SITE_KEY=${VITE_RECAPTCHA_SITE_KEY}
     restart: unless-stopped
 
   mongodb:
