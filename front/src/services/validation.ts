@@ -1,6 +1,6 @@
 export const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.(com|fr)$/i;
 export const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\w\W]{8,}$/;
 
-export const EMAIL_ERROR = "L'adresse email doit etre valide et se terminer par .com ou .fr.";
+export const EMAIL_ERROR = 'Email must be valid and end with .com or .fr.';
 export const PASSWORD_ERROR =
-  'Le mot de passe doit contenir au moins 8 caracteres, une majuscule, une minuscule et un chiffre.';
+  'Password must contain at least 8 characters, one uppercase letter, one lowercase letter, and one digit.';

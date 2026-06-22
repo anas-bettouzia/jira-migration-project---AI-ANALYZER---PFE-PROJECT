@@ -15,7 +15,7 @@ interface LoginModalProps {
 
 const getAuthErrorMessage = (error: unknown, isLogin: boolean) => {
   const response = (error as { response?: { data?: { error?: string } } }).response;
-  return response?.data?.error || (isLogin ? 'Identifiants invalides.' : "Erreur lors de l'inscription.");
+  return response?.data?.error || (isLogin ? 'Invalid credentials.' : 'Registration failed.');
 };
 
 const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
@@ -69,7 +69,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
     if (!isLogin) {
       if (!username.trim()) {
-        setError("Le nom d'utilisateur est requis.");
+        setError("Username is required.");
         setIsLoading(false);
         return;
       }
@@ -87,14 +87,14 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
       }
 
       if (password !== confirmPassword) {
-        setError('Les mots de passe ne correspondent pas.');
+        setError('Passwords do not match.');
         setIsLoading(false);
         return;
       }
     }
 
     if (RECAPTCHA_SITE_KEY && !recaptchaToken) {
-      setError('Veuillez valider le reCAPTCHA avant de continuer.');
+      setError('Please complete the reCAPTCHA before continuing.');
       setIsLoading(false);
       return;
     }
@@ -188,7 +188,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
             },
             'error-callback': () => {
               console.error('reCAPTCHA error callback (enterprise)');
-              setError('Le reCAPTCHA a échoué, veuillez recharger la page.');
+              setError('reCAPTCHA failed, please refresh the page.');
               setRecaptchaToken(undefined);
             },
             'expired-callback': () => {
@@ -200,7 +200,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
           setRecaptchaWidgetId(widgetId);
           return;
         } catch (err) {
-          console.error('Impossible de rendre le reCAPTCHA enterprise', err);
+          console.error('Unable to render reCAPTCHA enterprise', err);
         }
       }
 
@@ -214,7 +214,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
             },
             'error-callback': () => {
               console.error('reCAPTCHA error callback');
-              setError('Le reCAPTCHA a échoué, veuillez recharger la page.');
+              setError('reCAPTCHA failed, please refresh the page.');
               setRecaptchaToken(undefined);
             },
             'expired-callback': () => {
@@ -225,7 +225,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
           console.log('reCAPTCHA widget rendered', widgetId);
           setRecaptchaWidgetId(widgetId);
         } catch (err) {
-          console.error('Impossible de rendre le reCAPTCHA', err);
+          console.error('Unable to render reCAPTCHA', err);
         }
       }
     };
@@ -261,7 +261,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
       script.onerror = (error) => {
         console.error('recaptcha script failed to load', error);
-        setError('Impossible de charger le script reCAPTCHA.');
+        setError('Unable to load the reCAPTCHA script.');
       };
     } else {
       renderRecaptcha();
@@ -270,12 +270,12 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
   if (!isOpen) return null;
 
-  const title = isForgotPassword ? 'Reinitialiser le mot de passe' : isLogin ? 'Connexion' : 'Creer un compte';
+  const title = isForgotPassword ? 'Reset Password' : isLogin ? 'Log in' : 'Create Account';
   const subtitle = isForgotPassword
-    ? 'Recevez un lien de reinitialisation par email'
+    ? 'Receive a reset link by email'
     : isLogin
-      ? 'Accedez a votre assistant de migration'
-      : 'Rejoignez-nous pour commencer';
+      ? 'Access your migration assistant'
+      : 'Join us to get started';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -306,7 +306,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
             />
             <div className="mt-5 flex items-center gap-3">
               <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">ou</span>
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">or</span>
               <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
             </div>
           </div>
@@ -317,7 +317,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
             <div className="flex flex-col items-center gap-4 p-4">
               <CheckCircle2 size={48} className="text-emerald-600" />
               <p className="text-emerald-600 text-sm font-bold text-center">{success}</p>
-              <p className="text-sm text-slate-400 mt-2">Redirection dans {countdown}s...</p>
+              <p className="text-sm text-slate-400 mt-2">Redirecting in {countdown}s...</p>
             </div>
           ) : (
             <>
@@ -329,7 +329,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                     <input
                       type="email"
                       required
-                      placeholder="nom@exemple.com"
+                      placeholder="name@example.com"
                       className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -339,12 +339,12 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
                 {!isForgotPassword && !isLogin && (
                   <div>
-                    <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Nom d'utilisateur</label>
+                    <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Username</label>
                     <div className="relative">
                       <input
                         type="text"
                         required
-                        placeholder="exemple123"
+                        placeholder="example123"
                         className="w-full pl-4 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
@@ -355,7 +355,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
                 {!isForgotPassword && (
                   <div>
-                    <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Mot de passe</label>
+                    <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Password</label>
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                       <input
@@ -379,7 +379,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
                 {!isForgotPassword && !isLogin && (
                   <div>
-                    <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Confirmer le mot de passe</label>
+                    <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Confirm Password</label>
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                       <input
@@ -408,7 +408,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                 <div className="flex justify-center" id="recaptcha-container" />
               ) : (
                 <p className="text-xs text-slate-500 text-center">
-                  reCAPTCHA non configuré.
+                  reCAPTCHA is not configured.
                 </p>
               )}
 
@@ -420,11 +420,11 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                 {isLoading ? (
                   <Loader2 className="animate-spin" size={20} />
                 ) : isForgotPassword ? (
-                  'Envoyer le lien'
+                  'Send Link'
                 ) : isLogin ? (
-                  "S'identifier"
+                  'Sign In'
                 ) : (
-                  "S'inscrire"
+                  'Sign Up'
                 )}
               </button>
             </>
@@ -441,7 +441,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
               type="button"
               className="mb-3 text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
             >
-              Mot de passe oublie ?
+              Forgot password?
             </button>
           )}
 
@@ -454,17 +454,17 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
               type="button"
               className="text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
             >
-              Retour a la connexion
+              Back to login
             </button>
           ) : (
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              {isLogin ? 'Pas encore de compte ?' : 'Deja un compte ?'}
+              {isLogin ? "Don't have an account?" : 'Already have an account?'}
               <button
                 onClick={toggleMode}
                 type="button"
                 className="ml-1.5 font-bold text-[var(--spectrum-blue)] hover:underline"
               >
-                {isLogin ? 'Creer un compte' : 'Se connecter'}
+                {isLogin ? 'Create account' : 'Sign in'}
               </button>
             </p>
           )}
