@@ -5,7 +5,6 @@ import { authService } from '../../services/authService';
 import { EMAIL_ERROR, EMAIL_REGEX } from '../../services/validation';
 
 interface VerifyEmailProps {
-  isModal?: boolean;
   onClose?: () => void;
 }
 
@@ -14,7 +13,7 @@ const getVerifyErrorMessage = (error: unknown) => {
   return response?.data?.error || 'Unable to verify your email.';
 };
 
-const VerifyEmail = ({ isModal = false, onClose }: VerifyEmailProps) => {
+const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialEmail = useMemo(() => searchParams.get('email') || '', [searchParams]);
@@ -94,34 +93,24 @@ const VerifyEmail = ({ isModal = false, onClose }: VerifyEmailProps) => {
     navigate('/?auth=login');
   };
 
-  const wrapperClass = isModal
-    ? 'fixed inset-0 z-50 flex items-center justify-center p-4'
-    : 'min-h-screen flex items-center justify-center bg-[#eef2fb] dark:bg-[#071126] px-4 py-12 font-sans';
-
-  const cardClass = isModal || success
-    ? 'relative bg-white dark:bg-slate-900 w-full max-w-md rounded-[2rem] shadow-2xl border border-white/20 dark:border-slate-800 p-8 animate-in fade-in zoom-in duration-300'
-    : 'w-full max-w-md rounded-[2rem] bg-white p-8 shadow-2xl border border-transparent dark:bg-slate-900 dark:border-slate-800';
-
   return (
-    <div className={wrapperClass}>
-      {(isModal || success) && (
-        <div
-          className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
-          onClick={isModal ? handleClose : undefined}
-        />
-      )}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Blurred Backdrop Matching LoginModal */}
+      <div
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+        onClick={handleClose}
+      />
 
-      <div className={cardClass}>
+      {/* Main Container Card Matching LoginModal */}
+      <div className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-[2rem] shadow-2xl border border-white/20 dark:border-slate-800 p-8 animate-in fade-in zoom-in duration-300">
         {/* Close button inside the card, matching LoginModal */}
-        {(isModal || success) && (
-          <button
-            onClick={handleClose}
-            className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
-            type="button"
-          >
-            <X size={24} />
-          </button>
-        )}
+        <button
+          onClick={handleClose}
+          className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+          type="button"
+        >
+          <X size={24} />
+        </button>
 
         {isVerifying ? (
           <div className="text-center py-12">
