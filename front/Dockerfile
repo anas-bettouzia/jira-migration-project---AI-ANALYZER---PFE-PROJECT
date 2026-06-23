@@ -13,13 +13,9 @@ COPY . .
 RUN npm run build
 
 FROM nginx:stable-alpine
-RUN apk add --no-cache openssl
-RUN mkdir -p /etc/nginx/ssl && \
-  openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /etc/nginx/ssl/server.key \
-    -out /etc/nginx/ssl/server.crt \
-    -subj "/C=US/ST=State/L=City/O=Spectrum Groupe/OU=Dev/CN=localhost"
-
+# SSL certificates are provided by the host (Let's Encrypt) and are mounted
+# into the container at runtime under /etc/nginx/ssl. Do NOT generate
+# self-signed certs at build time for production deployments.
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80 443
