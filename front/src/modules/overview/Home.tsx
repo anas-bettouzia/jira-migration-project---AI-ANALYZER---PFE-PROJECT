@@ -19,6 +19,7 @@ import logoSpectrumDark from '../../assets/img/logo-spectrum-groupe-darkmode.png
 import logoSpectrum from '../../assets/img/logo-spectrum-groupe.png';
 import LoginModal from '../auth/LoginModal';
 import ResetPassword from '../auth/ResetPassword';
+import VerifyEmail from '../auth/VerifyEmail';
 import { MainSidebar } from '../../shared/components/MainSidebar';
 import { ProfileMenu } from '../../shared/components/ProfileMenu';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -328,6 +329,9 @@ const Home = () => {
               navigate('/');
             }}
           />
+        )}
+        {location.pathname === '/verify-email' && (
+          <VerifyEmail onClose={() => navigate('/?auth=login')} />
         )}
       </AnimatePresence>
     </div>
