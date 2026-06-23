@@ -146,7 +146,7 @@ const VerifyEmail = ({ isModal = false, onClose }: VerifyEmailProps) => {
             </p>
             <button
               type="button"
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/?auth=login')}
               className="w-full py-4 bg-[var(--spectrum-blue)] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 hover:scale-[1.02] active:scale-95 transition-all"
             >
               Go to login
@@ -195,7 +195,7 @@ const VerifyEmail = ({ isModal = false, onClose }: VerifyEmailProps) => {
             <div className="mt-6 text-center">
               <button
                 type="button"
-                onClick={() => navigate('/login')}
+                onClick={() => navigate('/?auth=login')}
                 className="text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
               >
                 Back to login
