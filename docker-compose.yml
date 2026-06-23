@@ -238,7 +238,7 @@ services:
       - "443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./letsencrypt:/letsencrypt
+      - traefik_acme:/letsencrypt
     restart: unless-stopped
 
 volumes:
@@ -257,3 +257,6 @@ volumes:
   report_generated_files:
     external: false
     name: jira_migration_report_generated_files
+  traefik_acme:
+    external: false
+    name: jira_migration_traefik_acme
