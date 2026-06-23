@@ -98,22 +98,22 @@ const VerifyEmail = ({ isModal = false, onClose }: VerifyEmailProps) => {
     ? 'fixed inset-0 z-50 flex items-center justify-center p-4'
     : 'min-h-screen flex items-center justify-center bg-[#eef2fb] dark:bg-[#071126] px-4 py-12 font-sans';
 
-  const cardClass = isModal
+  const cardClass = isModal || success
     ? 'relative bg-white dark:bg-slate-900 w-full max-w-md rounded-[2rem] shadow-2xl border border-white/20 dark:border-slate-800 p-8 animate-in fade-in zoom-in duration-300'
     : 'w-full max-w-md rounded-[2rem] bg-white p-8 shadow-2xl border border-transparent dark:bg-slate-900 dark:border-slate-800';
 
   return (
     <div className={wrapperClass}>
-      {isModal && (
+      {(isModal || success) && (
         <div
           className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
-          onClick={handleClose}
+          onClick={isModal ? handleClose : undefined}
         />
       )}
 
       <div className={cardClass}>
         {/* Close button inside the card, matching LoginModal */}
-        {isModal && (
+        {(isModal || success) && (
           <button
             onClick={handleClose}
             className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
