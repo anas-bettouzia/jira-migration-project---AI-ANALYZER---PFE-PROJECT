@@ -314,18 +314,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
             <CheckCircle2 size={48} className="text-emerald-600" />
             <p className="text-emerald-600 text-sm font-bold text-center">{success}</p>
             <p className="text-sm text-slate-400 mt-2 text-center">Please check your email and click the verification link to activate your account.</p>
-            <div className="w-full mt-4">
-              <button
-                type="button"
-                onClick={() => {
-                  resetFeedback();
-                  setIsLogin(true);
-                }}
-                className="w-full py-3 bg-[var(--spectrum-blue)] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 hover:scale-[1.02] active:scale-95 transition-all"
-              >
-                Back to login
-              </button>
-            </div>
+            {/* Button intentionally removed: show only message after registration until email verification */}
           </div>
         </div>
       </div>
