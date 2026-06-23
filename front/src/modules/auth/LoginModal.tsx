@@ -289,6 +289,47 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
         : 'Join us to get started';
 
   return (
+    // When registration just succeeded we render a minimal modal with only the success message
+    showRegistrationSuccess ? (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+          onClick={onClose}
+        />
+
+        <div className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-[2rem] shadow-2xl border border-white/20 dark:border-slate-800 p-8 animate-in fade-in zoom-in duration-300">
+          <button
+            onClick={onClose}
+            className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+          >
+            <X size={24} />
+          </button>
+
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{title}</h2>
+            <p className="text-sm text-slate-500 mt-2">A verification link has been sent to your email.</p>
+          </div>
+
+          <div className="flex flex-col items-center gap-4 p-4">
+            <CheckCircle2 size={48} className="text-emerald-600" />
+            <p className="text-emerald-600 text-sm font-bold text-center">{success}</p>
+            <p className="text-sm text-slate-400 mt-2 text-center">Please check your email and click the verification link to activate your account.</p>
+            <div className="w-full mt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  resetFeedback();
+                  setIsLogin(true);
+                }}
+                className="w-full py-3 bg-[var(--spectrum-blue)] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 hover:scale-[1.02] active:scale-95 transition-all"
+              >
+                Back to login
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    ) : (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
@@ -502,6 +543,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
         )}
       </div>
     </div>
+    )
   );
 };
 
