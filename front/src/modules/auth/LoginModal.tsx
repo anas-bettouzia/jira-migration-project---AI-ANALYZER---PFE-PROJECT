@@ -29,6 +29,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [recaptchaToken, setRecaptchaToken] = useState<string | undefined>(undefined);
@@ -42,6 +43,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   const resetFeedback = () => {
     setError('');
     setSuccess('');
+    setRegistrationSuccess(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,7 +111,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
         const data = await authService.register(email, username, password, recaptchaToken);
         // Do not auto-login: account must be verified first.
         setSuccess(data.message);
-        setIsLogin(true);
+        setRegistrationSuccess(true);
       }
     } catch (error) {
       setError(getAuthErrorMessage(error, isLogin));
@@ -270,12 +272,21 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
   if (!isOpen) return null;
 
-  const title = isForgotPassword ? 'Reset Password' : isLogin ? 'Log in' : 'Create Account';
-  const subtitle = isForgotPassword
-    ? 'Receive a reset link by email'
-    : isLogin
-      ? 'Access your migration assistant'
-      : 'Join us to get started';
+  const showRegistrationSuccess = Boolean(success && registrationSuccess);
+  const title = showRegistrationSuccess
+    ? 'Registration successful'
+    : isForgotPassword
+      ? 'Reset Password'
+      : isLogin
+        ? 'Log in'
+        : 'Create Account';
+  const subtitle = showRegistrationSuccess
+    ? 'A verification link has been sent to your email.'
+    : isForgotPassword
+      ? 'Receive a reset link by email'
+      : isLogin
+        ? 'Access your migration assistant'
+        : 'Join us to get started';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -297,7 +308,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
           <p className="text-sm text-slate-500 mt-2">{subtitle}</p>
         </div>
 
-        {!isForgotPassword && (
+        {!showRegistrationSuccess && !isForgotPassword && (
           <div className="mb-6">
             <GoogleSignInButton
               width={352}
@@ -319,11 +330,23 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
               <p className="text-emerald-600 text-sm font-bold text-center">{success}</p>
               <p className="text-sm text-slate-400 mt-2">Redirecting in {countdown}s...</p>
             </div>
-          ) : success ? (
+          ) : showRegistrationSuccess ? (
             <div className="flex flex-col items-center gap-4 p-4">
               <CheckCircle2 size={48} className="text-emerald-600" />
               <p className="text-emerald-600 text-sm font-bold text-center">{success}</p>
               <p className="text-sm text-slate-400 mt-2 text-center">Please check your email and click the verification link to activate your account.</p>
+              <div className="w-full mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetFeedback();
+                    setIsLogin(true);
+                  }}
+                  className="w-full py-3 bg-[var(--spectrum-blue)] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 hover:scale-[1.02] active:scale-95 transition-all"
+                >
+                  Back to login
+                </button>
+              </div>
             </div>
           ) : (
             <>
@@ -437,44 +460,46 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
           )}
         </form>
 
-        <div className="mt-6 text-center">
-          {isLogin && !isForgotPassword && (
-            <button
-              onClick={() => {
-                setIsForgotPassword(true);
-                resetFeedback();
-              }}
-              type="button"
-              className="mb-3 text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
-            >
-              Forgot password?
-            </button>
-          )}
-
-          {isForgotPassword ? (
-            <button
-              onClick={() => {
-                setIsForgotPassword(false);
-                resetFeedback();
-              }}
-              type="button"
-              className="text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
-            >
-              Back to login
-            </button>
-          ) : (
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              {isLogin ? "Don't have an account?" : 'Already have an account?'}
+        {!showRegistrationSuccess && (
+          <div className="mt-6 text-center">
+            {isLogin && !isForgotPassword && (
               <button
-                onClick={toggleMode}
+                onClick={() => {
+                  setIsForgotPassword(true);
+                  resetFeedback();
+                }}
                 type="button"
-                className="ml-1.5 font-bold text-[var(--spectrum-blue)] hover:underline"
+                className="mb-3 text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
               >
-                {isLogin ? 'Create account' : 'Sign in'}
+                Forgot password?
               </button>
-            </p>
-          )}
-        </div>
+            )}
+
+            {isForgotPassword ? (
+              <button
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  resetFeedback();
+                }}
+                type="button"
+                className="text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
+              >
+                Back to login
+              </button>
+            ) : (
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {isLogin ? "Don't have an account?" : 'Already have an account?'}
+                <button
+                  onClick={toggleMode}
+                  type="button"
+                  className="ml-1.5 font-bold text-[var(--spectrum-blue)] hover:underline"
+                >
+                  {isLogin ? 'Create account' : 'Sign in'}
+                </button>
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

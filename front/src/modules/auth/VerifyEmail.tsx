@@ -39,10 +39,10 @@ const VerifyEmail = ({ isModal = false, onClose }: VerifyEmailProps) => {
         const data = await authService.verifyEmail(email, token);
         setSuccess(data.message);
         setError('');
-        // Auto-redirect to login after 2 seconds
+        // Auto-redirect to the login modal after 5 seconds
         setTimeout(() => {
-          navigate('/login');
-        }, 2000);
+          navigate('/?auth=login');
+        }, 5000);
       } catch (error) {
         setError(getVerifyErrorMessage(error));
         setSuccess('');
@@ -74,10 +74,10 @@ const VerifyEmail = ({ isModal = false, onClose }: VerifyEmailProps) => {
       const data = await authService.verifyEmail(email.trim(), token);
       setSuccess(data.message);
       setEmail('');
-      // Auto-redirect to login after 2 seconds
+      // Auto-redirect to the login modal after 5 seconds
       setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+        navigate('/?auth=login');
+      }, 5000);
     } catch (error) {
       setError(getVerifyErrorMessage(error));
     } finally {
@@ -90,7 +90,8 @@ const VerifyEmail = ({ isModal = false, onClose }: VerifyEmailProps) => {
       onClose();
       return;
     }
-    navigate('/login');
+    // Open login modal on home page
+    navigate('/?auth=login');
   };
 
   const wrapperClass = isModal
