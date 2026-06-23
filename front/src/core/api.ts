@@ -2,8 +2,10 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
 
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || `${window.location.protocol}//${window.location.host}/api`;
+
 export const api = axios.create({
-  baseURL: 'http://docker.itspectrum.fr:88/api',
+  baseURL: apiBaseUrl,
 });
 
 // Intercepteur de REQUÊTE : Ajoute le token
