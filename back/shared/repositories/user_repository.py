@@ -19,6 +19,7 @@ class UserRepository:
             partialFilterExpression={"username": {"$type": "string"}},
         )
         self.collection.create_index("reset_password_token_hash", sparse=True)
+        self.collection.create_index("email_verification_token_hash", sparse=True)
 
     def create_user(
         self,
@@ -26,6 +27,7 @@ class UserRepository:
         username: str,
         password_hash: str,
         role: str = "user",
+        email_verified: bool = False,
     ) -> dict:
         """Insert a new user document."""
         user = {
@@ -33,6 +35,7 @@ class UserRepository:
             "username": username,
             "password_hash": password_hash,
             "role": role,
+            "email_verified": email_verified,
             "created_at": datetime.utcnow().isoformat(),
         }
         self.collection.insert_one(user)
@@ -52,6 +55,7 @@ class UserRepository:
             "email": email,
             "password_hash": None,
             "role": role,
+            "email_verified": True,  # OAuth providers have already verified the email
             "auth_provider": provider,
             "providers": {
                 provider: provider_user_id,
@@ -163,6 +167,53 @@ class UserRepository:
                 "$unset": {
                     "reset_password_token_hash": "",
                     "reset_password_expires_at": "",
+                },
+            },
+        )
+
+    def save_email_verification_token(
+        self,
+        email: str,
+        token_hash: str,
+        expires_at: datetime,
+    ) -> None:
+        """Store an email verification token hash for a user."""
+        self.collection.update_one(
+            {"email": email},
+            {
+                "$set": {
+                    "email_verification_token_hash": token_hash,
+                    "email_verification_expires_at": expires_at,
+                    "updated_at": datetime.utcnow().isoformat(),
+                }
+            },
+        )
+
+    def get_user_by_email_verification_token(
+        self,
+        email: str,
+        token_hash: str,
+    ) -> Optional[dict]:
+        """Retrieve a user by email and email verification token hash."""
+        return self.collection.find_one(
+            {
+                "email": email,
+                "email_verification_token_hash": token_hash,
+            }
+        )
+
+    def set_email_verified(self, email: str) -> None:
+        """Mark a user's email as verified and clear verification token fields."""
+        self.collection.update_one(
+            {"email": email},
+            {
+                "$set": {
+                    "email_verified": True,
+                    "updated_at": datetime.utcnow().isoformat(),
+                },
+                "$unset": {
+                    "email_verification_token_hash": "",
+                    "email_verification_expires_at": "",
                 },
             },
         )

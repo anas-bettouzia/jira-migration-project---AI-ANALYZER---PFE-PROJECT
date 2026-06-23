@@ -20,7 +20,7 @@ const Login = () => {
   const navigate = useNavigate();
   const setToken = useAuthStore((state) => state.setToken);
 
-  // Gestion du thème
+  // Theme toggle
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -40,7 +40,7 @@ const Login = () => {
       setToken(data.token);
       navigate('/analysis'); 
     } catch {
-      setError('Identifiants invalides ou serveur injoignable.');
+      setError('Invalid credentials or unable to reach the server.');
     } finally {
       setIsLoading(false);
     }
@@ -61,7 +61,7 @@ const Login = () => {
       setSuccess(data.message);
     } catch (error) {
       const response = (error as { response?: { data?: { error?: string } } }).response;
-      setError(response?.data?.error || "Impossible d'envoyer le lien de reinitialisation.");
+      setError(response?.data?.error || 'Unable to send the password reset link.');
     } finally {
       setIsResetLoading(false);
     }
@@ -82,7 +82,7 @@ const Login = () => {
   return (
     <div className="min-h-screen flex transition-colors duration-300 bg-slate-50 dark:bg-[#0f172a] font-sans">
       
-      {/* Bouton Toggle Thème */}
+      {/* Theme toggle button */}
       <button 
         onClick={() => setDarkMode(!darkMode)}
         className="fixed top-6 right-6 p-3 rounded-full bg-white dark:bg-slate-800 shadow-lg text-slate-600 dark:text-yellow-400 hover:scale-110 transition-transform"
@@ -104,11 +104,11 @@ const Login = () => {
               Migration Assistant
             </h1>
             <p className="mt-3 text-slate-500 dark:text-slate-400">
-              Expertise en gestion de l'information Jira
+              Jira information management expertise
             </p>
           </div>
 
-          {/* Carte de Login */}
+          {/* Login card */}
           <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-slate-100 dark:border-slate-700">
             <div className="mb-6">
               <GoogleSignInButton
@@ -120,7 +120,7 @@ const Login = () => {
               <div className="mt-6 flex items-center gap-3">
                 <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
                 <span className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                  ou
+                  or
                 </span>
                 <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
               </div>
@@ -129,10 +129,10 @@ const Login = () => {
             <form className="space-y-6" onSubmit={handleSubmit}>
               
               <div className="space-y-5">
-                {/* Champ Email */}
+                {/* Email field */}
                 <div>
                   <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-2">
-                    E-mail professionnel
+                    Work email
                   </label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
@@ -142,7 +142,7 @@ const Login = () => {
                       type="email"
                       required
                       className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#f39200] outline-none transition-all"
-                      placeholder="nom@spectrumgroupe.fr"
+                      placeholder="name@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                     />
@@ -152,7 +152,7 @@ const Login = () => {
                 {/* Champ Password */}
                 <div>
                   <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-2">
-                    Mot de passe
+                    Password
                   </label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
@@ -189,7 +189,7 @@ const Login = () => {
               >
                 {isLoading ? (
                   <Loader2 className="animate-spin mr-2" size={20} />
-                ) : 'Se connecter'}
+                ) : 'Sign in'}
               </button>
             </form>
 
@@ -200,7 +200,7 @@ const Login = () => {
                 disabled={isResetLoading}
                 className="text-sm font-bold text-[var(--spectrum-blue)] hover:underline disabled:opacity-60"
               >
-                {isResetLoading ? 'Envoi du lien...' : 'Mot de passe oublie ?'}
+                {isResetLoading ? 'Sending link...' : 'Forgot password?'}
               </button>
             </div>
           </div>

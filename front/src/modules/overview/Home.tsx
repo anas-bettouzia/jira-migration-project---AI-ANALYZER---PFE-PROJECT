@@ -280,13 +280,6 @@ const Home = () => {
                 <p className="mt-3 max-w-2xl text-sm leading-7 text-[#64708d] dark:text-white/58">
                   Export findings as structured reports that can be reviewed by administrators, project owners, and cloud migration stakeholders.
                 </p>
-                <button
-                  onClick={handleMainAction}
-                  className="mt-6 inline-flex items-center justify-center gap-3 rounded-xl bg-[#2f80ed] px-6 py-4 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#256fdb]"
-                >
-                  Open analysis
-                  <ArrowRight size={18} />
-                </button>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">

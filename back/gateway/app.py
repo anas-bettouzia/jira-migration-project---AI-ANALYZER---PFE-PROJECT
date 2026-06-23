@@ -57,7 +57,7 @@ REQUEST_TIMEOUT = 180
 RECAPTCHA_SECRET = os.getenv("RECAPTCHA_SECRET_KEY", "")
 RECAPTCHA_MIN_SCORE = float(os.getenv("RECAPTCHA_MIN_SCORE", "0.5"))
 
-EMAIL_REGEX = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.(com|fr)$"
+EMAIL_REGEX = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.(com|fr|tn)$"
 PASSWORD_REGEX = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\w\W]{8,}$"
 PASSWORD_RESET_TOKEN_MINUTES = int(os.getenv("PASSWORD_RESET_TOKEN_MINUTES", "30"))
 
@@ -92,16 +92,15 @@ def _password_reset_link(email: str, token: str) -> str:
 def _password_reset_message(reset_link: str) -> str:
     """Return the password reset email body (plain text)."""
     return (
-        "Bonjour,\n\n"
-        "Vous avez demandé la réinitialisation de votre mot de passe pour votre compte "
-        "Jira Migration.\n\n"
-        "Pour définir un nouveau mot de passe, visitez le lien suivant :\n"
+        "Hello,\n\n"
+        "You have requested a password reset for your Jira Migration account.\n\n"
+        "To set a new password, visit the following link:\n"
         f"{reset_link}\n\n"
-        f"Ce lien de réinitialisation expirera dans {PASSWORD_RESET_TOKEN_MINUTES} minutes.\n\n"
-        "Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email. "
-        "Votre mot de passe restera inchangé.\n\n"
-        "Cordialement,\n"
-        "L'équipe Jira Migration"
+        f"This reset link will expire in {PASSWORD_RESET_TOKEN_MINUTES} minutes.\n\n"
+        "If you did not request this, you can safely ignore this email. "
+        "Your password will remain unchanged.\n\n"
+        "Best regards,\n"
+        "The Jira Migration Team"
     )
 
 
@@ -166,45 +165,44 @@ def _password_reset_message_html(reset_link: str) -> str:
 <body>
     <div class="container">
         <div class="header">
-            <h2>Réinitialisation de votre mot de passe</h2>
+            <h2>Password Reset</h2>
         </div>
 
         <div class="content">
-            <p>Bonjour,</p>
+            <p>Hello,</p>
 
-            <p>Vous avez demandé la réinitialisation de votre mot de passe pour votre compte
-            <strong>Jira Migration</strong>.</p>
+            <p>You have requested a password reset for your
+            <strong>Jira Migration</strong> account.</p>
 
-            <p>Pour définir un nouveau mot de passe, cliquez sur le bouton ci-dessous :</p>
+            <p>To set a new password, click the button below:</p>
 
             <a
                 href="{reset_link}"
                 class="button"
                 style="display:inline-block;background-color:#0052cc;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:5px;font-weight:700;"
-            >Réinitialiser mon mot de passe</a>
+            >Reset my password</a>
 
-            <p><em>Ou copiez ce lien dans votre navigateur :</em></p>
+            <p><em>Or copy this link in your browser:</em></p>
             <p style="word-break: break-all; background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
                 {reset_link}
             </p>
 
             <div class="warning">
-                <strong>⏱️ Important :</strong> Ce lien de réinitialisation expirera dans
+                <strong>⏱️ Important:</strong> This reset link will expire in
                 <strong>{PASSWORD_RESET_TOKEN_MINUTES} minutes</strong>.
             </div>
 
-            <p><strong>Vous n'avez pas demandé cette réinitialisation ?</strong></p>
+            <p><strong>Did not request this reset?</strong></p>
             <p>
-                Si vous n'êtes pas à l'origine de cette demande, vous pouvez
-                ignorer cet email sans inquiétude. Votre mot de passe restera
-                inchangé.
+                If you did not request this password reset, you can ignore this email.
+                Your password will remain unchanged.
             </p>
         </div>
 
         <div class="footer">
-            <p>Cordialement,<br>
-            <strong>L'équipe Jira Migration</strong></p>
-            <p>Cet email a été envoyé à votre adresse associée à votre compte.</p>
+            <p>Best regards,<br>
+            <strong>The Jira Migration Team</strong></p>
+            <p>This email was sent to the address associated with your account.</p>
         </div>
     </div>
 </body>
@@ -223,7 +221,7 @@ def _send_password_reset_email_sendgrid(email: str, reset_link: str) -> None:
     payload = {
         "personalizations": [{"to": [{"email": email}]}],
         "from": {"email": sender},
-        "subject": "Réinitialisation de votre mot de passe",
+        "subject": "Password Reset",
         "content": [
             {"type": "text/plain", "value": _password_reset_message(reset_link)},
             {"type": "text/html", "value": _password_reset_message_html(reset_link)},
@@ -269,7 +267,7 @@ def _send_password_reset_email_smtp(email: str, reset_link: str) -> None:
     smtp_use_ssl = os.getenv("SMTP_USE_SSL", "false").lower() in {"1", "true", "yes"}
 
     message = EmailMessage()
-    message["Subject"] = "Réinitialisation de votre mot de passe"
+    message["Subject"] = "Password Reset"
     message["From"] = smtp_from
     message["To"] = email
     message.set_content(_password_reset_message(reset_link))
@@ -324,6 +322,258 @@ def _send_password_reset_email(email: str, reset_link: str) -> None:
         "Unsupported EMAIL_PROVIDER=%s. Defaulting to SendGrid.",
         provider,
     )
+
+
+def _email_verification_link(email: str, token: str) -> str:
+    """Build a frontend email verification URL."""
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+    query = urlencode({"email": email, "token": token})
+    return f"{frontend_url}/verify-email?{query}"
+
+
+def _email_verification_message(verification_link: str) -> str:
+    """Return the email verification email body (plain text)."""
+    return (
+        "Hello,\n\n"
+        "Thank you for creating a Jira Migration account.\n\n"
+        "To verify your email address and activate your account, visit the following link:\n"
+        f"{verification_link}\n\n"
+        f"This verification link will expire in {PASSWORD_RESET_TOKEN_MINUTES} minutes.\n\n"
+        "If you did not create this account, you can safely ignore this email.\n\n"
+        "Best regards,\n"
+        "The Jira Migration Team"
+    )
+
+
+def _email_verification_message_html(verification_link: str) -> str:
+    """Return the email verification email body (HTML)."""
+    return f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }}
+        .header {{
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }}
+        .header h2 {{
+            color: #0052cc;
+            margin: 0;
+        }}
+        .content {{
+            margin: 20px 0;
+        }}
+        .button {{
+            display: inline-block;
+            background-color: #0052cc;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }}
+        .button:hover {{
+            background-color: #003d99;
+        }}
+        .footer {{
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+            margin-top: 30px;
+            color: #666;
+            font-size: 12px;
+        }}
+        .warning {{
+            background-color: #fff3cd;
+            padding: 12px;
+            border-left: 4px solid #ffc107;
+            margin: 20px 0;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Verify Your Email Address</h2>
+        </div>
+
+        <div class="content">
+            <p>Hello,</p>
+
+            <p>Thank you for creating a <strong>Jira Migration</strong> account.</p>
+
+            <p>To verify your email address and activate your account, click the button below:</p>
+
+            <a
+                href="{verification_link}"
+                class="button"
+                style="display:inline-block;background-color:#0052cc;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:5px;font-weight:700;"
+            >Verify my email</a>
+
+            <p><em>Or copy this link in your browser:</em></p>
+            <p style="word-break: break-all; background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+                {verification_link}
+            </p>
+
+            <div class="warning">
+                <strong>⏱️ Important:</strong> This verification link will expire in
+                <strong>{PASSWORD_RESET_TOKEN_MINUTES} minutes</strong>.
+            </div>
+
+            <p><strong>Did not create this account?</strong></p>
+            <p>
+                If you did not create this account, you can safely ignore this email.
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>Best regards,<br>
+            <strong>The Jira Migration Team</strong></p>
+            <p>This email was sent to the address associated with your account registration.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+
+def _send_email_verification_email(email: str, verification_link: str) -> None:
+    """Send an email verification message using the selected delivery provider."""
+    # Implement symmetric provider preference similar to password reset:
+    # - If EMAIL_PROVIDER=="smtp": try SMTP first, fallback to SendGrid
+    # - If EMAIL_PROVIDER=="sendgrid": try SendGrid first, fallback to SMTP
+    # - Otherwise prefer SMTP first per project preference
+
+    def _send_via_sendgrid(email: str, link: str) -> None:
+        api_key = os.getenv("SENDGRID_API_KEY")
+        sender = os.getenv("SMTP_FROM", os.getenv("SENDGRID_FROM", "no-reply@jira-migration.local"))
+        if not api_key:
+            logger.warning("SENDGRID_API_KEY is not configured. Cannot send via SendGrid.")
+            raise RuntimeError("SendGrid API key missing")
+
+        payload = {
+            "personalizations": [{"to": [{"email": email}]}],
+            "from": {"email": sender},
+            "subject": "Verify Your Email Address",
+            "content": [
+                {"type": "text/plain", "value": _email_verification_message(link)},
+                {"type": "text/html", "value": _email_verification_message_html(link)},
+            ],
+        }
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        response = requests.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            json=payload,
+            headers=headers,
+            timeout=REQUEST_TIMEOUT,
+        )
+        response.raise_for_status()
+        logger.info("Email verification sent via SendGrid to %s", email)
+
+    def _send_via_smtp(email: str, link: str) -> None:
+        smtp_host = os.getenv("SMTP_HOST")
+        if not smtp_host:
+            smtp_keys = [k for k in sorted(os.environ) if k.startswith("SMTP_")]
+            raise RuntimeError(
+                f"SMTP_HOST is not configured. Present SMTP keys: {smtp_keys}."
+            )
+
+        smtp_port = int(os.getenv("SMTP_PORT", "587"))
+        smtp_username = os.getenv("SMTP_USERNAME", "")
+        smtp_password = os.getenv("SMTP_PASSWORD", "")
+        smtp_from = os.getenv("SMTP_FROM", smtp_username or "no-reply@jira-migration.local")
+        smtp_use_tls = os.getenv("SMTP_USE_TLS", "true").lower() in {"1", "true", "yes"}
+        smtp_use_ssl = os.getenv("SMTP_USE_SSL", "false").lower() in {"1", "true", "yes"}
+
+        message = EmailMessage()
+        message["Subject"] = "Verify Your Email Address"
+        message["From"] = smtp_from
+        message["To"] = email
+        message.set_content(_email_verification_message(link))
+        message.add_alternative(_email_verification_message_html(link), subtype="html")
+
+        if smtp_use_ssl or smtp_port == 465:
+            smtp_connection = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10)
+        else:
+            smtp_connection = smtplib.SMTP(smtp_host, smtp_port, timeout=5)
+
+        with smtp_connection as smtp:
+            if not smtp_use_ssl and smtp_use_tls:
+                smtp.starttls()
+            if smtp_username and smtp_password:
+                smtp.login(smtp_username, smtp_password)
+            smtp.send_message(message)
+            logger.info("Email verification sent to %s via SMTP host %s", email, smtp_host)
+
+    provider = os.getenv("EMAIL_PROVIDER", "smtp").strip().lower()
+
+    if provider == "smtp":
+        try:
+            _send_via_smtp(email, verification_link)
+            return
+        except (
+            OSError,
+            smtplib.SMTPException,
+            RuntimeError,
+            requests.RequestException,
+        ) as err:
+            logger.warning("SMTP primary failed; falling back to SendGrid: %s", err)
+            try:
+                _send_via_sendgrid(email, verification_link)
+                return
+            except (
+                OSError,
+                smtplib.SMTPException,
+                RuntimeError,
+                requests.RequestException,
+            ) as err2:
+                logger.exception(
+                    "SMTP+SendGrid failed for verification email to %s: %s",
+                    email,
+                    err2,
+                )
+                raise
+
+    if provider == "sendgrid":
+        try:
+            _send_via_sendgrid(email, verification_link)
+            return
+        except (requests.RequestException, RuntimeError) as err:
+            logger.warning("SendGrid primary failed; falling back to SMTP: %s", err)
+            try:
+                _send_via_smtp(email, verification_link)
+                return
+            except (OSError, smtplib.SMTPException, RuntimeError) as err2:
+                logger.exception(
+                    "SendGrid+SMTP failed for verification email to %s: %s",
+                    email,
+                    err2,
+                )
+                raise
+
+    # Default: prefer SMTP first
+    try:
+        _send_via_smtp(email, verification_link)
+    except (
+        OSError,
+        smtplib.SMTPException,
+        RuntimeError,
+        requests.RequestException,
+    ) as err:
+        logger.warning("Default SMTP send failed; falling back to SendGrid: %s", err)
+        _send_via_sendgrid(email, verification_link)
 
 
 def _verify_recaptcha(token: str, remote_ip: str | None = None) -> dict:
@@ -528,6 +778,12 @@ def create_app():
         user = user_repo.get_user_by_email(_normalize_email(data.get("email", "")))
         password_hash = user.get("password_hash") if user else None
         if password_hash and check_password_hash(password_hash, data.get("password", "")):
+            # Check if email is verified
+            if not user.get("email_verified", False):
+                return jsonify({
+                    "error": "Email not verified. Check your inbox for a verification link."
+                }), 403
+
             token = create_access_token(identity=user["email"])
             return jsonify({"token": token}), 200
 
@@ -564,7 +820,9 @@ def create_app():
             return jsonify({"error": "Google credential is missing required profile data"}), 401
 
         if not _is_valid_email(email):
-            return jsonify({"error": "Only valid .com and .fr email addresses are accepted"}), 400
+            return jsonify({
+                "error": "Only valid .com, .fr, or .tn email addresses are accepted"
+            }), 400
 
         if email_verified is not True:
             return jsonify({"error": "Google account email is not verified"}), 401
@@ -601,7 +859,7 @@ def create_app():
 
     @app.route("/api/register", methods=["POST"])
     def register():
-        """Register a new user account."""
+        """Register a new user account and send verification email."""
         data = request.get_json()
 
         if not data:
@@ -624,14 +882,14 @@ def create_app():
 
         if not _is_valid_email(email):
             return jsonify({
-                "error": "L'adresse email doit etre valide et se terminer par .com ou .fr."
+                "error": "Email must be valid and end with .com, .fr, or .tn."
             }), 400
 
         if not re.match(PASSWORD_REGEX, password):
             return jsonify({
                 "error": (
-                    "Le mot de passe doit contenir au moins 8 caractères, "
-                    "une majuscule, une minuscule et un chiffre."
+                    "Password must contain at least 8 characters, "
+                    "one uppercase letter, one lowercase letter, and one digit."
                 )
             }), 400
 
@@ -641,8 +899,41 @@ def create_app():
         if user_repo.get_user_by_username(username):
             return jsonify({"error": "Username already taken"}), 409
 
-        user_repo.create_user(email, username, generate_password_hash(password), role="user")
-        return jsonify({"message": "User registered successfully"}), 201
+        # Create user with unverified email
+        user_repo.create_user(
+            email, username, generate_password_hash(password), role="user",
+            email_verified=False
+        )
+
+        # Generate and send verification email
+        token = secrets.token_urlsafe(32)
+        expires_at = datetime.utcnow() + timedelta(minutes=PASSWORD_RESET_TOKEN_MINUTES)
+        user_repo.save_email_verification_token(
+            email,
+            _hash_reset_token(token),
+            expires_at,
+        )
+        logger.info(
+            "Email verification token saved for %s. expires_at=%s",
+            email,
+            expires_at.isoformat(),
+        )
+
+        verification_link = _email_verification_link(email, token)
+        try:
+            _send_email_verification_email(email, verification_link)
+            logger.info("Verification email sent to %s", email)
+        except (
+            OSError, smtplib.SMTPException, requests.RequestException, RuntimeError
+        ) as error:
+            logger.error(
+                "Failed to send verification email to %s: %s", email, error
+            )
+            # Don't fail the registration, just log the error
+
+        return jsonify({
+            "message": "Registration successful. Please check your email to verify your account."
+        }), 201
 
     @app.route("/api/password/forgot", methods=["POST"])
     def forgot_password():
@@ -655,13 +946,12 @@ def create_app():
         email = _normalize_email(data.get("email", ""))
         if not _is_valid_email(email):
             return jsonify({
-                "error": "L'adresse email doit etre valide et se terminer par .com ou .fr."
+                "error": "Email must be valid and end with .com, .fr, or .tn."
             }), 400
 
         generic_message = {
             "message": (
-                "Si un compte existe pour cet email, un lien de "
-                "reinitialisation a ete envoye."
+                "A password reset link has been sent. Check your inbox or spam."
             )
         }
 
@@ -697,7 +987,7 @@ def create_app():
                     error,
                 )
                 return jsonify({
-                    "error": "Impossible d'envoyer l'email de reinitialisation."
+                    "error": "Unable to send password reset email."
                 }), 502
 
         return jsonify(generic_message), 200
@@ -719,23 +1009,70 @@ def create_app():
 
         if not _is_valid_email(email):
             return jsonify({
-                "error": "L'adresse email doit etre valide et se terminer par .com ou .fr."
+                "error": "Email must be valid and end with .com, .fr, or .tn."
             }), 400
 
         if not _is_valid_password(password):
             return jsonify({
                 "error": (
-                    "Le mot de passe doit contenir au moins 8 caracteres, "
-                    "une majuscule, une minuscule et un chiffre."
+                    "Password must contain at least 8 characters, "
+                    "one uppercase letter, one lowercase letter, and one digit."
                 )
             }), 400
 
         user = user_repo.get_user_by_password_reset_token(email, _hash_reset_token(token))
         if not user or _reset_token_is_expired(user.get("reset_password_expires_at")):
-            return jsonify({"error": "Le lien de reinitialisation est invalide ou expire."}), 400
+            return jsonify({"error": "The password reset link is invalid or expired."}), 400
 
         user_repo.update_password_and_clear_reset(email, generate_password_hash(password))
-        return jsonify({"message": "Mot de passe mis a jour avec succes."}), 200
+        return jsonify({"message": "Password updated successfully."}), 200
+
+    @app.route("/api/email/verify", methods=["POST"])
+    def verify_email():
+        """Verify a user's email address with a valid verification token."""
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"error": "Request body is required"}), 400
+
+        email = _normalize_email(data.get("email", ""))
+        token = data.get("token", "")
+
+        if not email or not token:
+            return jsonify({"error": "Email and token are required"}), 400
+
+        if not _is_valid_email(email):
+            return jsonify({
+                "error": "Email must be valid and end with .com, .fr, or .tn."
+            }), 400
+
+        # Check if user exists
+        user = user_repo.get_user_by_email(email)
+        if not user:
+            return jsonify({"error": "User not found."}), 404
+
+        # If already verified, return success
+        if user.get("email_verified", False):
+            return jsonify({"message": "Email is already verified."}), 200
+
+        # Get user by verification token
+        user_with_token = user_repo.get_user_by_email_verification_token(
+            email, _hash_reset_token(token)
+        )
+
+        if (
+            not user_with_token
+            or _reset_token_is_expired(
+                user_with_token.get("email_verification_expires_at")
+            )
+        ):
+            return jsonify({"error": "The email verification link is invalid or expired."}), 400
+
+        # Mark email as verified
+        user_repo.set_email_verified(email)
+        logger.info("Email verified for user %s", email)
+
+        return jsonify({"message": "Email verified successfully."}), 200
 
     @app.route("/api/me", methods=["GET"])
     @jwt_required()
@@ -771,7 +1108,7 @@ def create_app():
 
         if not _is_valid_email(new_email):
             return jsonify(
-                {"error": "L adresse email doit etre valide et se terminer par .com ou .fr."}
+                {"error": "Email must be valid and end with .com, .fr, or .tn."}
             ), 400
 
         if new_email != current_email and user_repo.get_user_by_email(new_email):
@@ -782,13 +1119,13 @@ def create_app():
             user = user_repo.get_user_by_email(new_email) or {**user, "email": new_email}
             token = create_access_token(identity=new_email)
             return jsonify({
-                "message": "Profil mis a jour avec succes.",
+                "message": "Profile updated successfully.",
                 "user": _public_user(user),
                 "token": token,
             }), 200
 
         return jsonify({
-            "message": "Profil mis a jour avec succes.",
+            "message": "Profile updated successfully.",
             "user": _public_user(user),
         }), 200
 
@@ -815,25 +1152,24 @@ def create_app():
             return jsonify(
                 {
                     "error": (
-                        "Ce compte utilise Google OAuth. Aucun mot de passe local "
-                        "n est configure."
+                        "This account uses Google OAuth. No local password is configured."
                     )
                 }
             ), 400
 
         if not check_password_hash(password_hash, current_password):
-            return jsonify({"error": "Le mot de passe actuel est incorrect."}), 400
+            return jsonify({"error": "The current password is incorrect."}), 400
 
         if not _is_valid_password(new_password):
             return jsonify({
                 "error": (
-                    "Le nouveau mot de passe doit contenir au moins 8 caracteres, "
-                    "une majuscule, une minuscule et un chiffre."
+                    "The new password must contain at least 8 characters, "
+                    "one uppercase letter, one lowercase letter, and one digit."
                 )
             }), 400
 
         user_repo.update_password(email, generate_password_hash(new_password))
-        return jsonify({"message": "Mot de passe mis a jour avec succes."}), 200
+        return jsonify({"message": "Password updated successfully."}), 200
 
     @app.route("/api/analyze", methods=["POST"])
     @jwt_required()
@@ -953,7 +1289,7 @@ def create_app():
                 try:
                     return jsonify(response.json()), response.status_code
                 except ValueError:
-                    error_message = "Rapport non trouvé ou erreur du service"
+                    error_message = "Report not found or service error"
                     return jsonify({"error": error_message}), response.status_code
 
             return jsonify(response.json()), response.status_code

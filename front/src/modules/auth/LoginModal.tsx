@@ -99,18 +99,18 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
       return;
     }
 
-    try {
+      try {
       if (isLogin) {
         const data = await authService.login(email, password, recaptchaToken);
         setToken(data.token);
+        onClose();
+        navigate('/analysis');
       } else {
-        await authService.register(email, username, password, recaptchaToken);
-        const data = await authService.login(email, password, recaptchaToken);
-        setToken(data.token);
+        const data = await authService.register(email, username, password, recaptchaToken);
+        // Do not auto-login: account must be verified first.
+        setSuccess(data.message);
+        setIsLogin(true);
       }
-
-      onClose();
-      navigate('/analysis');
     } catch (error) {
       setError(getAuthErrorMessage(error, isLogin));
     } finally {
@@ -318,6 +318,12 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
               <CheckCircle2 size={48} className="text-emerald-600" />
               <p className="text-emerald-600 text-sm font-bold text-center">{success}</p>
               <p className="text-sm text-slate-400 mt-2">Redirecting in {countdown}s...</p>
+            </div>
+          ) : success ? (
+            <div className="flex flex-col items-center gap-4 p-4">
+              <CheckCircle2 size={48} className="text-emerald-600" />
+              <p className="text-emerald-600 text-sm font-bold text-center">{success}</p>
+              <p className="text-sm text-slate-400 mt-2 text-center">Please check your email and click the verification link to activate your account.</p>
             </div>
           ) : (
             <>

@@ -10,7 +10,7 @@ export const authService = {
       const response = await api.post<AuthResponse>('/login', payload);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la connexion :', error);
+      console.error('Error during login:', error);
       throw error;
     }
   },
@@ -22,7 +22,7 @@ export const authService = {
       });
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la connexion Google :', error);
+      console.error('Error during Google login:', error);
       throw error;
     }
   },
@@ -34,7 +34,7 @@ export const authService = {
       const response = await api.post<{ message: string }>('/register', payload);
       return response.data;
     } catch (error) {
-      console.error("Erreur lors de l'inscription :", error);
+      console.error('Error during registration:', error);
       throw error;
     }
   },
@@ -44,7 +44,7 @@ export const authService = {
       const response = await api.get<AuthUser>('/me/profile');
       return response.data;
     } catch (error) {
-      console.error('Erreur lors du chargement du profil :', error);
+      console.error('Error loading profile:', error);
       throw error;
     }
   },
@@ -54,7 +54,7 @@ export const authService = {
       const response = await api.put<ProfileUpdateResponse>('/me/profile', { email });
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la mise a jour du profil :', error);
+      console.error('Error updating profile:', error);
       throw error;
     }
   },
@@ -70,7 +70,7 @@ export const authService = {
       });
       return response.data;
     } catch (error) {
-      console.error('Erreur lors du changement de mot de passe :', error);
+      console.error('Error changing password:', error);
       throw error;
     }
   },
@@ -82,7 +82,7 @@ export const authService = {
       });
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la demande de reinitialisation :', error);
+      console.error('Error requesting password reset:', error);
       throw error;
     }
   },
@@ -100,7 +100,23 @@ export const authService = {
       });
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la reinitialisation du mot de passe :', error);
+      console.error('Error resetting password:', error);
+      throw error;
+    }
+  },
+
+  verifyEmail: async (
+    email: string,
+    token: string
+  ): Promise<{ message: string }> => {
+    try {
+      const response = await api.post<{ message: string }>('/email/verify', {
+        email,
+        token,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error verifying email:', error);
       throw error;
     }
   },

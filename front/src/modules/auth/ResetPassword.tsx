@@ -11,7 +11,7 @@ interface ResetPasswordProps {
 
 const getResetErrorMessage = (error: unknown) => {
   const response = (error as { response?: { data?: { error?: string } } }).response;
-  return response?.data?.error || 'Impossible de réinitialiser le mot de passe.';
+  return response?.data?.error || 'Unable to reset the password.';
 };
 
 const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
@@ -33,8 +33,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
     setSuccess('');
 
     if (!token) {
-      setError('Le lien de réinitialisation est invalide.');
-      return;
+      setError('The reset link is invalid.');
     }
 
     if (!EMAIL_REGEX.test(email.trim())) {
@@ -48,7 +47,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
     }
 
     if (password !== confirmPassword) {
-      setError('Les deux mots de passe ne correspondent pas.');
+      setError('Passwords do not match.');
       return;
     }
 
@@ -91,7 +90,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
       )}
 
       <div className={cardClass}>
-        {/* Bouton de fermeture identique au LoginModal placé à l'intérieur de la Card */}
+        {/* Close button inside the card, matching LoginModal */}
         {isModal && (
           <button
             onClick={handleClose}
@@ -104,10 +103,10 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
 
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Nouveau mot de passe
+            New password
           </h2>
           <p className="text-sm text-slate-500 mt-2">
-            Choisissez un mot de passe robuste pour récupérer votre compte.
+            Choose a strong password to recover your account.
           </p>
         </div>
 
@@ -131,7 +130,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
 
           <div>
             <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">
-              Nouveau mot de passe
+              New password
             </label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -148,7 +147,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
 
           <div>
             <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">
-              Confirmer le mot de passe
+              Confirm password
             </label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -171,7 +170,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
             disabled={isLoading}
             className="w-full py-4 bg-[var(--spectrum-blue)] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 flex justify-center items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-70 disabled:hover:scale-100"
           >
-            {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Mettre à jour'}
+            {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Update password'}
           </button>
         </form>
 
@@ -181,7 +180,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
             onClick={() => navigate('/?auth=login')}
             className="text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
           >
-            Retour à la connexion
+            Back to login
           </button>
         </div>
       </div>
