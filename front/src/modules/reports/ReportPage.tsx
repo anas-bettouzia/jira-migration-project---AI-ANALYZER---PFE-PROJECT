@@ -120,7 +120,6 @@ export const ReportPage: React.FC = () => {
     [report?.sections?.recommendations],
   );
   const sanitizedAiSummary = useMemo(() => sanitizeReportText(report?.ai_summary ?? '', report), [report]);
-  const hasSummary = Boolean(report?.summary && typeof report.summary === 'string' && report.summary.length > 0);
 
   const handleDownload = async (type: 'pdf' | 'json') => {
     if (!reportId) return;
@@ -302,16 +301,13 @@ export const ReportPage: React.FC = () => {
               </section>
 
               <aside className="space-y-6">
-                <ContentPanel title="Report metadata" icon={<Gauge size={18} />}>
+                <ContentPanel title="Report details" icon={<Gauge size={18} />}>
                   <div className="space-y-3">
-                    <InfoLine label="Report ID" value={report.report_id} />
-                    <InfoLine label="Analysis ID" value={report.analysis_id} />
-                    <InfoLine label="Matrix ID" value={report.matrix_id} />
-                    <InfoLine label="AI model" value={report.ai_model || 'Not provided'} />
-                    <InfoLine label="AI used" value={report.ai_used ? 'Yes' : 'No'} />
-                    <InfoLine label="Summary available" value={hasSummary ? 'Yes' : 'No'} />
-                    <InfoLine label="Updated at" value={formatValue(report.updated_at ?? report.created_at)} />
-                    <InfoLine label="Source" value={report.report_source || 'Backend'} />
+                    {report.ai_model && <InfoLine label="Analysis engine" value={report.ai_model} />}
+                    {typeof report.ai_used === 'boolean' && (
+                      <InfoLine label="AI generated" value={report.ai_used ? 'Yes' : 'No'} />
+                    )}
+                    <InfoLine label="Generated on" value={formatValue(report.updated_at ?? report.created_at)} />
                   </div>
                 </ContentPanel>
 
