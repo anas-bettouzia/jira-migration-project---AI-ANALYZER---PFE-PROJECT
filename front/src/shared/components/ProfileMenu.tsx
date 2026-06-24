@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { LogOut, Settings, UserRound } from 'lucide-react';
+import { LogOut, Settings, User, UserRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { authService } from '../../services/authService';
@@ -43,6 +43,11 @@ export const ProfileMenu = ({ variant = 'navbar' }: ProfileMenuProps) => {
   }, []);
 
   const initials = useMemo(() => getInitials(user?.name || user?.email), [user?.email, user?.name]);
+  const profileIcon = (
+    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#eaf3ff] text-[#2f80ed] dark:bg-[#2f80ed]/10 dark:text-[#8bbdff]">
+      <User size={16} />
+    </span>
+  );
   const dropdownPosition = variant === 'sidebar' ? 'bottom-0 left-12' : 'right-0 top-12';
   const buttonClasses = variant === 'sidebar'
     ? 'flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-xs font-black text-white ring-1 ring-white/12 transition hover:bg-white/16'
@@ -65,7 +70,7 @@ export const ProfileMenu = ({ variant = 'navbar' }: ProfileMenuProps) => {
         {user?.picture ? (
           <img src={user.picture} alt="Profile" className="h-full w-full rounded-full object-cover" />
         ) : (
-          initials
+          profileIcon
         )}
       </button>
 
