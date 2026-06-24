@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { LOCALE_LABELS, LOCALE_STORAGE_KEY, LOCALE_NAMES, SUPPORTED_LOCALES, detectBrowserLocale, getSavedLocale, Locale, messages, TranslationKey } from './translations';
+import { LOCALE_LABELS, LOCALE_STORAGE_KEY, LOCALE_NAMES, SUPPORTED_LOCALES, detectBrowserLocale, getSavedLocale, messages } from './translations';
+import type { Locale, TranslationKey } from './translations';
 
 interface TranslationContextValue {
   locale: Locale;
