@@ -655,12 +655,6 @@ const ReportDetailRow = ({ detail, report }: { detail: DetailEntry; report: Repo
   );
 };
 
-const EmptyState = ({ text }: { text: string }) => (
-  <div className="rounded-2xl border border-dashed border-[#cbd8ea] bg-[#f8faff] p-6 text-center text-sm text-[#64708d] dark:border-white/14 dark:bg-white/5 dark:text-white/52">
-    {text}
-  </div>
-);
-
 const AISummaryRenderer = ({ content }: { content: string }) => {
   const lines = content.split('\n');
   const elements: React.ReactNode[] = [];
