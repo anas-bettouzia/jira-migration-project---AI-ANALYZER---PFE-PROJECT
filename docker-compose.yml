@@ -158,13 +158,13 @@ services:
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
         VITE_RECAPTCHA_SITE_KEY: ${VITE_RECAPTCHA_SITE_KEY}
     container_name: frontend
+    ports:
+      - "83:80"
+      - "8443:443"
     environment:
       - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
       - VITE_RECAPTCHA_SITE_KEY=${VITE_RECAPTCHA_SITE_KEY}
-    depends_on:
-      - gateway
     restart: unless-stopped
-
 
   mongodb:
     image: mongo:6
@@ -216,34 +216,6 @@ services:
       - OLLAMA_KEEP_ALIVE=-1 
     restart: unless-stopped
 
-  traefik:
-    image: traefik:latest
-    container_name: traefik
-    command:
-      - --api.insecure=false
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-      - --certificatesresolvers.le.acme.tlschallenge=true
-      - --certificatesresolvers.le.acme.email=${LETSENCRYPT_EMAIL}
-      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
-      - --http.routers.frontend.rule=Host(`docker.itspectrum.fr`)
-      - --http.routers.frontend.entrypoints=websecure
-      - --http.routers.frontend.service=frontend
-      - --http.routers.frontend.tls.certresolver=le
-      - --http.services.frontend.loadbalancer.server.url=http://frontend:80
-      - --http.routers.api.rule=Host(`docker.itspectrum.fr`)&&PathPrefix(`/api`)
-      - --http.routers.api.entrypoints=websecure
-      - --http.routers.api.service=gateway
-      - --http.routers.api.tls.certresolver=le
-      - --http.services.gateway.loadbalancer.server.url=http://gateway:5000
-    ports:
-      - "8443:443"
-    volumes:
-      - traefik_acme:/letsencrypt
-    environment:
-      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
-    restart: unless-stopped
-
 volumes:
   mongo_data:
     external: false
@@ -260,6 +232,3 @@ volumes:
   report_generated_files:
     external: false
     name: jira_migration_report_generated_files
-  traefik_acme:
-    external: false
-    name: jira_migration_traefik_acme
