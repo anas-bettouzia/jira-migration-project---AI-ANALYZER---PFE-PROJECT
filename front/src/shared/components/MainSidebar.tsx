@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart3, Boxes, Gauge } from 'lucide-react';
 
 import { ProfileMenu } from './ProfileMenu';
+import { useTranslation } from '../../i18n/TranslationProvider';
 import spectrumMark from '../../assets/img/cropped-favicon-spectrumgroupe.png';
 
 type MainSidebarPage = 'overview' | 'analysis' | 'reports';
@@ -12,6 +13,7 @@ interface MainSidebarProps {
 }
 
 export const MainSidebar: React.FC<MainSidebarProps> = ({ activePage }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-[72px] flex-col items-center border-r border-white/10 bg-[#101b49] py-4 text-white shadow-2xl shadow-[#101b49]/25 md:flex">
@@ -25,9 +27,9 @@ export const MainSidebar: React.FC<MainSidebarProps> = ({ activePage }) => {
       </button>
 
       <nav className="flex flex-1 flex-col items-center gap-3 text-[9px] font-semibold text-white/48">
-        <MainSidebarItem icon={<Boxes size={17} />} label="Overview" active={activePage === 'overview'} onClick={() => navigate('/')} />
-        <MainSidebarItem icon={<Gauge size={17} />} label="AI Analysis" active={activePage === 'analysis'} onClick={() => navigate('/analysis')} />
-        <MainSidebarItem icon={<BarChart3 size={17} />} label="Reports" active={activePage === 'reports'} />
+        <MainSidebarItem icon={<Boxes size={17} />} label={t('overview')} active={activePage === 'overview'} onClick={() => navigate('/')} />
+        <MainSidebarItem icon={<Gauge size={17} />} label={t('aiAnalysis')} active={activePage === 'analysis'} onClick={() => navigate('/analysis')} />
+        <MainSidebarItem icon={<BarChart3 size={17} />} label={t('reports')} active={activePage === 'reports'} />
       </nav>
       <div className="mb-4">
         <ProfileMenu variant="sidebar" />

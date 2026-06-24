@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -21,73 +21,11 @@ import LoginModal from '../auth/LoginModal';
 import ResetPassword from '../auth/ResetPassword';
 import VerifyEmail from '../auth/VerifyEmail';
 import { MainSidebar } from '../../shared/components/MainSidebar';
+import { LocaleSwitcher } from '../../shared/components/LocaleSwitcher';
+import { useTranslation } from '../../i18n/TranslationProvider';
 import { useAuthStore } from '../../store/useAuthStore';
 
 const THEME_KEY = 'jira-migration-theme';
-const LOCALE_KEY = 'jira-migration-locale';
-
-const localeStrings = {
-  en: {
-    features: 'Features',
-    pipeline: 'Pipeline',
-    reports: 'Reports',
-    aiMigration: 'AI Migration Solutions',
-    heroTitle: 'Audit your Jira Cloud migration before it becomes risky.',
-    heroDesc:
-      'Upload your Jira Data Center package, detect compatibility blockers, and generate a decision-ready migration report from one controlled pipeline.',
-    startAnalysis: 'Start a new analysis',
-    startAudit: 'Start migration audit',
-    viewPipeline: 'View pipeline',
-    pipelineStages: 'Pipeline stages',
-    reportOutput: 'Report output',
-    fastPreview: 'Fast preview',
-    secureIntake: 'Secure intake',
-    aiAssisted: 'AI assisted',
-    reportReady: 'Report ready',
-    nextStep: 'Next step',
-    readyToAudit: 'Ready to audit your migration package?',
-    signInStart: 'Sign in to start',
-    reportReadyText: 'Export findings as structured reports that can be reviewed by administrators, project owners, and cloud migration stakeholders.',
-    heroBadge: 'AI Migration Solutions',
-    openAnalysis: 'Open analysis',
-    signIn: 'Sign in',
-    featuresSectionTitle: 'A clearer way to prepare Jira Cloud migration.',
-    pipelineSectionDescription: 'The pipeline keeps technical parsing, compatibility checks, and report generation visible from the first upload to the final decision.',
-    reportsSectionHeadline: 'Decision-ready outputs for migration teams.',
-    reportsSectionDescription: 'Export findings as structured reports that can be reviewed by administrators, project owners, and cloud migration stakeholders.',
-    nextStepDescription: 'Start with one export package and turn migration uncertainty into a structured readiness report.',
-  },
-  fr: {
-    features: 'Fonctionnalités',
-    pipeline: 'Pipeline',
-    reports: 'Rapports',
-    aiMigration: 'Solutions d’IA pour la migration',
-    heroTitle: 'Auditez votre migration Jira Cloud avant qu’elle ne devienne risquée.',
-    heroDesc:
-      'Importez votre package Jira Data Center, détectez les bloqueurs de compatibilité et générez un rapport de migration prêt à la décision.',
-    startAnalysis: 'Lancer une nouvelle analyse',
-    startAudit: 'Lancer l’audit de migration',
-    viewPipeline: 'Voir le pipeline',
-    pipelineStages: 'Étapes du pipeline',
-    reportOutput: 'Sortie du rapport',
-    fastPreview: 'Aperçu rapide',
-    secureIntake: 'Entrée sécurisée',
-    aiAssisted: 'Assisté par IA',
-    reportReady: 'Rapport prêt',
-    nextStep: 'Prochaine étape',
-    readyToAudit: 'Prêt à auditer votre package de migration ?',
-    signInStart: 'Connectez-vous pour commencer',
-    reportReadyText: 'Exportez des résultats structurés pouvant être revus par les administrateurs, les responsables de projet et les parties prenantes de la migration.',
-    heroBadge: 'Solutions d’IA pour la migration',
-    openAnalysis: 'Ouvrir l’analyse',
-    signIn: 'Se connecter',
-    featuresSectionTitle: 'Une façon plus claire de préparer la migration Jira Cloud.',
-    pipelineSectionDescription: 'Le pipeline garde visibles l’analyse des paquets, les contrôles de compatibilité et la génération de rapports.',
-    reportsSectionHeadline: 'Des livrables prêts à la décision pour les équipes de migration.',
-    reportsSectionDescription: 'Exportez des résultats structurés pouvant être revus par les administrateurs, les responsables de projet et les parties prenantes de la migration.',
-    nextStepDescription: 'Commencez par un package d’export et transformez l’incertitude de migration en un rapport de préparation structuré.',
-  },
-} as const;
 
 const Home = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -100,12 +38,9 @@ const Home = () => {
     if (savedTheme) return savedTheme === 'light';
     return !window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
-  const [locale, setLocale] = useState<'en' | 'fr'>(() => {
-    const savedLocale = localStorage.getItem(LOCALE_KEY);
-    return savedLocale === 'fr' ? 'fr' : 'en';
-  });
   const [scrolled, setScrolled] = useState(false);
 
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
   const logo = isLight ? logoSpectrum : logoSpectrumDark;
@@ -120,10 +55,6 @@ const Home = () => {
     document.documentElement.classList.toggle('dark', !isLight);
     localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark');
   }, [isLight]);
-
-  useEffect(() => {
-    localStorage.setItem(LOCALE_KEY, locale);
-  }, [locale]);
 
   useEffect(() => {
     if (searchParams.get('auth') === 'login') {
@@ -195,9 +126,9 @@ const Home = () => {
             </button>
 
             <div className="hidden items-center gap-8 text-sm font-bold text-[#64708d] dark:text-white/58 lg:flex">
-              <button onClick={() => scrollToSection('features')} className="transition hover:text-[#2f80ed]">{localeStrings[locale].features}</button>
-              <button onClick={() => scrollToSection('pipeline')} className="transition hover:text-[#2f80ed]">{localeStrings[locale].pipeline}</button>
-              <button onClick={() => scrollToSection('reports')} className="transition hover:text-[#2f80ed]">{localeStrings[locale].reports}</button>
+              <button onClick={() => scrollToSection('features')} className="transition hover:text-[#2f80ed]">{t('features')}</button>
+              <button onClick={() => scrollToSection('pipeline')} className="transition hover:text-[#2f80ed]">{t('pipeline')}</button>
+              <button onClick={() => scrollToSection('reports')} className="transition hover:text-[#2f80ed]">{t('reports')}</button>
             </div>
 
             <div className="flex items-center gap-2">
@@ -221,31 +152,21 @@ const Home = () => {
                 <span className="hidden sm:inline">{isLight ? 'Light' : 'Dark'}</span>
               </button>
 
-              {isAuthenticated ? (
-                <>
-                  <button
-                    onClick={() => navigate('/analysis')}
-                    className="rounded-xl bg-[#2f80ed] px-4 py-2 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#256fdb]"
-                  >
-                    {localeStrings[locale].openAnalysis}
-                  </button>
+              <LocaleSwitcher className="hidden lg:flex text-sm" />
 
-                  <div className="flex items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-3 py-2 text-sm font-black text-[#64708d] transition hover:border-[#bdd5fa] hover:text-[#2f80ed] dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/8">
-                    <button type="button" onClick={() => setLocale('en')} className={`rounded-md px-2 py-1 ${locale === 'en' ? 'bg-[#2f80ed] text-white' : 'text-[#64708d] dark:text-white/70'}`}>
-                      EN
-                    </button>
-                    <span className="text-[#8a96b3]">/</span>
-                    <button type="button" onClick={() => setLocale('fr')} className={`rounded-md px-2 py-1 ${locale === 'fr' ? 'bg-[#2f80ed] text-white' : 'text-[#64708d] dark:text-white/70'}`}>
-                      FR
-                    </button>
-                  </div>
-                </>
+              {isAuthenticated ? (
+                <button
+                  onClick={() => navigate('/analysis')}
+                  className="rounded-xl bg-[#2f80ed] px-4 py-2 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#256fdb]"
+                >
+                  {t('openAnalysis')}
+                </button>
               ) : (
                 <button
                   onClick={() => setIsModalOpen(true)}
                   className="rounded-xl bg-[#111b3f] px-4 py-2 text-sm font-black text-white transition hover:bg-[#1d2b5b] dark:bg-white dark:text-[#111b3f]"
                 >
-                  {localeStrings[locale].signIn}
+                  {t('signIn')}
                 </button>
               )}
             </div>
@@ -259,9 +180,9 @@ const Home = () => {
                 exit={{ opacity: 0, y: -8 }}
                 className="mx-4 mt-3 rounded-2xl border border-[#dbe4f2] bg-white p-2 shadow-lg shadow-[#1d2b5b]/8 dark:border-white/10 dark:bg-[#101d3a] lg:hidden"
               >
-                <button onClick={() => scrollToSection('features')} className="block w-full rounded-xl px-4 py-3 text-left text-sm font-black text-[#64708d] hover:bg-[#f8faff] dark:text-white/65 dark:hover:bg-white/6">{localeStrings[locale].features}</button>
-                <button onClick={() => scrollToSection('pipeline')} className="block w-full rounded-xl px-4 py-3 text-left text-sm font-black text-[#64708d] hover:bg-[#f8faff] dark:text-white/65 dark:hover:bg-white/6">{localeStrings[locale].pipeline}</button>
-                <button onClick={() => scrollToSection('reports')} className="block w-full rounded-xl px-4 py-3 text-left text-sm font-black text-[#64708d] hover:bg-[#f8faff] dark:text-white/65 dark:hover:bg-white/6">{localeStrings[locale].reports}</button>
+                <button onClick={() => scrollToSection('features')} className="block w-full rounded-xl px-4 py-3 text-left text-sm font-black text-[#64708d] hover:bg-[#f8faff] dark:text-white/65 dark:hover:bg-white/6">{t("features")}</button>
+                <button onClick={() => scrollToSection('pipeline')} className="block w-full rounded-xl px-4 py-3 text-left text-sm font-black text-[#64708d] hover:bg-[#f8faff] dark:text-white/65 dark:hover:bg-white/6">{t("pipeline")}</button>
+                <button onClick={() => scrollToSection('reports')} className="block w-full rounded-xl px-4 py-3 text-left text-sm font-black text-[#64708d] hover:bg-[#f8faff] dark:text-white/65 dark:hover:bg-white/6">{t("reports")}</button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -276,15 +197,15 @@ const Home = () => {
             >
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#bdd5fa] bg-[#f5f9ff] px-4 py-2 text-xs font-black text-[#2f80ed] dark:border-[#2f80ed]/35 dark:bg-[#10264d] dark:text-[#8bbdff]">
                 <span className="h-2 w-2 rounded-full bg-[#2f80ed]" />
-                {localeStrings[locale].aiMigration}
+                {t("aiMigration")}
               </div>
 
               <h1 className="max-w-4xl text-4xl font-black leading-[1.05] tracking-tight sm:text-6xl">
-                {localeStrings[locale].heroTitle}
+                {t("heroTitle")}
               </h1>
 
               <p className="mt-6 max-w-2xl text-lg leading-8 text-[#64708d] dark:text-white/62">
-                {localeStrings[locale].heroDesc}
+                {t("heroDesc")}
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -292,21 +213,21 @@ const Home = () => {
                   onClick={handleMainAction}
                   className="group flex items-center justify-center gap-3 rounded-xl bg-[#2f80ed] px-6 py-4 text-sm font-black text-white shadow-xl shadow-blue-500/20 transition hover:-translate-y-0.5 hover:bg-[#256fdb]"
                 >
-                  {isAuthenticated ? localeStrings[locale].startAnalysis : localeStrings[locale].startAudit}
+                  {isAuthenticated ? t("startAnalysis") : t("startAudit")}
                   <ArrowRight size={18} className="transition group-hover:translate-x-1" />
                 </button>
                 <button
                   onClick={() => scrollToSection('pipeline')}
                   className="flex items-center justify-center gap-2 rounded-xl border border-[#d7e0ef] bg-white px-6 py-4 text-sm font-black text-[#64708d] transition hover:border-[#bdd5fa] hover:text-[#2f80ed] dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/8"
                 >
-                  {localeStrings[locale].viewPipeline}
+                  {t("viewPipeline")}
                 </button>
               </div>
 
               <div className="mt-10 grid max-w-2xl grid-cols-3 gap-3 border-t border-[#dce4f4] pt-7 dark:border-white/10">
-                <HeroMetric value="3" label={localeStrings[locale].pipelineStages} />
-                <HeroMetric value="PDF" label={localeStrings[locale].reportOutput} />
-                <HeroMetric value="<2m" label={localeStrings[locale].fastPreview} />
+                <HeroMetric value="3" label={t("pipelineStages")} />
+                <HeroMetric value="PDF" label={t("reportOutput")} />
+                <HeroMetric value="<2m" label={t("fastPreview")} />
               </div>
             </motion.div>
 
@@ -314,13 +235,13 @@ const Home = () => {
           </section>
 
           <section className="mx-auto mt-8 grid max-w-7xl gap-3 md:grid-cols-3">
-            <ProductHighlight icon={<Shield size={18} />} label={localeStrings[locale].secureIntake} text="Files move through an authenticated analysis flow." />
-            <ProductHighlight icon={<Brain size={18} />} label={localeStrings[locale].aiAssisted} text="Recommendations stay visible and reviewable." />
-            <ProductHighlight icon={<FileText size={18} />} label={localeStrings[locale].reportReady} text="Outputs are structured for migration decisions." />
+            <ProductHighlight icon={<Shield size={18} />} label={t("secureIntake")} text="Files move through an authenticated analysis flow." />
+            <ProductHighlight icon={<Brain size={18} />} label={t("aiAssisted")} text="Recommendations stay visible and reviewable." />
+            <ProductHighlight icon={<FileText size={18} />} label={t("reportReady")} text="Outputs are structured for migration decisions." />
           </section>
 
           <section id="features" className="mx-auto mt-24 max-w-7xl">
-            <SectionHeading eyebrow={localeStrings[locale].features} title={localeStrings[locale].featuresSectionTitle} />
+            <SectionHeading eyebrow={t("features")} title={t("featuresSectionTitle")} />
             <div className="mt-8 grid gap-4 md:grid-cols-3">
               {featureCards.map((feature) => (
                 <FeatureCard key={feature.title} {...feature} />
@@ -331,10 +252,10 @@ const Home = () => {
           <section id="pipeline" className="mx-auto mt-24 max-w-7xl overflow-hidden rounded-[22px] bg-[#111b3f] p-6 text-white shadow-xl shadow-[#111b3f]/10 sm:p-8 lg:p-10">
             <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.25em] text-[#8bbdff]">{localeStrings[locale].pipeline}</p>
-                <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{localeStrings[locale].reportReady}</h2>
+                <p className="text-xs font-black uppercase tracking-[0.25em] text-[#8bbdff]">{t("pipeline")}</p>
+                <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{t("reportReady")}</h2>
                 <p className="mt-4 text-sm leading-7 text-white/58">
-                  {localeStrings[locale].pipelineSectionDescription}
+                  {t("pipelineSectionDescription")}
                 </p>
                 <div className="mt-6 rounded-2xl border border-white/10 bg-white/7 p-4">
                   <p className="text-[10px] font-black uppercase tracking-wide text-white/35">Operational promise</p>
@@ -355,10 +276,10 @@ const Home = () => {
           <section id="reports" className="mx-auto mt-24 max-w-7xl rounded-[22px] border border-[#dbe4f2] bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#101d3a] sm:p-8">
             <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.25em] text-[#2f80ed]">{localeStrings[locale].reports}</p>
-                <h2 className="mt-3 text-3xl font-black tracking-tight">{localeStrings[locale].reportsSectionHeadline}</h2>
+                <p className="text-xs font-black uppercase tracking-[0.25em] text-[#2f80ed]">{t("reports")}</p>
+                <h2 className="mt-3 text-3xl font-black tracking-tight">{t("reportsSectionHeadline")}</h2>
                 <p className="mt-3 max-w-2xl text-sm leading-7 text-[#64708d] dark:text-white/58">
-                  {localeStrings[locale].reportsSectionDescription}
+                  {t("reportsSectionDescription")}
                 </p>
               </div>
 
@@ -373,17 +294,17 @@ const Home = () => {
           <section className="mx-auto mt-10 max-w-7xl rounded-[22px] bg-[#2f80ed] p-6 text-white shadow-xl shadow-blue-500/20 sm:p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.25em] text-white/60">{localeStrings[locale].nextStep}</p>
-                <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">{localeStrings[locale].readyToAudit}</h2>
+                <p className="text-xs font-black uppercase tracking-[0.25em] text-white/60">{t("nextStep")}</p>
+                <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">{t("readyToAudit")}</h2>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-white/72">
-                  {localeStrings[locale].nextStepDescription}
+                  {t("nextStepDescription")}
                 </p>
               </div>
               <button
                 onClick={handleMainAction}
                 className="inline-flex items-center justify-center gap-3 rounded-xl bg-white px-6 py-4 text-sm font-black text-[#111b3f] transition hover:-translate-y-0.5"
               >
-                {isAuthenticated ? localeStrings[locale].openAnalysis : localeStrings[locale].signInStart}
+                {isAuthenticated ? t("openAnalysis") : t("signInStart")}
                 <ArrowRight size={18} />
               </button>
             </div>
@@ -569,3 +490,4 @@ const ReportArtifact = ({ icon, title, text }: { icon: React.ReactNode; title: s
 );
 
 export default Home;
+

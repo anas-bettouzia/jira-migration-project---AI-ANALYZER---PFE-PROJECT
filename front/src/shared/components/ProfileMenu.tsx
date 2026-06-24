@@ -4,12 +4,14 @@ import { useNavigate } from 'react-router-dom';
 
 import { authService } from '../../services/authService';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useTranslation } from '../../i18n/TranslationProvider';
 
 interface ProfileMenuProps {
   variant?: 'navbar' | 'sidebar';
 }
 
 export const ProfileMenu = ({ variant = 'navbar' }: ProfileMenuProps) => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -57,8 +59,8 @@ export const ProfileMenu = ({ variant = 'navbar' }: ProfileMenuProps) => {
       <button
         onClick={() => setIsOpen((value) => !value)}
         className={buttonClasses}
-        aria-label="Open profile menu"
-        title="Profile"
+        aria-label={t('profileMenuOpen')}
+        title={t('profile')}
       >
         {user?.picture ? (
           <img src={user.picture} alt="Profile" className="h-full w-full rounded-full object-cover" />
@@ -75,8 +77,8 @@ export const ProfileMenu = ({ variant = 'navbar' }: ProfileMenuProps) => {
                 {initials}
               </span>
               <div className="min-w-0">
-                <p className="truncate text-sm font-black text-[#111b3f] dark:text-white">{user?.name || 'User profile'}</p>
-                <p className="truncate text-xs font-semibold text-[#64708d] dark:text-white/55">{user?.email || 'Authenticated user'}</p>
+                <p className="truncate text-sm font-black text-[#111b3f] dark:text-white">{user?.name || t('userProfile')}</p>
+                <p className="truncate text-xs font-semibold text-[#64708d] dark:text-white/55">{user?.email || t('authenticatedUser')}</p>
               </div>
             </div>
           </div>
@@ -90,14 +92,14 @@ export const ProfileMenu = ({ variant = 'navbar' }: ProfileMenuProps) => {
               className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-[#64708d] transition hover:bg-[#f5f9ff] hover:text-[#2f80ed] dark:text-white/65 dark:hover:bg-white/6 dark:hover:text-white"
             >
               <Settings size={16} />
-              Edit profile
+              {t('editProfile')}
             </button>
             <button
               onClick={handleLogout}
               className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-red-600 transition hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-500/10"
             >
               <LogOut size={16} />
-              Logout
+              {t('logout')}
             </button>
           </div>
         </div>
