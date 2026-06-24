@@ -160,7 +160,6 @@ services:
     container_name: frontend
     ports:
       - "83:80"
-      - "8443:443"
     environment:
       - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
       - VITE_RECAPTCHA_SITE_KEY=${VITE_RECAPTCHA_SITE_KEY}
