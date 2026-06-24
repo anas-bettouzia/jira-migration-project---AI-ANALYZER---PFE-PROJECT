@@ -158,12 +158,6 @@ services:
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
         VITE_RECAPTCHA_SITE_KEY: ${VITE_RECAPTCHA_SITE_KEY}
     container_name: frontend
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.front.rule=Host(`docker.itspectrum.fr`)"
-      - "traefik.http.routers.front.entrypoints=websecure"
-      - "traefik.http.routers.front.tls.certresolver=le"
-      - "traefik.http.services.front.loadbalancer.server.port=80"
     environment:
       - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
       - VITE_RECAPTCHA_SITE_KEY=${VITE_RECAPTCHA_SITE_KEY}
@@ -226,18 +220,15 @@ services:
     image: traefik:latest
     container_name: traefik
     command:
-      - --api.insecure=false
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-      - --certificatesresolvers.le.acme.tlschallenge=true
-      - --certificatesresolvers.le.acme.email=${LETSENCRYPT_EMAIL}
-      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      - --configfile=/etc/traefik/traefik.yaml
     ports:
       - "8443:443"
     volumes:
       - traefik_acme:/letsencrypt
+      - ./traefik.yaml:/etc/traefik/traefik.yaml:ro
+      - ./routes.yaml:/etc/traefik/routes.yaml:ro
+    environment:
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
     restart: unless-stopped
 
 volumes:

@@ -1,0 +1,28 @@
+http:
+  routers:
+    frontend:
+      rule: Host(`docker.itspectrum.fr`)
+      entrypoints:
+        - websecure
+      service: frontend
+      tls:
+        certResolver: le
+    
+    api:
+      rule: Host(`docker.itspectrum.fr`) && PathPrefix(`/api`)
+      entrypoints:
+        - websecure
+      service: gateway
+      tls:
+        certResolver: le
+
+  services:
+    frontend:
+      loadBalancer:
+        servers:
+          - url: http://frontend:80
+
+    gateway:
+      loadBalancer:
+        servers:
+          - url: http://gateway:5000
