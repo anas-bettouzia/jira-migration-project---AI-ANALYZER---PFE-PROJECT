@@ -120,6 +120,24 @@ export const ReportPage: React.FC = () => {
     [report?.sections?.recommendations],
   );
   const sanitizedAiSummary = useMemo(() => sanitizeReportText(report?.ai_summary ?? '', report), [report]);
+  const reportDetails = useMemo(() => {
+    const details: Array<{ label: string; value: unknown }> = [];
+
+    if (report?.ai_model) {
+      details.push({ label: 'Analysis engine', value: report.ai_model });
+    }
+
+    if (typeof report?.ai_used === 'boolean') {
+      details.push({ label: 'AI generated', value: report.ai_used ? 'Yes' : 'No' });
+    }
+
+    const generatedOn = report?.updated_at ?? report?.created_at;
+    if (generatedOn) {
+      details.push({ label: 'Generated on', value: generatedOn });
+    }
+
+    return details;
+  }, [report]);
 
   const handleDownload = async (type: 'pdf' | 'json') => {
     if (!reportId) return;
@@ -287,29 +305,27 @@ export const ReportPage: React.FC = () => {
                   </ContentPanel>
                 )}
 
-                <ContentPanel title="Details and observations" icon={<FileText size={18} />}>
-                  {detailEntries.length > 0 ? (
+                {detailEntries.length > 0 && (
+                  <ContentPanel title="Details and observations" icon={<FileText size={18} />}>
                     <div className="space-y-3">
                       {detailEntries.map((detail) => (
                         <ReportDetailRow key={detail.title} detail={detail} report={report} />
                       ))}
                     </div>
-                  ) : (
-                    <EmptyState text="No detailed report observations are available for this report." />
-                  )}
-                </ContentPanel>
+                  </ContentPanel>
+                )}
               </section>
 
               <aside className="space-y-6">
-                <ContentPanel title="Report details" icon={<Gauge size={18} />}>
-                  <div className="space-y-3">
-                    {report.ai_model && <InfoLine label="Analysis engine" value={report.ai_model} />}
-                    {typeof report.ai_used === 'boolean' && (
-                      <InfoLine label="AI generated" value={report.ai_used ? 'Yes' : 'No'} />
-                    )}
-                    <InfoLine label="Generated on" value={formatValue(report.updated_at ?? report.created_at)} />
-                  </div>
-                </ContentPanel>
+                {reportDetails.length > 0 && (
+                  <ContentPanel title="Report details" icon={<Gauge size={18} />}>
+                    <div className="space-y-3">
+                      {reportDetails.map((detail) => (
+                        <InfoLine key={String(detail.label)} label={detail.label} value={detail.value} />
+                      ))}
+                    </div>
+                  </ContentPanel>
+                )}
 
                 {report.ai_error && (
                   <ContentPanel title="AI error" icon={<AlertTriangle size={18} />}>
