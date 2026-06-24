@@ -167,6 +167,8 @@ services:
     environment:
       - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
       - VITE_RECAPTCHA_SITE_KEY=${VITE_RECAPTCHA_SITE_KEY}
+    depends_on:
+      - gateway
     restart: unless-stopped
 
 
