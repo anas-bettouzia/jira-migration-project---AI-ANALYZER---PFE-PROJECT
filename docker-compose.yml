@@ -220,13 +220,26 @@ services:
     image: traefik:latest
     container_name: traefik
     command:
-      - --configfile=/etc/traefik/traefik.yaml
+      - --api.insecure=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.le.acme.tlschallenge=true
+      - --certificatesresolvers.le.acme.email=${LETSENCRYPT_EMAIL}
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      - --http.routers.frontend.rule=Host(`docker.itspectrum.fr`)
+      - --http.routers.frontend.entrypoints=websecure
+      - --http.routers.frontend.service=frontend
+      - --http.routers.frontend.tls.certresolver=le
+      - --http.services.frontend.loadbalancer.server.url=http://frontend:80
+      - --http.routers.api.rule=Host(`docker.itspectrum.fr`)&&PathPrefix(`/api`)
+      - --http.routers.api.entrypoints=websecure
+      - --http.routers.api.service=gateway
+      - --http.routers.api.tls.certresolver=le
+      - --http.services.gateway.loadbalancer.server.url=http://gateway:5000
     ports:
       - "8443:443"
     volumes:
       - traefik_acme:/letsencrypt
-      - ./traefik.yaml:/etc/traefik/traefik.yaml:ro
-      - ./routes.yaml:/etc/traefik/routes.yaml:ro
     environment:
       - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
     restart: unless-stopped
