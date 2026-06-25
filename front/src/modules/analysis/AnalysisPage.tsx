@@ -238,7 +238,7 @@ export const AnalysisPage: React.FC = () => {
                   {isLight ? <Sun size={14} className="text-amber-500" /> : <Moon size={14} />}
                   {isLight ? 'Light' : 'Dark'}
                 </button>
-                <LocaleSwitcher className="hidden items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-3 py-2 text-xs font-bold text-[#64708d] transition dark:border-white/10 dark:bg-white/5 dark:text-white/70 sm:flex" />
+                <LocaleSwitcher className="hidden sm:flex" />
                 <button
                   onClick={startNewAnalysis}
                   className="hidden items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-4 py-2 text-sm font-bold text-[#64708d] transition dark:border-white/10 dark:bg-white/5 dark:text-white/70 sm:flex"
