@@ -226,7 +226,7 @@ export const ReportPage: React.FC = () => {
                 <Download size={16} />
                 PDF
               </button>
-                <LocaleSwitcher className="hidden sm:flex" />
+              <LocaleSwitcher className="hidden sm:flex" />
             </div>
           </div>
         </header>
