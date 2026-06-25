@@ -140,6 +140,7 @@ const Home = () => {
                 {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
               </button>
 
+              <LocaleSwitcher className="hidden lg:flex text-sm" />
               <button
                 onClick={() => setIsLight((value) => !value)}
                 className="flex items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-3 py-2 text-xs font-bold text-[#64708d] transition dark:border-white/10 dark:bg-white/5 dark:text-white/70"
@@ -160,7 +161,6 @@ const Home = () => {
                   >
                     {t('openAnalysis')}
                   </button>
-                  <LocaleSwitcher className="hidden lg:flex text-sm" />
                 </>
               ) : (
                 <>
@@ -170,7 +170,6 @@ const Home = () => {
                   >
                     {t('signIn')}
                   </button>
-                  <LocaleSwitcher className="hidden lg:flex text-sm" />
                 </>
               )}
             </div>

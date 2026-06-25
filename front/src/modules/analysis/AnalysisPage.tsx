@@ -227,6 +227,7 @@ export const AnalysisPage: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
+                <LocaleSwitcher className="hidden sm:flex" />
                 <button
                   onClick={() => setIsLight((value) => !value)}
                   className="hidden items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-3 py-2 text-xs font-bold text-[#64708d] transition dark:border-white/10 dark:bg-white/5 dark:text-white/70 sm:flex"
@@ -245,7 +246,6 @@ export const AnalysisPage: React.FC = () => {
                   <ArrowUpToLine size={17} />
                   Upload data
                 </button>
-                <LocaleSwitcher className="hidden sm:flex" />
                 <button
                   onClick={() => reportId && navigate(`/reports/${reportId}`)}
                   disabled={!reportId}
