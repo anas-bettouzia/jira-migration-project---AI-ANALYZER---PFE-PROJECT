@@ -5,17 +5,18 @@ import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/authService';
 import { useAuthStore } from '../../store/useAuthStore';
 import GoogleSignInButton from '../../shared/components/GoogleSignInButton';
+import { useTranslation } from '../../i18n/TranslationProvider';
 import type { AuthResponse } from '../../shared/types/auth';
-import { EMAIL_ERROR, EMAIL_REGEX, PASSWORD_ERROR, PASSWORD_REGEX } from '../../services/validation';
+import { EMAIL_REGEX, PASSWORD_REGEX } from '../../services/validation';
 
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const getAuthErrorMessage = (error: unknown, isLogin: boolean) => {
+const getAuthErrorMessage = (error: unknown, fallback: string) => {
   const response = (error as { response?: { data?: { error?: string } } }).response;
-  return response?.data?.error || (isLogin ? 'Invalid credentials.' : 'Registration failed.');
+  return response?.data?.error || fallback;
 };
 
 const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
@@ -37,6 +38,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
   const navigate = useNavigate();
   const setToken = useAuthStore((state) => state.setToken);
+  const { t } = useTranslation();
   const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined;
   console.log('LoginModal: VITE_RECAPTCHA_SITE_KEY=', RECAPTCHA_SITE_KEY);
 
@@ -53,7 +55,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
     if (isForgotPassword) {
       if (!EMAIL_REGEX.test(email.trim())) {
-        setError(EMAIL_ERROR);
+        setError(t('invalidEmail'));
         setIsLoading(false);
         return;
       }
@@ -62,7 +64,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
         const data = await authService.requestPasswordReset(email.trim());
         setSuccess(data.message);
       } catch (error) {
-        setError(getAuthErrorMessage(error, false));
+        setError(getAuthErrorMessage(error, t('loginModalRequestFailed')));
       } finally {
         setIsLoading(false);
       }
@@ -71,32 +73,32 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
     if (!isLogin) {
       if (!username.trim()) {
-        setError("Username is required.");
+        setError(t('usernameRequired'));
         setIsLoading(false);
         return;
       }
 
       if (!EMAIL_REGEX.test(email.trim())) {
-        setError(EMAIL_ERROR);
+        setError(t('invalidEmail'));
         setIsLoading(false);
         return;
       }
 
       if (!PASSWORD_REGEX.test(password)) {
-        setError(PASSWORD_ERROR);
+        setError(t('passwordRequirements'));
         setIsLoading(false);
         return;
       }
 
       if (password !== confirmPassword) {
-        setError('Passwords do not match.');
+        setError(t('passwordsDoNotMatch'));
         setIsLoading(false);
         return;
       }
     }
 
     if (RECAPTCHA_SITE_KEY && !recaptchaToken) {
-      setError('Please complete the reCAPTCHA before continuing.');
+      setError(t('loginModalCompleteRecaptcha'));
       setIsLoading(false);
       return;
     }
@@ -114,7 +116,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
         setRegistrationSuccess(true);
       }
     } catch (error) {
-      setError(getAuthErrorMessage(error, isLogin));
+      setError(getAuthErrorMessage(error, t('loginModalRequestFailed')));
     } finally {
       setIsLoading(false);
     }
@@ -190,7 +192,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
             },
             'error-callback': () => {
               console.error('reCAPTCHA error callback (enterprise)');
-              setError('reCAPTCHA failed, please refresh the page.');
+              setError(t('loginModalRecaptchaFailed'));
               setRecaptchaToken(undefined);
             },
             'expired-callback': () => {
@@ -216,7 +218,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
             },
             'error-callback': () => {
               console.error('reCAPTCHA error callback');
-              setError('reCAPTCHA failed, please refresh the page.');
+              setError(t('loginModalRecaptchaFailed'));
               setRecaptchaToken(undefined);
             },
             'expired-callback': () => {
@@ -263,7 +265,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
       script.onerror = (error) => {
         console.error('recaptcha script failed to load', error);
-        setError('Unable to load the reCAPTCHA script.');
+        setError(t('loginModalRecaptchaLoadFailed'));
       };
     } else {
       renderRecaptcha();
@@ -274,19 +276,19 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
   const showRegistrationSuccess = Boolean(success && registrationSuccess);
   const title = showRegistrationSuccess
-    ? 'Registration successful'
+    ? t('loginModalVerificationSent')
     : isForgotPassword
-      ? 'Reset Password'
+      ? t('loginModalResetPasswordTitle')
       : isLogin
-        ? 'Log in'
-        : 'Create Account';
+        ? t('loginModalSignIn')
+        : t('loginModalSignUp');
   const subtitle = showRegistrationSuccess
-    ? 'A verification link has been sent to your email.'
+    ? t('loginModalVerificationSentDesc')
     : isForgotPassword
-      ? 'Receive a reset link by email'
+      ? t('loginModalResetPasswordSubtitle')
       : isLogin
-        ? 'Access your migration assistant'
-        : 'Join us to get started';
+        ? t('loginModalAccessYourMigrationAssistant')
+        : t('loginModalJoinUsToGetStarted');
 
   return (
     // When registration just succeeded we render a minimal modal with only the success message
@@ -307,13 +309,12 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{title}</h2>
-            <p className="text-sm text-slate-500 mt-2">A verification link has been sent to your email.</p>
+            <p className="text-sm text-slate-500 mt-2">{t('loginModalVerificationSentDesc')}</p>
           </div>
-
           <div className="flex flex-col items-center gap-4 p-4">
             <CheckCircle2 size={48} className="text-emerald-600" />
             <p className="text-emerald-600 text-sm font-bold text-center">{success}</p>
-            <p className="text-sm text-slate-400 mt-2 text-center">Please check your email and click the verification link to activate your account.</p>
+            <p className="text-sm text-slate-400 mt-2 text-center">{t('loginModalVerificationSentDesc')}</p>
             {/* Button intentionally removed: show only message after registration until email verification */}
           </div>
         </div>
@@ -347,7 +348,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
             />
             <div className="mt-5 flex items-center gap-3">
               <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">or</span>
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">{t('loginOr')}</span>
               <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
             </div>
           </div>
@@ -358,13 +359,13 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
             <div className="flex flex-col items-center gap-4 p-4">
               <CheckCircle2 size={48} className="text-emerald-600" />
               <p className="text-emerald-600 text-sm font-bold text-center">{success}</p>
-              <p className="text-sm text-slate-400 mt-2">Redirecting in {countdown}s...</p>
+              <p className="text-sm text-slate-400 mt-2">{t('loginModalRedirectingIn', { seconds: countdown })}</p>
             </div>
           ) : showRegistrationSuccess ? (
             <div className="flex flex-col items-center gap-4 p-4">
               <CheckCircle2 size={48} className="text-emerald-600" />
               <p className="text-emerald-600 text-sm font-bold text-center">{success}</p>
-              <p className="text-sm text-slate-400 mt-2 text-center">Please check your email and click the verification link to activate your account.</p>
+              <p className="text-sm text-slate-400 mt-2 text-center">{t('loginModalVerificationSentDesc')}</p>
               <div className="w-full mt-4">
                 <button
                   type="button"
@@ -374,7 +375,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                   }}
                   className="w-full py-3 bg-[var(--spectrum-blue)] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 hover:scale-[1.02] active:scale-95 transition-all"
                 >
-                  Back to login
+                  {t('backToLogin')}
                 </button>
               </div>
             </div>
@@ -382,13 +383,13 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
             <>
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Email</label>
+                  <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">{t('loginModalEmailLabel')}</label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input
                       type="email"
                       required
-                      placeholder="name@example.com"
+                      placeholder={t('loginModalEmailPlaceholder')}
                       className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -398,12 +399,12 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
                 {!isForgotPassword && !isLogin && (
                   <div>
-                    <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Username</label>
+                    <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">{t('loginModalUsername')}</label>
                     <div className="relative">
                       <input
                         type="text"
                         required
-                        placeholder="example123"
+                        placeholder={t('loginModalUsernamePlaceholder')}
                         className="w-full pl-4 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
@@ -414,13 +415,13 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
                 {!isForgotPassword && (
                   <div>
-                    <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Password</label>
+                    <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">{t('loginModalPasswordLabel')}</label>
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                       <input
                         type={showPassword ? 'text' : 'password'}
                         required
-                        placeholder="********"
+                        placeholder={t('loginModalPasswordPlaceholder')}
                         className="w-full pl-12 pr-12 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -438,13 +439,13 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
                 {!isForgotPassword && !isLogin && (
                   <div>
-                    <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">Confirm Password</label>
+                    <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">{t('loginModalConfirmPasswordLabel')}</label>
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                       <input
                         type={showConfirmPassword ? 'text' : 'password'}
                         required
-                        placeholder="********"
+                        placeholder={t('loginModalPasswordPlaceholder')}
                         className="w-full pl-12 pr-12 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
@@ -467,7 +468,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                 <div className="flex justify-center" id="recaptcha-container" />
               ) : (
                 <p className="text-xs text-slate-500 text-center">
-                  reCAPTCHA is not configured.
+                  {t('loginModalRecaptchaNotConfigured')}
                 </p>
               )}
 
@@ -479,11 +480,11 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                 {isLoading ? (
                   <Loader2 className="animate-spin" size={20} />
                 ) : isForgotPassword ? (
-                  'Send Link'
+                  t('loginModalSendLink')
                 ) : isLogin ? (
-                  'Sign In'
+                  t('loginModalSignIn')
                 ) : (
-                  'Sign Up'
+                  t('loginModalSignUp')
                 )}
               </button>
             </>
@@ -492,7 +493,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
         {!showRegistrationSuccess && (
           <div className="mt-6 text-center">
-            {isLogin && !isForgotPassword && (
+            {isLogin && !isForgotPassword ? (
               <button
                 onClick={() => {
                   setIsForgotPassword(true);
@@ -501,33 +502,31 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                 type="button"
                 className="mb-3 text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
               >
-                Forgot password?
+                {t('forgotPassword')}
               </button>
-            )}
-
-            {isForgotPassword ? (
+            ) : (
               <button
+                type="button"
                 onClick={() => {
                   setIsForgotPassword(false);
                   resetFeedback();
                 }}
-                type="button"
-                className="text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
+                className="mb-3 text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
               >
-                Back to login
+                {t('loginModalBackToLogin')}
               </button>
-            ) : (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {isLogin ? "Don't have an account?" : 'Already have an account?'}
-                <button
-                  onClick={toggleMode}
-                  type="button"
-                  className="ml-1.5 font-bold text-[var(--spectrum-blue)] hover:underline"
-                >
-                  {isLogin ? 'Create account' : 'Sign in'}
-                </button>
-              </p>
             )}
+
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {isLogin ? t('loginModalDontHaveAccount') : t('loginModalAlreadyHaveAccount')}
+              <button
+                onClick={toggleMode}
+                type="button"
+                className="ml-1.5 font-bold text-[var(--spectrum-blue)] hover:underline"
+              >
+                {isLogin ? t('loginModalCreateAccount') : t('loginModalSignIn')}
+              </button>
+            </p>
           </div>
         )}
       </div>

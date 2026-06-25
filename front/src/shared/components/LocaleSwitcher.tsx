@@ -29,7 +29,7 @@ export const LocaleSwitcher = ({ className = '' }: LocaleSwitcherProps) => {
   const otherLocale = availableLocales.find((l) => l !== locale) ?? locale;
 
   return (
-    <div ref={ref} className={`relative ${className}`}>
+    <div ref={ref} className={`relative inline-block ${className}`}>
       <button
         type="button"
         onClick={() => setOpen((s) => !s)}
@@ -43,14 +43,18 @@ export const LocaleSwitcher = ({ className = '' }: LocaleSwitcherProps) => {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 rounded-lg border border-[#dbe4f2] bg-white shadow-lg dark:border-white/10 dark:bg-[#0a1628] p-1">
+        /* Changement ici : "left-0" aligne le bord gauche du dropdown sur le bord gauche du bouton */
+        <div className="absolute left-0 top-full z-50 mt-1 rounded-lg border border-[#dbe4f2] bg-white shadow-lg dark:border-white/10 dark:bg-[#0a1628] p-1 whitespace-nowrap">
           <button
             type="button"
             onClick={() => handleSelect(otherLocale)}
-            className="inline-flex items-center justify-center p-2 transition hover:bg-[#eef6ff] dark:hover:bg-white/10 rounded-lg"
+            className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 transition hover:bg-[#eef6ff] dark:hover:bg-white/10 w-full"
             aria-label={`${t('switchTo')} ${localeNames[otherLocale] ?? localeLabels[otherLocale]}`}
           >
             <FlagIcon locale={otherLocale as 'en' | 'fr'} size={20} />
+            <span className="text-sm font-black text-[#111b3f] dark:text-white">
+              {localeNames[otherLocale] ?? localeLabels[otherLocale]}
+            </span>
           </button>
         </div>
       )}

@@ -2,20 +2,22 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, Lock, Mail, X } from 'lucide-react';
 import { authService } from '../../services/authService';
-import { EMAIL_ERROR, EMAIL_REGEX, PASSWORD_ERROR, PASSWORD_REGEX } from '../../services/validation';
+import { useTranslation } from '../../i18n/TranslationProvider';
+import { EMAIL_REGEX, PASSWORD_REGEX } from '../../services/validation';
 
 interface ResetPasswordProps {
   isModal?: boolean;
   onClose?: () => void;
 }
 
-const getResetErrorMessage = (error: unknown) => {
+const getResetErrorMessage = (error: unknown, fallback: string) => {
   const response = (error as { response?: { data?: { error?: string } } }).response;
-  return response?.data?.error || 'Unable to reset the password.';
+  return response?.data?.error || fallback;
 };
 
 const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const initialEmail = useMemo(() => searchParams.get('email') || '', [searchParams]);
   const token = useMemo(() => searchParams.get('token') || '', [searchParams]);
@@ -33,23 +35,26 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
     setSuccess('');
 
     if (!token) {
-      setError('The reset link is invalid.');
+      setError(t('resetLinkInvalid'));
+      return;
     }
 
     if (!EMAIL_REGEX.test(email.trim())) {
-      setError(EMAIL_ERROR);
+      setError(t('invalidEmail'));
       return;
     }
 
     if (!PASSWORD_REGEX.test(password)) {
-      setError(PASSWORD_ERROR);
+      setError(t('passwordRequirements'));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('passwordsDoNotMatch'));
       return;
     }
+
+    const fallbackErrorMessage = t('unableResetPassword');
 
     try {
       setIsLoading(true);
@@ -58,7 +63,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
       setPassword('');
       setConfirmPassword('');
     } catch (error) {
-      setError(getResetErrorMessage(error));
+      setError(getResetErrorMessage(error, fallbackErrorMessage));
     } finally {
       setIsLoading(false);
     }
@@ -103,17 +108,17 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
 
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-            New password
+            {t('resetPasswordTitle')}
           </h2>
           <p className="text-sm text-slate-500 mt-2">
-            Choose a strong password to recover your account.
+            {t('resetPasswordDesc')}
           </p>
         </div>
 
         <form className="space-y-5" onSubmit={handleSubmit}>
           <div>
             <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">
-              Email
+              {t('loginModalEmailLabel')}
             </label>
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -121,7 +126,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
                 type="email"
                 required
                 className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
-                placeholder="nom@exemple.com"
+                placeholder={t('loginModalEmailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -130,7 +135,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
 
           <div>
             <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">
-              New password
+              {t('newPassword')}
             </label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -138,7 +143,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
                 type="password"
                 required
                 className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
-                placeholder="********"
+                placeholder={t('loginModalPasswordPlaceholder')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -147,7 +152,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
 
           <div>
             <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">
-              Confirm password
+              {t('confirmNewPassword')}
             </label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -155,7 +160,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
                 type="password"
                 required
                 className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
-                placeholder="********"
+                placeholder={t('loginModalPasswordPlaceholder')}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
@@ -170,7 +175,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
             disabled={isLoading}
             className="w-full py-4 bg-[var(--spectrum-blue)] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 flex justify-center items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-70 disabled:hover:scale-100"
           >
-            {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Update password'}
+            {isLoading ? <Loader2 className="animate-spin" size={20} /> : t('updatePassword')}
           </button>
         </form>
 
@@ -180,7 +185,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
             onClick={() => navigate('/?auth=login')}
             className="text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
           >
-            Back to login
+            {t('backToLogin')}
           </button>
         </div>
       </div>

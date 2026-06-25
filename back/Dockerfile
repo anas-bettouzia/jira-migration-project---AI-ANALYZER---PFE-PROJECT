@@ -7,7 +7,7 @@ ENV PYTHONPATH=/app
 
 FROM base AS gateway
 COPY gateway/ ./gateway/
-CMD ["python", "gateway/app.py"]
+CMD ["python", "-m", "gateway.app"]
 
 FROM base AS parsing_service
 COPY parsing_service/ ./parsing_service/

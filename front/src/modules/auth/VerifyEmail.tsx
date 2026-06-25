@@ -2,18 +2,20 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, Mail, X, CheckCircle } from 'lucide-react';
 import { authService } from '../../services/authService';
-import { EMAIL_ERROR, EMAIL_REGEX } from '../../services/validation';
+import { useTranslation } from '../../i18n/TranslationProvider';
+import { EMAIL_REGEX } from '../../services/validation';
 
 interface VerifyEmailProps {
   onClose?: () => void;
 }
 
-const getVerifyErrorMessage = (error: unknown) => {
-  const response = (error as { response?: { data?: { error?: string } } }).response;
-  return response?.data?.error || 'Unable to verify your email.';
-};
-
 const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
+  const { t } = useTranslation();
+
+  const getVerifyErrorMessage = (error: unknown) => {
+    const response = (error as { response?: { data?: { error?: string } } }).response;
+    return response?.data?.error || t('unableVerifyEmail');
+  };
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialEmail = useMemo(() => searchParams.get('email') || '', [searchParams]);
@@ -30,7 +32,7 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
     const autoVerify = async () => {
       if (!token || !email) {
         setIsVerifying(false);
-        setError('Verification link is invalid or missing required parameters.');
+        setError(t('verificationLinkInvalid'));
         return;
       }
 
@@ -59,12 +61,11 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
     setSuccess('');
 
     if (!token) {
-      setError('The verification link is invalid.');
-      return;
+      setError(t('verificationLinkInvalid'));
     }
 
     if (!EMAIL_REGEX.test(email.trim())) {
-      setError(EMAIL_ERROR);
+      setError(t('invalidEmail'));
       return;
     }
 
@@ -116,10 +117,10 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
           <div className="text-center py-12">
             <Loader2 className="animate-spin text-[var(--spectrum-blue)] mx-auto mb-4" size={48} />
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-              Verifying your email
+              {t('verifyingEmail')}
             </h2>
             <p className="text-sm text-slate-500">
-              Please wait while we verify your email address.
+              {t('verifyingEmailDesc')}
             </p>
           </div>
         ) : success ? (
@@ -128,34 +129,34 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
               <CheckCircle className="text-emerald-500" size={64} />
             </div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-              Email verified successfully!
+              {t('emailVerifiedSuccess')}
             </h2>
             <p className="text-sm text-slate-500 mb-6">
-              Your account has been verified. Redirecting to login...
+              {t('emailVerifiedDesc')}
             </p>
             <button
               type="button"
               onClick={() => navigate('/?auth=login')}
               className="w-full py-4 bg-[var(--spectrum-blue)] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 hover:scale-[1.02] active:scale-95 transition-all"
             >
-              Go to login
+              {t('backToLogin')}
             </button>
           </div>
         ) : (
           <>
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                Verify your email
+                {t('verifyEmailButton')}
               </h2>
               <p className="text-sm text-slate-500 mt-2">
-                Enter your email address to verify your account.
+                {t('verifyingEmailDesc')}
               </p>
             </div>
 
             <form className="space-y-5" onSubmit={handleManualVerify}>
               <div>
                 <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">
-                  Email
+                  {t('loginModalEmailLabel')}
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -163,7 +164,7 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
                     type="email"
                     required
                     className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
-                    placeholder="name@example.com"
+                    placeholder={t('loginPlaceholderEmail')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
@@ -177,7 +178,7 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
                 disabled={isLoading}
                 className="w-full py-4 bg-[var(--spectrum-blue)] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 flex justify-center items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-70 disabled:hover:scale-100"
               >
-                {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Verify email'}
+                {isLoading ? <Loader2 className="animate-spin" size={20} /> : t('verifyEmailButton')}
               </button>
             </form>
 
@@ -187,7 +188,7 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
                 onClick={() => navigate('/?auth=login')}
                 className="text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
               >
-                Back to login
+                {t('backToLogin')}
               </button>
             </div>
           </>

@@ -3,14 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { Sun, Moon, Lock, Mail, Loader2 } from 'lucide-react'; 
 import { authService } from '../../services/authService';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useTranslation } from '../../i18n/TranslationProvider';
 import logoSpectrum from '../../assets/img/logo-spectrum-groupe.png';
 import GoogleSignInButton from '../../shared/components/GoogleSignInButton';
 import type { AuthResponse } from '../../shared/types/auth';
-import { EMAIL_ERROR, EMAIL_REGEX } from '../../services/validation';
+import { EMAIL_REGEX } from '../../services/validation';
 
 const Login = () => {
-  const [email, setEmail] = useState('admin@test.com');
-  const [password, setPassword] = useState('1234');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -19,6 +20,7 @@ const Login = () => {
   
   const navigate = useNavigate();
   const setToken = useAuthStore((state) => state.setToken);
+  const { t } = useTranslation();
 
   // Theme toggle
   useEffect(() => {
@@ -40,7 +42,7 @@ const Login = () => {
       setToken(data.token);
       navigate('/analysis'); 
     } catch {
-      setError('Invalid credentials or unable to reach the server.');
+      setError(t('invalidCredentials'));
     } finally {
       setIsLoading(false);
     }
@@ -51,7 +53,7 @@ const Login = () => {
     setSuccess('');
 
     if (!EMAIL_REGEX.test(email.trim())) {
-      setError(EMAIL_ERROR);
+      setError(t('invalidEmail'));
       return;
     }
 
@@ -61,7 +63,7 @@ const Login = () => {
       setSuccess(data.message);
     } catch (error) {
       const response = (error as { response?: { data?: { error?: string } } }).response;
-      setError(response?.data?.error || 'Unable to send the password reset link.');
+      setError(response?.data?.error || t('unableSendResetLink'));
     } finally {
       setIsResetLoading(false);
     }
@@ -101,10 +103,10 @@ const Login = () => {
               className={`h-20 w-auto mx-auto mb-6 transition-all ${darkMode ? 'brightness-200' : ''}`}
             />
             <h1 className="text-3xl font-extrabold text-[#004a99] dark:text-blue-400 tracking-tight">
-              Migration Assistant
+              {t('loginTitle')}
             </h1>
             <p className="mt-3 text-slate-500 dark:text-slate-400">
-              Jira information management expertise
+              {t('loginSubtitle')}
             </p>
           </div>
 
@@ -120,7 +122,7 @@ const Login = () => {
               <div className="mt-6 flex items-center gap-3">
                 <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
                 <span className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                  or
+                  {t('loginOr')}
                 </span>
                 <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
               </div>
@@ -132,7 +134,7 @@ const Login = () => {
                 {/* Email field */}
                 <div>
                   <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-2">
-                    Work email
+                    {t('loginEmailLabel')}
                   </label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
@@ -142,7 +144,7 @@ const Login = () => {
                       type="email"
                       required
                       className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#f39200] outline-none transition-all"
-                      placeholder="name@example.com"
+                      placeholder={t('loginPlaceholderEmail')}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                     />
@@ -152,7 +154,7 @@ const Login = () => {
                 {/* Champ Password */}
                 <div>
                   <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-2">
-                    Password
+                    {t('loginPasswordLabel')}
                   </label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
@@ -162,7 +164,7 @@ const Login = () => {
                       type="password"
                       required
                       className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#f39200] outline-none transition-all"
-                      placeholder="••••••••"
+                      placeholder={t('loginPlaceholderPassword')}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
@@ -189,7 +191,7 @@ const Login = () => {
               >
                 {isLoading ? (
                   <Loader2 className="animate-spin mr-2" size={20} />
-                ) : 'Sign in'}
+                ) : t('loginButton')}
               </button>
             </form>
 
@@ -200,7 +202,7 @@ const Login = () => {
                 disabled={isResetLoading}
                 className="text-sm font-bold text-[var(--spectrum-blue)] hover:underline disabled:opacity-60"
               >
-                {isResetLoading ? 'Sending link...' : 'Forgot password?'}
+                {isResetLoading ? t('sendingLink') : t('forgotPassword')}
               </button>
             </div>
           </div>
