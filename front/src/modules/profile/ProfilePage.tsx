@@ -3,7 +3,7 @@ import { ArrowLeft, KeyRound, Loader2, Mail, Save, ShieldCheck } from 'lucide-re
 import { useNavigate } from 'react-router-dom';
 
 import { MainSidebar } from '../../shared/components/MainSidebar';
-import { ProfileMenu } from '../../shared/components/ProfileMenu';
+import { LocaleSwitcher } from '../../shared/components/LocaleSwitcher';
 import { authService } from '../../services/authService';
 import { useAuthStore } from '../../store/useAuthStore';
 import type { AuthUser } from '../../shared/types/auth';
@@ -128,7 +128,7 @@ const ProfilePage: React.FC = () => {
                 <h1 className="text-base font-black sm:text-lg">Profile</h1>
               </div>
             </div>
-            <ProfileMenu />
+            <LocaleSwitcher className="hidden items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-3 py-2 text-xs font-bold text-[#64708d] transition dark:border-white/10 dark:bg-white/5 dark:text-white/70 sm:flex" />
           </div>
         </header>
 

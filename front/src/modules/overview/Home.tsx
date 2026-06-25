@@ -152,22 +152,26 @@ const Home = () => {
                 <span className="hidden sm:inline">{isLight ? 'Light' : 'Dark'}</span>
               </button>
 
-              <LocaleSwitcher className="hidden lg:flex text-sm" />
-
               {isAuthenticated ? (
-                <button
-                  onClick={() => navigate('/analysis')}
-                  className="rounded-xl bg-[#2f80ed] px-4 py-2 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#256fdb]"
-                >
-                  {t('openAnalysis')}
-                </button>
+                <>
+                  <LocaleSwitcher className="hidden lg:flex text-sm" />
+                  <button
+                    onClick={() => navigate('/analysis')}
+                    className="rounded-xl bg-[#2f80ed] px-4 py-2 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#256fdb]"
+                  >
+                    {t('openAnalysis')}
+                  </button>
+                </>
               ) : (
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="rounded-xl bg-[#111b3f] px-4 py-2 text-sm font-black text-white transition hover:bg-[#1d2b5b] dark:bg-white dark:text-[#111b3f]"
-                >
-                  {t('signIn')}
-                </button>
+                <>
+                  <LocaleSwitcher className="hidden lg:flex text-sm" />
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="rounded-xl bg-[#111b3f] px-4 py-2 text-sm font-black text-white transition hover:bg-[#1d2b5b] dark:bg-white dark:text-[#111b3f]"
+                  >
+                    {t('signIn')}
+                  </button>
+                </>
               )}
             </div>
           </div>
