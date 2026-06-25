@@ -80,6 +80,8 @@ export const messages = {
     aiRecommendation: 'AI recommendation',
     priorityAppCompatibility: 'Prioritize app compatibility and automation review.',
     localeLabel: 'Language',
+    localeToggle: 'Switch language',
+    switchTo: 'Switch to',
     profileMenuOpen: 'Open profile menu',
   },
   fr: {
@@ -149,6 +151,8 @@ export const messages = {
     aiRecommendation: 'Recommandation IA',
     priorityAppCompatibility: 'Priorisez la compatibilité des applications et l’examen de l’automatisation.',
     localeLabel: 'Langue',
+    localeToggle: 'Changer la langue',
+    switchTo: 'Basculer vers',
     profileMenuOpen: 'Ouvrir le menu de profil',
   },
 } as const;
