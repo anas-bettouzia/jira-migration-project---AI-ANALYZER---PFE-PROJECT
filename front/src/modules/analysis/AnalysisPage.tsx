@@ -28,8 +28,9 @@ import {
 } from 'lucide-react';
 
 import { FileUploader } from '../../shared/components/FileUploader';
-import { LocaleSwitcher } from '../../shared/components/LocaleSwitcher';
+import { LanguageSwitcher } from '../../shared/components/LanguageSwitcher';
 import { MainSidebar } from '../../shared/components/MainSidebar';
+import { useI18n } from '../../i18n';
 import { useJobStatus } from '../../hooks/useJobStatus';
 import { analysisService, type AnalysisJob } from '../../services/analysisService';
 import { api } from '../../core/api';
@@ -55,6 +56,7 @@ export const AnalysisPage: React.FC = () => {
   const jobStatus = useJobStatus(jobId);
   const analysisNameRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   const result = jobStatus?.result;
   const summary = result?.summary;
@@ -227,24 +229,24 @@ export const AnalysisPage: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                <LocaleSwitcher className="hidden sm:flex" />
+                <LanguageSwitcher className="hidden sm:flex" />
                 <button
                   onClick={() => setIsLight((value) => !value)}
                   className="hidden items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-3 py-2 text-xs font-bold text-[#64708d] transition dark:border-white/10 dark:bg-white/5 dark:text-white/70 sm:flex"
-                  aria-label="Toggle color mode"
+                  aria-label={t('common.toggleColorMode')}
                 >
                   <span className="flex h-5 w-9 items-center rounded-full bg-[#dce4f1] p-0.5 dark:bg-[#2c3a57]">
                     <span className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${isLight ? 'translate-x-0' : 'translate-x-4'}`} />
                   </span>
                   {isLight ? <Sun size={14} className="text-amber-500" /> : <Moon size={14} />}
-                  {isLight ? 'Light' : 'Dark'}
+                  {isLight ? t('common.light') : t('common.dark')}
                 </button>
                 <button
                   onClick={startNewAnalysis}
                   className="hidden items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-4 py-2 text-sm font-bold text-[#64708d] transition dark:border-white/10 dark:bg-white/5 dark:text-white/70 sm:flex"
                 >
                   <ArrowUpToLine size={17} />
-                  Upload data
+                  {t('common.uploadData')}
                 </button>
                 <button
                   onClick={() => reportId && navigate(`/reports/${reportId}`)}
@@ -252,7 +254,7 @@ export const AnalysisPage: React.FC = () => {
                   className="flex items-center gap-2 rounded-xl bg-[#2f80ed] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition disabled:cursor-not-allowed disabled:opacity-55"
                 >
                   <FileText size={16} />
-                  View report
+                  {t('common.viewReport')}
                 </button>
               </div>
             </div>
@@ -293,21 +295,21 @@ export const AnalysisPage: React.FC = () => {
                       <div className="grid lg:grid-cols-[1fr_375px]">
                         <div className="p-6 sm:p-9">
                           <div className="mb-4 flex items-center gap-2">
-                            <span className="rounded-full bg-[#2f80ed] px-5 py-2 text-[10px] font-black uppercase text-white">Step 1 of 3</span>
+                            <span className="rounded-full bg-[#2f80ed] px-5 py-2 text-[10px] font-black uppercase text-white">{t('analysis.importStep')}</span>
                             <span className="h-px w-32 bg-[#bdd5fa]" />
                           </div>
 
-                          <h1 className="text-[22px] font-black leading-tight sm:text-2xl">Import your migration package</h1>
+                          <h1 className="text-[22px] font-black leading-tight sm:text-2xl">{t('analysis.importTitle')}</h1>
                           <p className="mt-1 max-w-2xl text-sm leading-5 text-[#64708d] dark:text-white/60">
-                            Upload your Jira Data Center export to let the engine inspect automation logic, detect migration risks, and generate a cloud readiness plan.
+                            {t('analysis.importText')}
                           </p>
 
-                          <label className="mt-4 block text-xs font-black">Analysis name</label>
+                          <label className="mt-4 block text-xs font-black">{t('analysis.name')}</label>
                           <input
                             ref={analysisNameRef}
                             value={analysisName}
                             onChange={(event) => setAnalysisName(event.target.value)}
-                            placeholder="e.g. Finance workspace - DC to Cloud audit"
+                            placeholder={t('analysis.namePlaceholder')}
                             className="mt-2 h-11 w-full rounded-xl border border-[#d6e0ee] bg-[#f8faff] px-4 text-sm font-semibold outline-none transition placeholder:text-[#c4ccdc] focus:border-[#2f80ed] focus:bg-white focus:ring-4 focus:ring-blue-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/25 dark:focus:bg-[#0c1730] dark:focus:ring-blue-500/20"
                           />
 
@@ -335,12 +337,12 @@ export const AnalysisPage: React.FC = () => {
                           <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
                             <div>
                               <div className="mb-4 flex items-center gap-2">
-                                <span className="rounded-full bg-[#2f80ed] px-5 py-2 text-[10px] font-black uppercase text-white">Step {activeStage} of 3</span>
+                                <span className="rounded-full bg-[#2f80ed] px-5 py-2 text-[10px] font-black uppercase text-white">{t('analysis.stepOfTotal', { step: activeStage, total: 3 })}</span>
                                 <span className="h-px w-32 bg-[#bdd5fa]" />
                               </div>
-                              <h1 className="text-2xl font-black leading-tight">Pipeline in progress</h1>
+                              <h1 className="text-2xl font-black leading-tight">{t('analysis.pipelineProgress')}</h1>
                               <p className="mt-1 max-w-xl text-sm text-[#64708d] dark:text-white/60">
-                                {analysisName || 'Migration package'} is moving through the AI compatibility checks.
+                                {t('analysis.pipelineProgressText', { name: analysisName || t('analysis.migrationPackage') })}
                               </p>
                             </div>
                             <StatusBadge status={jobStatus?.status} />
@@ -348,7 +350,7 @@ export const AnalysisPage: React.FC = () => {
 
                           <div className="rounded-2xl border border-[#dbe4f2] bg-[#f8faff] p-5 transition-colors duration-300 dark:border-white/10 dark:bg-white/5">
                             <div className="mb-3 flex items-center justify-between text-xs font-black uppercase text-[#8a96b3] dark:text-white/45">
-                              <span>Job progress</span>
+                              <span>{t('analysis.jobProgress')}</span>
                               <span>{progress}%</span>
                             </div>
                             <div className="h-3 overflow-hidden rounded-full bg-[#e3ebf8]">
@@ -359,18 +361,18 @@ export const AnalysisPage: React.FC = () => {
                               />
                             </div>
                             <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                              <StageChip label="Data prep" active={activeStage >= 1} />
-                              <StageChip label="Compatibility" active={activeStage >= 2} />
-                              <StageChip label="AI report" active={activeStage >= 3} />
+                              <StageChip label={t('analysis.dataReady')} active={activeStage >= 1} />
+                              <StageChip label={t('analysis.compatibility')} active={activeStage >= 2} />
+                              <StageChip label={t('analysis.aiReport')} active={activeStage >= 3} />
                             </div>
                           </div>
 
                           {jobStatus?.status === 'COMPLETED' && (
                             <div className="mt-5 grid gap-4 sm:grid-cols-4">
-                              <StatCard label="Migration score" value={`${summary?.migration_score ?? 0}%`} tone="blue" />
-                              <StatCard label="Blockers" value={summary?.blocker_count ?? 0} tone="red" />
-                              <StatCard label="Components" value={summary?.total_components ?? 0} tone="slate" />
-                              <StatCard label="AI validated" value="Yes" tone="green" />
+                              <StatCard label={t('analysis.migrationScore')} value={`${summary?.migration_score ?? 0}%`} tone="blue" />
+                              <StatCard label={t('analysis.blockers')} value={summary?.blocker_count ?? 0} tone="red" />
+                              <StatCard label={t('analysis.components')} value={summary?.total_components ?? 0} tone="slate" />
+                              <StatCard label={t('analysis.aiValidated')} value={t('common.yes')} tone="green" />
                             </div>
                           )}
 
@@ -480,158 +482,162 @@ const SecondarySidebar = ({
   startNewAnalysis: () => void;
   setIsCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
   status?: string;
-}) => (
-  <section className={`hidden border-r border-[#dce4f4] bg-white py-5 transition-all duration-300 dark:border-white/10 dark:bg-[#0c1730] lg:flex lg:min-h-[calc(100vh-62px)] lg:flex-col ${isCollapsed ? 'items-center px-3' : 'px-4'}`}>
-    {isCollapsed ? (
-      <>
-        <button
-          onClick={() => setIsCollapsed(false)}
-          className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl border border-[#dbe4f2] text-[#64708d] transition hover:border-[#bdd5fa] hover:bg-[#f8faff] hover:text-[#2f80ed] dark:border-white/10 dark:text-white/60 dark:hover:bg-white/6 dark:hover:text-white"
-          aria-label="Open sidebar"
-          title="Open sidebar"
-        >
-          <PanelLeftOpen size={19} />
-        </button>
-        <button
-          onClick={startNewAnalysis}
-          className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#2f80ed] text-white shadow-lg shadow-blue-500/20 transition hover:-translate-y-0.5 hover:bg-[#256fdb]"
-          aria-label="New analysis"
-          title="New analysis"
-        >
-          <Plus size={20} />
-        </button>
+}) => {
+  const { t } = useI18n();
 
-        <div className="flex flex-col items-center gap-3">
-          <CompactSidebarButton icon={<Gauge size={19} />} active={recentJobs.length > 0} label={`${recentJobs.length} recent`} />
-          <CompactSidebarButton icon={<FileText size={18} />} active={Boolean(jobId)} label="Audit" />
-          <CompactSidebarButton icon={<AlertCircle size={18} />} tone="warning" label="AI" />
-        </div>
+  return (
+    <section className={`hidden border-r border-[#dce4f4] bg-white py-5 transition-all duration-300 dark:border-white/10 dark:bg-[#0c1730] lg:flex lg:min-h-[calc(100vh-62px)] lg:flex-col ${isCollapsed ? 'items-center px-3' : 'px-4'}`}>
+      {isCollapsed ? (
+        <>
+          <button
+            onClick={() => setIsCollapsed(false)}
+            className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl border border-[#dbe4f2] text-[#64708d] transition hover:border-[#bdd5fa] hover:bg-[#f8faff] hover:text-[#2f80ed] dark:border-white/10 dark:text-white/60 dark:hover:bg-white/6 dark:hover:text-white"
+            aria-label={t('common.openAnalysis')}
+            title={t('common.openAnalysis')}
+          >
+            <PanelLeftOpen size={19} />
+          </button>
+          <button
+            onClick={startNewAnalysis}
+            className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#2f80ed] text-white shadow-lg shadow-blue-500/20 transition hover:-translate-y-0.5 hover:bg-[#256fdb]"
+            aria-label={t('analysis.newAnalysis')}
+            title={t('analysis.newAnalysis')}
+          >
+            <Plus size={20} />
+          </button>
 
-        <div className="mt-auto flex flex-col items-center gap-3 pb-2">
-          <CompactSidebarButton icon={<HelpCircle size={18} />} label="Help" />
-          <CompactSidebarButton icon={<BookOpen size={18} />} label="Log" />
-        </div>
-      </>
-    ) : (
-      <>
-        <div>
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <button
-              onClick={startNewAnalysis}
-              className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-[#2f80ed] px-4 py-3 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:-translate-y-0.5 hover:bg-[#256fdb]"
-            >
-              <Plus size={17} />
-              New analysis
-            </button>
-            <button
-              onClick={() => setIsCollapsed(true)}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#dbe4f2] text-[#64708d] transition hover:border-[#bdd5fa] hover:bg-[#f8faff] hover:text-[#2f80ed] dark:border-white/10 dark:text-white/60 dark:hover:bg-white/6 dark:hover:text-white"
-              aria-label="Collapse sidebar"
-              title="Collapse sidebar"
-            >
-              <PanelLeftClose size={18} />
-            </button>
+          <div className="flex flex-col items-center gap-3">
+            <CompactSidebarButton icon={<Gauge size={19} />} active={recentJobs.length > 0} label={t('analysis.recentCount', { count: recentJobs.length })} />
+            <CompactSidebarButton icon={<FileText size={18} />} active={Boolean(jobId)} label={t('analysis.audit')} />
+            <CompactSidebarButton icon={<AlertCircle size={18} />} tone="warning" label={t('analysis.ai')} />
           </div>
 
-          <div className="mb-3 flex items-center justify-between px-1">
-            <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">Recent analyses</p>
-            <span className="rounded-full bg-[#eef4ff] px-2 py-1 text-[10px] font-black text-[#2f80ed] dark:bg-white/6 dark:text-[#8bbdff]">
-              {recentJobsLoading ? 'Loading' : recentJobs.length ? `${recentJobs.length} recent` : 'Empty'}
-            </span>
+          <div className="mt-auto flex flex-col items-center gap-3 pb-2">
+            <CompactSidebarButton icon={<HelpCircle size={18} />} label={t('analysis.help')} />
+            <CompactSidebarButton icon={<BookOpen size={18} />} label={t('analysis.log')} />
           </div>
+        </>
+      ) : (
+        <>
+          <div>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <button
+                onClick={startNewAnalysis}
+                className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-[#2f80ed] px-4 py-3 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:-translate-y-0.5 hover:bg-[#256fdb]"
+              >
+                <Plus size={17} />
+                {t('analysis.newAnalysis')}
+              </button>
+              <button
+                onClick={() => setIsCollapsed(true)}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#dbe4f2] text-[#64708d] transition hover:border-[#bdd5fa] hover:bg-[#f8faff] hover:text-[#2f80ed] dark:border-white/10 dark:text-white/60 dark:hover:bg-white/6 dark:hover:text-white"
+                aria-label={t('analysis.collapseSidebar')}
+                title={t('analysis.collapseSidebar')}
+              >
+                <PanelLeftClose size={18} />
+              </button>
+            </div>
 
-          {recentJobsLoading ? (
-            <div className="rounded-2xl border border-[#dbe4f2] bg-[#f8faff] p-5 text-center dark:border-white/10 dark:bg-white/5">
-              <Loader2 className="mx-auto animate-spin text-[#2f80ed]" size={22} />
-              <p className="mt-3 text-xs font-bold text-[#8a96b3] dark:text-white/45">Loading recent analyses...</p>
-            </div>
-          ) : recentJobs.length > 0 ? (
-            <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
-              {recentJobs.map((job) => (
-                <RecentJobItem
-                  key={job.job_id}
-                  active={job.job_id === jobId}
-                  job={job}
-                  onArchiveReport={() => onArchiveRecentReport(job)}
-                  onDeleteReport={() => onDeleteRecentReport(job)}
-                  onClick={() => onRecentJobClick(job)}
-                />
-              ))}
-              {recentJobsHasMore && (
-                <button
-                  onClick={onLoadMoreRecentJobs}
-                  className="w-full rounded-xl px-3 py-2.5 text-xs font-black text-[#64708d] transition hover:bg-[#f8faff] hover:text-[#2f80ed] dark:text-white/60 dark:hover:bg-white/6 dark:hover:text-[#8bbdff]"
-                >
-                  Load more
-                </button>
-              )}
-            </div>
-          ) : jobId ? (
-            <button className="w-full rounded-2xl border border-[#dbe4f2] bg-[#f8faff] p-4 text-left shadow-sm transition hover:border-[#bdd5fa] hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/8">
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eaf3ff] text-[#2f80ed] dark:bg-[#10264d] dark:text-[#8bbdff]">
-                    <FileText size={18} />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-black text-[#111b3f] dark:text-white">{analysisName || 'Migration package'}</p>
-                    <p className="mt-0.5 text-xs text-[#8a96b3] dark:text-white/45">Current workspace audit</p>
-                  </div>
-                </div>
-                <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[#23d18b] shadow-[0_0_0_4px_rgba(35,209,139,0.16)]" />
-              </div>
-              <div className="mb-2 flex items-center justify-between text-[10px] font-black uppercase text-[#8a96b3] dark:text-white/45">
-                <span>{status || 'Initializing'}</span>
-                <span>{progress}%</span>
-              </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-[#dfe8f6] dark:bg-white/10">
-                <span className="block h-full rounded-full bg-[#2f80ed]" style={{ width: `${progress}%` }} />
-              </div>
-            </button>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-[#cbd8ea] bg-[#f8faff] px-4 py-5 text-center dark:border-white/14 dark:bg-white/5">
-              <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#2f80ed] shadow-sm dark:bg-[#10264d] dark:text-[#8bbdff]">
-                <Gauge size={20} />
+            <div className="mb-3 flex items-center justify-between px-1">
+              <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">{t('analysis.recent')}</p>
+              <span className="rounded-full bg-[#eef4ff] px-2 py-1 text-[10px] font-black text-[#2f80ed] dark:bg-white/6 dark:text-[#8bbdff]">
+                {recentJobsLoading ? t('common.loading') : recentJobs.length ? t('analysis.recentCount', { count: recentJobs.length }) : t('common.empty')}
               </span>
-              <h3 className="mt-3 text-sm font-black text-[#111b3f] dark:text-white">No analyses yet</h3>
-              <p className="mt-1 text-xs leading-5 text-[#8a96b3] dark:text-white/45">
-                Your completed migration audits will appear here for quick access.
-              </p>
             </div>
-          )}
 
-          <div className="mt-4 rounded-2xl border border-[#dbe4f2] bg-white p-4 dark:border-white/10 dark:bg-white/5">
-            <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">Workspace status</p>
-            <div className="mt-3 space-y-3">
-              <SidebarMetric label="Data package" value={jobId ? 'Uploaded' : 'Waiting'} active={Boolean(jobId)} />
-              <SidebarMetric label="Cloud readiness" value={status === 'COMPLETED' ? 'Ready' : 'Pending'} active={status === 'COMPLETED'} />
-            </div>
-          </div>
-        </div>
+            {recentJobsLoading ? (
+              <div className="rounded-2xl border border-[#dbe4f2] bg-[#f8faff] p-5 text-center dark:border-white/10 dark:bg-white/5">
+                <Loader2 className="mx-auto animate-spin text-[#2f80ed]" size={22} />
+                <p className="mt-3 text-xs font-bold text-[#8a96b3] dark:text-white/45">{t('analysis.loadingRecent')}</p>
+              </div>
+            ) : recentJobs.length > 0 ? (
+              <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
+                {recentJobs.map((job) => (
+                  <RecentJobItem
+                    key={job.job_id}
+                    active={job.job_id === jobId}
+                    job={job}
+                    onArchiveReport={() => onArchiveRecentReport(job)}
+                    onDeleteReport={() => onDeleteRecentReport(job)}
+                    onClick={() => onRecentJobClick(job)}
+                  />
+                ))}
+                {recentJobsHasMore && (
+                  <button
+                    onClick={onLoadMoreRecentJobs}
+                    className="w-full rounded-xl px-3 py-2.5 text-xs font-black text-[#64708d] transition hover:bg-[#f8faff] hover:text-[#2f80ed] dark:text-white/60 dark:hover:bg-white/6 dark:hover:text-[#8bbdff]"
+                  >
+                    {t('analysis.loadMore')}
+                  </button>
+                )}
+              </div>
+            ) : jobId ? (
+              <button className="w-full rounded-2xl border border-[#dbe4f2] bg-[#f8faff] p-4 text-left shadow-sm transition hover:border-[#bdd5fa] hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/8">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eaf3ff] text-[#2f80ed] dark:bg-[#10264d] dark:text-[#8bbdff]">
+                      <FileText size={18} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-[#111b3f] dark:text-white">{analysisName || t('analysis.migrationPackage')}</p>
+                      <p className="mt-0.5 text-xs text-[#8a96b3] dark:text-white/45">{t('analysis.currentWorkspaceAudit')}</p>
+                    </div>
+                  </div>
+                  <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[#23d18b] shadow-[0_0_0_4px_rgba(35,209,139,0.16)]" />
+                </div>
+                <div className="mb-2 flex items-center justify-between text-[10px] font-black uppercase text-[#8a96b3] dark:text-white/45">
+                  <span>{status || t('analysis.initializing')}</span>
+                  <span>{progress}%</span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-[#dfe8f6] dark:bg-white/10">
+                  <span className="block h-full rounded-full bg-[#2f80ed]" style={{ width: `${progress}%` }} />
+                </div>
+              </button>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-[#cbd8ea] bg-[#f8faff] px-4 py-5 text-center dark:border-white/14 dark:bg-white/5">
+                <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#2f80ed] shadow-sm dark:bg-[#10264d] dark:text-[#8bbdff]">
+                  <Gauge size={20} />
+                </span>
+                <h3 className="mt-3 text-sm font-black text-[#111b3f] dark:text-white">{t('analysis.noAnalyses')}</h3>
+                <p className="mt-1 text-xs leading-5 text-[#8a96b3] dark:text-white/45">
+                  {t('analysis.noAnalysesText')}
+                </p>
+              </div>
+            )}
 
-        <div className="mt-auto space-y-4 pb-2">
-          <div className="rounded-lg border border-[#ffd36d] bg-[#fff9e6] px-4 py-3 text-sm text-[#9b4f00] dark:border-[#f59e0b]/35 dark:bg-[#f59e0b]/10 dark:text-[#ffbe4d]">
-            <div className="mb-1 flex items-center gap-2 font-black">
-              <AlertCircle size={16} />
-              AI may make mistakes.
+            <div className="mt-4 rounded-2xl border border-[#dbe4f2] bg-white p-4 dark:border-white/10 dark:bg-white/5">
+              <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">{t('analysis.workspaceStatus')}</p>
+              <div className="mt-3 space-y-3">
+                <SidebarMetric label={t('analysis.dataPackage')} value={jobId ? t('analysis.uploaded') : t('analysis.waiting')} active={Boolean(jobId)} />
+                <SidebarMetric label={t('analysis.cloudReadiness')} value={status === 'COMPLETED' ? t('analysis.pipelineActive') : t('analysis.pending')} active={status === 'COMPLETED'} />
+              </div>
             </div>
-            <p>Verify output before migration.</p>
           </div>
-          <div className="space-y-3 px-1 text-base text-[#8291b3] dark:text-white/55">
-            <button className="flex items-center gap-2 transition hover:text-[#2f80ed]">
-              <HelpCircle size={18} />
-              Help & feedback
-            </button>
-            <button className="flex items-center gap-2 transition hover:text-[#2f80ed]">
-              <BookOpen size={18} />
-              Changelog
-            </button>
+
+          <div className="mt-auto space-y-4 pb-2">
+            <div className="rounded-lg border border-[#ffd36d] bg-[#fff9e6] px-4 py-3 text-sm text-[#9b4f00] dark:border-[#f59e0b]/35 dark:bg-[#f59e0b]/10 dark:text-[#ffbe4d]">
+              <div className="mb-1 flex items-center gap-2 font-black">
+                <AlertCircle size={16} />
+                {t('analysis.aiWarningTitle')}
+              </div>
+              <p>{t('analysis.aiWarningText')}</p>
+            </div>
+            <div className="space-y-3 px-1 text-base text-[#8291b3] dark:text-white/55">
+              <button className="flex items-center gap-2 transition hover:text-[#2f80ed]">
+                <HelpCircle size={18} />
+                {t('analysis.help')}
+              </button>
+              <button className="flex items-center gap-2 transition hover:text-[#2f80ed]">
+                <BookOpen size={18} />
+                {t('analysis.changelog')}
+              </button>
+            </div>
           </div>
-        </div>
-      </>
-    )}
-  </section>
-);
+        </>
+      )}
+    </section>
+  );
+};
 
 const CompactSidebarButton = ({ icon, label, active, tone }: { icon: React.ReactNode; label: string; active?: boolean; tone?: 'warning' }) => (
   <button
@@ -662,6 +668,7 @@ const RecentJobItem = ({
   onArchiveReport: () => void;
   onDeleteReport: () => void;
 }) => {
+  const { t } = useI18n();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const progress = getJobProgress(job.status);
   const isCompleted = job.status === 'COMPLETED' && Boolean(job.result?.report_id);
@@ -710,12 +717,12 @@ const RecentJobItem = ({
             <p className="mt-0.5 text-xs text-[#8a96b3] dark:text-white/45">{formatJobDate(job.updated_at ?? job.created_at)}</p>
           </div>
         </div>
-        
+
         <div className="flex shrink-0 items-center gap-1">
           <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black uppercase ${getJobStatusTone(job.status)}`}>
             {isCompleted ? 'Report' : job.status || 'Job'}
           </span>
-          
+
           <div className="relative">
             <button
               onClick={toggleMenu}
@@ -723,8 +730,7 @@ const RecentJobItem = ({
             >
               <MoreVertical size={14} />
             </button>
-            
-            {/* Menu Dropdown */}
+
             {isMenuOpen && (
               <div className="absolute right-0 top-full z-50 mt-1 w-32 overflow-hidden rounded-xl border border-[#dbe4f2] bg-white shadow-lg dark:border-white/10 dark:bg-[#0c1730]">
                 {hasReport ? (
@@ -734,19 +740,19 @@ const RecentJobItem = ({
                       className="flex w-full items-center gap-2 px-3 py-2.5 text-xs font-bold text-[#64708d] transition hover:bg-[#f8faff] dark:text-white/70 dark:hover:bg-white/5"
                     >
                       <Archive size={13} />
-                      Archive
+                      {t('analysis.archive')}
                     </button>
                     <button
                       onClick={handleDeleteAction}
                       className="flex w-full items-center gap-2 px-3 py-2.5 text-xs font-bold text-[#e54848] transition hover:bg-[#fff0f0] dark:text-red-400 dark:hover:bg-red-500/10"
                     >
                       <Trash2 size={13} />
-                      Delete
+                      {t('analysis.delete')}
                     </button>
                   </>
                 ) : (
                   <span className="block px-3 py-2.5 text-xs font-bold text-[#8a96b3] dark:text-white/35">
-                    No report yet
+                    {t('analysis.reportUnavailable')}
                   </span>
                 )}
               </div>
@@ -774,35 +780,39 @@ const SidebarMetric = ({ label, value, active }: { label: string; value: string;
   </div>
 );
 
-const PipelinePanel = ({ activeStage, status }: { activeStage: number; status: JobStatus }) => (
-  <aside className="bg-[#162762] p-6 text-white sm:p-7">
-    <h2 className="text-base font-black">AI Analysis Pipeline</h2>
-    <p className="mt-1 text-sm text-white/48">AI-powered DC to Cloud compatibility analysis</p>
+const PipelinePanel = ({ activeStage, status }: { activeStage: number; status: JobStatus }) => {
+  const { t } = useI18n();
+
+  return (
+    <aside className="bg-[#162762] p-6 text-white sm:p-7">
+      <h2 className="text-base font-black">{t('analysis.pipelineTitle')}</h2>
+      <p className="mt-1 text-sm text-white/48">{t('analysis.pipelineText')}</p>
 
     <div className="mt-4 rounded-2xl bg-white/8 p-4 ring-1 ring-white/8">
       <div className="flex items-start gap-3">
         <span className="mt-1 h-3.5 w-3.5 rounded-full bg-[#34d399]" />
         <div>
-          <p className="text-sm font-black">{status ? 'Pipeline active' : 'Live pipeline ready'}</p>
-          <p className="text-xs text-white/58">{status ? 'Processing package upload' : 'Waiting for package upload'}</p>
+          <p className="text-sm font-black">{status ? t('analysis.pipelineActive') : t('analysis.pipelineReady')}</p>
+          <p className="text-xs text-white/58">{status ? t('analysis.processingUpload') : t('analysis.waitingUpload')}</p>
         </div>
       </div>
     </div>
 
     <div className="mt-7 space-y-0">
-      <PipelineStep number="01" eyebrow="Data ready" title="Data preparation" text="Upload, parsing, and data normalization." active={activeStage === 1} done={activeStage > 1} connectorState={activeStage > 1 ? 'done' : 'next'} />
-      <PipelineStep number="02" eyebrow="Current stage" title="Compatibility analysis" text="Feature detection and rule-based evaluation." active={activeStage === 2} done={activeStage > 2} connectorState={activeStage > 2 ? 'done' : activeStage === 2 ? 'active' : 'idle'} />
-      <PipelineStep number="03" eyebrow="Final output" title="AI report generation" text="AI-powered migration assessment report." active={activeStage === 3} done={false} />
+      <PipelineStep number="01" eyebrow={t('analysis.dataReady')} title={t('analysis.dataPrep')} text={t('analysis.dataPrepText')} active={activeStage === 1} done={activeStage > 1} connectorState={activeStage > 1 ? 'done' : 'next'} />
+      <PipelineStep number="02" eyebrow={t('analysis.currentStage')} title={t('analysis.compatibility')} text={t('analysis.compatibilityText')} active={activeStage === 2} done={activeStage > 2} connectorState={activeStage > 2 ? 'done' : activeStage === 2 ? 'active' : 'idle'} />
+      <PipelineStep number="03" eyebrow={t('analysis.finalOutput')} title={t('analysis.aiReport')} text={t('analysis.aiReportText')} active={activeStage === 3} done={false} />
     </div>
 
     <div className="mt-5 rounded-2xl border border-[#f59e0b]/30 bg-[#f59e0b]/10 p-4 text-xs leading-5 text-[#ffb43b]">
       <div className="flex gap-2">
         <AlertCircle size={15} className="mt-0.5 shrink-0" />
-        <p>AI recommendations should be reviewed before production migration.</p>
+        <p>{t('analysis.recommendationReview')}</p>
       </div>
     </div>
   </aside>
-);
+  );
+};
 
 const PipelineStep = ({
   number,
@@ -886,13 +896,17 @@ const StatCard = ({ label, value, tone }: { label: string; value: string | numbe
   );
 };
 
-const ResourceCards = () => (
-  <div className="mt-16 grid gap-4 md:grid-cols-3">
-    <ResourceCard icon={<Home size={17} />} eyebrow="Documentation" title="Need help exporting?" text="From v9.19 onwards, export directly." action="View documentation" tone="blue" />
-    <ResourceCard icon={<Layers3 size={17} />} eyebrow="Spectrum Academy" title="Formations Atlassian" text="Montez en competences avec nos experts." action="Discover trainings" tone="purple" />
-    <ResourceCard icon={<Activity size={17} />} eyebrow="Spectrum Benchmark" title="Analyses du marche" text="Livres blancs et analyses avancees." action="Read benchmarks" tone="pink" />
-  </div>
-);
+const ResourceCards = () => {
+  const { t } = useI18n();
+
+  return (
+    <div className="mt-16 grid gap-4 md:grid-cols-3">
+      <ResourceCard icon={<Home size={17} />} eyebrow={t('analysis.docsEyebrow')} title={t('analysis.docsTitle')} text={t('analysis.docsText')} action={t('analysis.docsAction')} tone="blue" />
+      <ResourceCard icon={<Layers3 size={17} />} eyebrow={t('analysis.academyEyebrow')} title={t('analysis.academyTitle')} text={t('analysis.academyText')} action={t('analysis.academyAction')} tone="purple" />
+      <ResourceCard icon={<Activity size={17} />} eyebrow={t('analysis.benchmarkEyebrow')} title={t('analysis.benchmarkTitle')} text={t('analysis.benchmarkText')} action={t('analysis.benchmarkAction')} tone="pink" />
+    </div>
+  );
+};
 
 const ResourceCard = ({ icon, eyebrow, title, text, action, tone }: { icon: React.ReactNode; eyebrow: string; title: string; text: string; action: string; tone: 'blue' | 'purple' | 'pink' }) => {
   const tones = {

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart3, Boxes, Gauge } from 'lucide-react';
 
 import { ProfileMenu } from './ProfileMenu';
-import { useTranslation } from '../../i18n/TranslationProvider';
+import { useI18n } from '../../i18n';
 import spectrumMark from '../../assets/img/cropped-favicon-spectrumgroupe.png';
 
 type MainSidebarPage = 'overview' | 'analysis' | 'reports';
@@ -13,23 +13,23 @@ interface MainSidebarProps {
 }
 
 export const MainSidebar: React.FC<MainSidebarProps> = ({ activePage }) => {
-  const { t } = useTranslation();
+  const { t } = useI18n();
   const navigate = useNavigate();
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-[72px] flex-col items-center border-r border-white/10 bg-[#101b49] py-4 text-white shadow-2xl shadow-[#101b49]/25 md:flex">
       <button
         onClick={() => navigate('/')}
         className="mb-9 flex h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-lg shadow-black/10 ring-1 ring-white/20 transition hover:scale-105"
-        aria-label="Go to home"
-        title="Jira Migration"
+        aria-label={t('sidebar.goHome')}
+        title={t('sidebar.goHome')}
       >
         <img src={spectrumMark} alt="Spectrum Groupe" className="h-8 w-8 object-contain" />
       </button>
 
       <nav className="flex flex-1 flex-col items-center gap-3 text-[9px] font-semibold text-white/48">
-        <MainSidebarItem icon={<Boxes size={17} />} label={t('overview')} active={activePage === 'overview'} onClick={() => navigate('/')} />
-        <MainSidebarItem icon={<Gauge size={17} />} label={t('aiAnalysis')} active={activePage === 'analysis'} onClick={() => navigate('/analysis')} />
-        <MainSidebarItem icon={<BarChart3 size={17} />} label={t('reports')} active={activePage === 'reports'} />
+        <MainSidebarItem icon={<Boxes size={17} />} label={t('sidebar.overview')} active={activePage === 'overview'} onClick={() => navigate('/')} />
+        <MainSidebarItem icon={<Gauge size={17} />} label={t('sidebar.aiAnalysis')} active={activePage === 'analysis'} onClick={() => navigate('/analysis')} />
+        <MainSidebarItem icon={<BarChart3 size={17} />} label={t('sidebar.reports')} active={activePage === 'reports'} />
       </nav>
       <div className="mb-4">
         <ProfileMenu variant="sidebar" />

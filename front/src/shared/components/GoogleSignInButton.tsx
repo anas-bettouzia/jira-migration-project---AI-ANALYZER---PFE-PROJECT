@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { authService } from '../../services/authService';
+import { useI18n } from '../../i18n';
 import type { AuthResponse } from '../types/auth';
 
 type GoogleButtonTheme = 'outline' | 'filled_blue' | 'filled_black';
@@ -81,9 +82,9 @@ const loadGoogleScript = () => {
   return googleScriptPromise;
 };
 
-const getGoogleAuthErrorMessage = (error: unknown) => {
+const getGoogleAuthErrorMessage = (error: unknown, fallbackMessage: string) => {
   const response = (error as { response?: { data?: { error?: string; message?: string } } }).response;
-  return response?.data?.error || response?.data?.message || 'Google authentication failed.';
+  return response?.data?.error || response?.data?.message || fallbackMessage;
 };
 
 const GoogleSignInButton = ({
@@ -92,6 +93,7 @@ const GoogleSignInButton = ({
   theme = 'outline',
   width = 340,
 }: GoogleSignInButtonProps) => {
+  const { t } = useI18n();
   const buttonRef = useRef<HTMLDivElement | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [scriptError, setScriptError] = useState('');
@@ -116,7 +118,7 @@ const GoogleSignInButton = ({
             client_id: clientId,
             callback: async (response) => {
               if (!response.credential) {
-                onError?.('Google did not return a valid credential.');
+                onError?.(t('auth.googleNoCredential'));
                 return;
               }
 
@@ -125,7 +127,7 @@ const GoogleSignInButton = ({
                 const data = await authService.googleLogin(response.credential);
                 onAuthenticated(data);
               } catch (error) {
-                onError?.(getGoogleAuthErrorMessage(error));
+                onError?.(getGoogleAuthErrorMessage(error, t('auth.googleAuthFailed')));
               } finally {
                 if (isMounted) {
                   setIsAuthenticating(false);
@@ -155,7 +157,7 @@ const GoogleSignInButton = ({
       })
       .catch(() => {
         if (isMounted) {
-          setScriptError('Google sign-in is unavailable.');
+          setScriptError(t('auth.googleUnavailable'));
         }
       });
 
@@ -165,7 +167,7 @@ const GoogleSignInButton = ({
     };
   }, [clientId, onAuthenticated, onError, theme, width]);
 
-  const configError = clientId ? scriptError : 'Google sign-in is not configured.';
+  const configError = clientId ? scriptError : t('auth.googleNotConfigured');
 
   if (configError) {
     return (

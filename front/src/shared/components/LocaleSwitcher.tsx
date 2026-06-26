@@ -1,4 +1,5 @@
-import { useTranslation } from '../../i18n/TranslationProvider';
+import { useI18n } from '../../i18n/index.tsx';
+import { LOCALE_LABELS, LOCALE_NAMES, SUPPORTED_LOCALES } from '../../i18n/translations.ts';
 import { useEffect, useRef, useState } from 'react';
 import { FlagIcon } from './FlagIcon';
 
@@ -7,7 +8,10 @@ interface LocaleSwitcherProps {
 }
 
 export const LocaleSwitcher = ({ className = '' }: LocaleSwitcherProps) => {
-  const { locale, setLocale, availableLocales, localeLabels, localeNames, t } = useTranslation();
+  const { language: locale, setLanguage: setLocale, t } = useI18n();
+  const availableLocales = SUPPORTED_LOCALES;
+  const localeLabels = LOCALE_LABELS;
+  const localeNames = LOCALE_NAMES;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 

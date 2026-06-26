@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, Mail, X, CheckCircle } from 'lucide-react';
 import { authService } from '../../services/authService';
-import { useTranslation } from '../../i18n/TranslationProvider';
+import { useI18n } from '../../i18n';
 import { EMAIL_REGEX } from '../../services/validation';
 
 interface VerifyEmailProps {
@@ -10,7 +10,7 @@ interface VerifyEmailProps {
 }
 
 const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
-  const { t } = useTranslation();
+  const { t } = useI18n();
 
   const getVerifyErrorMessage = (error: unknown) => {
     const response = (error as { response?: { data?: { error?: string } } }).response;
@@ -32,7 +32,7 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
     const autoVerify = async () => {
       if (!token || !email) {
         setIsVerifying(false);
-        setError(t('verificationLinkInvalid'));
+        setError(t('auth.verificationLinkInvalid'));
         return;
       }
 
@@ -61,7 +61,7 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
     setSuccess('');
 
     if (!token) {
-      setError(t('verificationLinkInvalid'));
+      setError(t('auth.verificationLinkInvalid'));
     }
 
     if (!EMAIL_REGEX.test(email.trim())) {
@@ -117,10 +117,10 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
           <div className="text-center py-12">
             <Loader2 className="animate-spin text-[var(--spectrum-blue)] mx-auto mb-4" size={48} />
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-              {t('verifyingEmail')}
+              {t('auth.verifyingEmail')}
             </h2>
             <p className="text-sm text-slate-500">
-              {t('verifyingEmailDesc')}
+              {t('auth.verifyingEmailDesc')}
             </p>
           </div>
         ) : success ? (
@@ -129,10 +129,10 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
               <CheckCircle className="text-emerald-500" size={64} />
             </div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-              {t('emailVerifiedSuccess')}
+              {t('auth.emailVerifiedSuccess')}
             </h2>
             <p className="text-sm text-slate-500 mb-6">
-              {t('emailVerifiedDesc')}
+              {t('auth.emailVerifiedDesc')}
             </p>
             <button
               type="button"
@@ -164,7 +164,7 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
                     type="email"
                     required
                     className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--spectrum-blue)] outline-none dark:text-white transition-all"
-                    placeholder={t('loginPlaceholderEmail')}
+                    placeholder={t('loginModalEmailPlaceholder')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
@@ -178,7 +178,7 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
                 disabled={isLoading}
                 className="w-full py-4 bg-[var(--spectrum-blue)] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 flex justify-center items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-70 disabled:hover:scale-100"
               >
-                {isLoading ? <Loader2 className="animate-spin" size={20} /> : t('verifyEmailButton')}
+                {isLoading ? <Loader2 className="animate-spin" size={20} /> : t('auth.verifyEmailButton')}
               </button>
             </form>
 
@@ -188,7 +188,7 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
                 onClick={() => navigate('/?auth=login')}
                 className="text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
               >
-                {t('backToLogin')}
+                {t('auth.backToLogin')}
               </button>
             </div>
           </>

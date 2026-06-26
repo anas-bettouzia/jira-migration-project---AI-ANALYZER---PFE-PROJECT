@@ -22,6 +22,7 @@ import {
 
 import { MainSidebar } from '../../shared/components/MainSidebar';
 import { LocaleSwitcher } from '../../shared/components/LocaleSwitcher';
+import { useI18n } from '../../i18n';
 import {
   reportService,
   type ReportComponent,
@@ -47,6 +48,7 @@ const THEME_KEY = 'jira-migration-theme';
 export const ReportPage: React.FC = () => {
   const { reportId } = useParams<{ reportId: string }>();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [report, setReport] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLight, setIsLight] = useState(() => {
@@ -92,26 +94,26 @@ export const ReportPage: React.FC = () => {
   const securityStatus = useMemo<SecurityStatus>(() => {
     if (metrics.incompatible > 0 || metrics.blockers > 0) {
       return {
-        label: 'Critical',
+        label: t('reports.critical'),
         tone: 'red',
-        description: 'Blocking issues must be resolved before migration.',
+        description: t('reports.criticalText'),
       };
     }
 
     if (metrics.major > 0) {
       return {
-        label: 'Review',
+        label: t('reports.review'),
         tone: 'yellow',
-        description: 'Major findings require validation by the migration team.',
+        description: t('reports.reviewText'),
       };
     }
 
     return {
-      label: 'Healthy',
+      label: t('reports.healthy'),
       tone: 'green',
-      description: 'No critical migration blockers detected.',
+      description: t('reports.healthyText'),
     };
-  }, [metrics.blockers, metrics.incompatible, metrics.major]);
+  }, [metrics.blockers, metrics.incompatible, metrics.major, t]);
 
   const detailEntries = useMemo(() => normalizeDetails(report?.details), [report?.details]);
   const componentFindings = useMemo(() => report?.sections?.components ?? [], [report?.sections?.components]);
@@ -124,20 +126,20 @@ export const ReportPage: React.FC = () => {
     const details: Array<{ label: string; value: unknown }> = [];
 
     if (report?.ai_model) {
-      details.push({ label: 'Analysis engine', value: report.ai_model });
+      details.push({ label: t('reports.analysisEngine'), value: report.ai_model });
     }
 
     if (typeof report?.ai_used === 'boolean') {
-      details.push({ label: 'AI generated', value: report.ai_used ? 'Yes' : 'No' });
+      details.push({ label: t('reports.aiUsed'), value: report.ai_used ? t('common.yes') : t('common.no') });
     }
 
     const generatedOn = report?.updated_at ?? report?.created_at;
     if (generatedOn) {
-      details.push({ label: 'Generated on', value: generatedOn });
+      details.push({ label: t('reports.generatedOn'), value: generatedOn });
     }
 
     return details;
-  }, [report]);
+  }, [report, t]);
 
   const handleDownload = async (type: 'pdf' | 'json') => {
     if (!reportId) return;
@@ -151,7 +153,7 @@ export const ReportPage: React.FC = () => {
         <div className="flex min-h-screen items-center justify-center md:pl-[72px]">
           <div className="flex flex-col items-center">
             <Loader2 className="animate-spin text-[#2f80ed]" size={34} />
-            <p className="mt-4 text-sm font-black text-[#64708d] dark:text-white/60">Loading migration report...</p>
+            <p className="mt-4 text-sm font-black text-[#64708d] dark:text-white/60">{t('reports.loading')}</p>
           </div>
         </div>
       </div>
@@ -165,13 +167,13 @@ export const ReportPage: React.FC = () => {
         <div className="flex min-h-screen items-center justify-center px-6 md:pl-[72px]">
           <div className="max-w-md rounded-2xl border border-[#dbe4f2] bg-white p-8 text-center shadow-sm dark:border-white/10 dark:bg-[#101d3a]">
             <XCircle className="mx-auto text-red-500" size={34} />
-            <h1 className="mt-4 text-xl font-black">Report not found</h1>
-            <p className="mt-2 text-sm text-[#64708d] dark:text-white/58">The requested migration report could not be loaded.</p>
+            <h1 className="mt-4 text-xl font-black">{t('reports.notFound')}</h1>
+            <p className="mt-2 text-sm text-[#64708d] dark:text-white/58">{t('reports.notFoundText')}</p>
             <button
               onClick={() => navigate('/analysis')}
               className="mt-6 rounded-xl bg-[#2f80ed] px-5 py-3 text-sm font-black text-white"
             >
-              Back to analysis
+              {t('reports.backToAnalysis')}
             </button>
           </div>
         </div>
@@ -190,13 +192,13 @@ export const ReportPage: React.FC = () => {
               <button
                 onClick={() => navigate(-1)}
                 className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#d7e0ef] text-[#64708d] transition hover:border-[#bdd5fa] hover:text-[#2f80ed] dark:border-white/10 dark:text-white/65 dark:hover:bg-white/6"
-                aria-label="Go back"
+                aria-label={t('common.back')}
               >
                 <ArrowLeft size={18} />
               </button>
               <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">Migration report</p>
-                <h1 className="truncate text-base font-black sm:text-lg">Report {shortId(reportId)}</h1>
+                <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">{t('reports.migrationReport')}</p>
+                <h1 className="truncate text-base font-black sm:text-lg">{t('common.report')} {shortId(reportId)}</h1>
               </div>
             </div>
 
@@ -205,27 +207,27 @@ export const ReportPage: React.FC = () => {
               <button
                 onClick={() => setIsLight((value) => !value)}
                 className="hidden items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-3 py-2 text-xs font-bold text-[#64708d] transition dark:border-white/10 dark:bg-white/5 dark:text-white/70 sm:flex"
-                aria-label="Toggle color mode"
+                aria-label={t('common.toggleColorMode')}
               >
                 <span className="flex h-5 w-9 items-center rounded-full bg-[#dce4f1] p-0.5 dark:bg-[#2c3a57]">
                   <span className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${isLight ? 'translate-x-0' : 'translate-x-4'}`} />
                 </span>
                 {isLight ? <Sun size={14} className="text-amber-500" /> : <Moon size={14} />}
-                {isLight ? 'Light' : 'Dark'}
+                {isLight ? t('common.light') : t('common.dark')}
               </button>
               <button
                 onClick={() => handleDownload('json')}
                 className="flex items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-3 py-2 text-sm font-bold text-[#64708d] transition hover:border-[#bdd5fa] hover:text-[#2f80ed] dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/8"
               >
                 <FileJson size={16} />
-                JSON
+                {t('common.json')}
               </button>
               <button
                 onClick={() => handleDownload('pdf')}
                 className="flex items-center gap-2 rounded-xl bg-[#2f80ed] px-4 py-2 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#256fdb]"
               >
                 <Download size={16} />
-                PDF
+                {t('common.pdf')}
               </button>
             </div>
           </div>
@@ -239,11 +241,11 @@ export const ReportPage: React.FC = () => {
                   <div>
                     <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#bdd5fa] bg-[#f5f9ff] px-4 py-2 text-xs font-black text-[#2f80ed] dark:border-[#2f80ed]/35 dark:bg-[#10264d] dark:text-[#8bbdff]">
                       <Sparkles size={14} />
-                      AI-generated migration assessment
+                      {t('reports.aiAssessment')}
                     </div>
-                    <h2 className="max-w-3xl text-3xl font-black tracking-tight sm:text-4xl">Cloud readiness report</h2>
+                    <h2 className="max-w-3xl text-3xl font-black tracking-tight sm:text-4xl">{t('reports.cloudReadiness')}</h2>
                     <p className="mt-4 max-w-3xl text-sm leading-7 text-[#64708d] dark:text-white/60">
-                      {metrics.recommendation || 'No strategic recommendation is available for this report yet.'}
+                      {metrics.recommendation || t('reports.noRecommendation')}
                     </p>
                   </div>
 
@@ -255,22 +257,22 @@ export const ReportPage: React.FC = () => {
             </div>
 
             <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <MetricCard icon={<AlertTriangle size={20} />} label="Critical blockers" value={metrics.blockers} tone="red" />
-              <MetricCard icon={<Layers size={20} />} label="Components" value={metrics.components} tone="blue" />
-              <MetricCard icon={<CheckCircle2 size={20} />} label="Compatible" value={metrics.compatible} tone="green" />
-              <MetricCard icon={<ShieldAlert size={20} />} label="Incompatible" value={metrics.incompatible} tone="yellow" />
+              <MetricCard icon={<AlertTriangle size={20} />} label={t('reports.criticalBlockers')} value={metrics.blockers} tone="red" />
+              <MetricCard icon={<Layers size={20} />} label={t('reports.components')} value={metrics.components} tone="blue" />
+              <MetricCard icon={<CheckCircle2 size={20} />} label={t('reports.compatible')} value={metrics.compatible} tone="green" />
+              <MetricCard icon={<ShieldAlert size={20} />} label={t('reports.incompatible')} value={metrics.incompatible} tone="yellow" />
             </div>
 
             <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
               <section className="space-y-6">
                 {report.ai_summary && (
-                  <ContentPanel title="AI executive summary" icon={<Brain size={18} />}>
+                  <ContentPanel title={t('reports.aiSummary')} icon={<Brain size={18} />}>
                     <AISummaryRenderer content={sanitizedAiSummary} />
                   </ContentPanel>
                 )}
 
                 {componentFindings.length > 0 && (
-                  <ContentPanel title="Component findings" icon={<Layers size={18} />}>
+                  <ContentPanel title={t('reports.componentFindings')} icon={<Layers size={18} />}>
                     <div className="space-y-3">
                       {componentFindings.map((component, index) => (
                         <ComponentFindingCard
@@ -285,7 +287,7 @@ export const ReportPage: React.FC = () => {
                 )}
 
                 {prioritizedRecommendations.length > 0 && (
-                  <ContentPanel title="Prioritized recommendations" icon={<AlertTriangle size={18} />}>
+                  <ContentPanel title={t('reports.prioritizedRecommendations')} icon={<AlertTriangle size={18} />}>
                     <div className="space-y-3">
                       {prioritizedRecommendations.map((recommendation, index) => (
                         <RecommendationCard
@@ -300,13 +302,13 @@ export const ReportPage: React.FC = () => {
                 )}
 
                 {report.ai_insights && (
-                  <ContentPanel title="AI insights" icon={<Zap size={18} />}>
+                  <ContentPanel title={t('reports.aiInsights')} icon={<Zap size={18} />}>
                     <p className="text-sm leading-7 text-[#64708d] dark:text-white/68">{report.ai_insights}</p>
                   </ContentPanel>
                 )}
 
                 {detailEntries.length > 0 && (
-                  <ContentPanel title="Details and observations" icon={<FileText size={18} />}>
+                  <ContentPanel title={t('reports.details')} icon={<FileText size={18} />}>
                     <div className="space-y-3">
                       {detailEntries.map((detail) => (
                         <ReportDetailRow key={detail.title} detail={detail} report={report} />
@@ -318,7 +320,7 @@ export const ReportPage: React.FC = () => {
 
               <aside className="space-y-6">
                 {reportDetails.length > 0 && (
-                  <ContentPanel title="Report details" icon={<Gauge size={18} />}>
+                  <ContentPanel title={t('reports.metadata')} icon={<Gauge size={18} />}>
                     <div className="space-y-3">
                       {reportDetails.map((detail) => (
                         <InfoLine key={String(detail.label)} label={detail.label} value={detail.value} />
@@ -328,7 +330,7 @@ export const ReportPage: React.FC = () => {
                 )}
 
                 {report.ai_error && (
-                  <ContentPanel title="AI error" icon={<AlertTriangle size={18} />}>
+                  <ContentPanel title={t('reports.aiError')} icon={<AlertTriangle size={18} />}>
                     <p className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm leading-7 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
                       {report.ai_error}
                     </p>
@@ -454,6 +456,7 @@ const scoreTone = (score: number) => {
 };
 
 const ScoreRing = ({ score }: { score: number }) => {
+  const { t } = useI18n();
   const safeScore = Math.min(Math.max(score, 0), 100);
   const circumference = 364;
 
@@ -477,7 +480,7 @@ const ScoreRing = ({ score }: { score: number }) => {
         </svg>
         <span className="absolute inset-0 flex items-center justify-center text-3xl font-black">{safeScore}%</span>
       </div>
-      <p className="mt-2 text-xs font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">Migration score</p>
+      <p className="mt-2 text-xs font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">{t('reports.migrationScore')}</p>
     </div>
   );
 };
@@ -557,10 +560,11 @@ const ComponentFindingCard = ({
   index: number;
   report: ReportData;
 }) => {
+  const { t } = useI18n();
   const risk = component.final_risk ?? component.risk_level ?? 'INFO';
   const status = component.final_status ?? component.overall_status ?? 'NEEDS_REVIEW';
   const description = sanitizeReportText(
-    component.reasoning_summary || component.recommended_action || 'No detailed reasoning is available for this component.',
+    component.reasoning_summary || component.recommended_action || t('reports.noReasoning'),
     report,
   );
   const location = locationLabel(component.location);
@@ -599,6 +603,7 @@ const RecommendationCard = ({
   index: number;
   report: ReportData;
 }) => {
+  const { t } = useI18n();
   const priority = recommendation.priority ?? 'INFO';
 
   return (
@@ -609,7 +614,7 @@ const RecommendationCard = ({
             {componentDisplayName(recommendation, index)}
           </h4>
           <p className="mt-1 text-xs font-bold text-[#8a96b3] dark:text-white/45">
-            {recommendation.status || 'Recommended action'}
+            {recommendation.status || t('reports.recommendedAction')}
           </p>
         </div>
         <span className={`w-fit rounded-full px-3 py-1 text-[10px] font-black uppercase ring-1 ${riskBadgeClasses[priority] ?? riskBadgeClasses.INFO}`}>
@@ -617,7 +622,7 @@ const RecommendationCard = ({
         </span>
       </div>
       <p className="mt-3 text-sm leading-7 text-[#64708d] dark:text-white/68">
-        {sanitizeReportText(recommendation.action || recommendation.reason || 'No action detail is available.', report)}
+        {sanitizeReportText(recommendation.action || recommendation.reason || t('reports.noAction'), report)}
       </p>
     </article>
   );

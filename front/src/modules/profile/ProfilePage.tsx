@@ -6,6 +6,7 @@ import { MainSidebar } from '../../shared/components/MainSidebar';
 import { LocaleSwitcher } from '../../shared/components/LocaleSwitcher';
 import { authService } from '../../services/authService';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useI18n } from '../../i18n';
 import type { AuthUser } from '../../shared/types/auth';
 import { EMAIL_ERROR, EMAIL_REGEX, PASSWORD_ERROR, PASSWORD_REGEX } from '../../services/validation';
 
@@ -16,6 +17,7 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const { user, setUser, setToken } = useAuthStore();
   const [profile, setProfile] = useState<AuthUser | null>(user);
   const [email, setEmail] = useState(user?.email ?? '');
@@ -41,7 +43,7 @@ const ProfilePage: React.FC = () => {
         setEmail(data.email);
         setUser(data);
       } catch (error) {
-        if (isMounted) setProfileError(getErrorMessage(error, 'Impossible de charger le profil.'));
+        if (isMounted) setProfileError(getErrorMessage(error, t('profile.loadError')));
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -52,7 +54,7 @@ const ProfilePage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [setUser]);
+  }, [setUser, t]);
 
   const handleProfileSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -74,7 +76,7 @@ const ProfilePage: React.FC = () => {
       else setUser(data.user);
       setProfileMessage(data.message);
     } catch (error) {
-      setProfileError(getErrorMessage(error, 'Impossible de mettre a jour le profil.'));
+      setProfileError(getErrorMessage(error, t('profile.updateError')));
     } finally {
       setSavingProfile(false);
     }
@@ -91,7 +93,7 @@ const ProfilePage: React.FC = () => {
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordError('Les deux mots de passe ne correspondent pas.');
+      setPasswordError(t('auth.passwordMismatch'));
       return;
     }
 
@@ -103,7 +105,7 @@ const ProfilePage: React.FC = () => {
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
-      setPasswordError(getErrorMessage(error, 'Impossible de changer le mot de passe.'));
+      setPasswordError(getErrorMessage(error, t('profile.passwordError')));
     } finally {
       setSavingPassword(false);
     }
@@ -119,13 +121,13 @@ const ProfilePage: React.FC = () => {
               <button
                 onClick={() => navigate(-1)}
                 className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#d7e0ef] text-[#64708d] transition hover:border-[#bdd5fa] hover:text-[#2f80ed] dark:border-white/10 dark:text-white/65 dark:hover:bg-white/6"
-                aria-label="Go back"
+                aria-label={t('common.back')}
               >
                 <ArrowLeft size={18} />
               </button>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">Account settings</p>
-                <h1 className="text-base font-black sm:text-lg">Profile</h1>
+                <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">{t('profile.accountSettings')}</p>
+                <h1 className="text-base font-black sm:text-lg">{t('profile.title')}</h1>
               </div>
             </div>
             <div className="ml-auto">
@@ -139,15 +141,15 @@ const ProfilePage: React.FC = () => {
             <div className="mb-8 rounded-[22px] bg-[#111b3f] p-6 text-white shadow-xl shadow-[#111b3f]/10 dark:bg-[#101d3a] sm:p-8">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.25em] text-[#8bbdff]">User profile</p>
-                  <h2 className="mt-2 text-3xl font-black tracking-tight">Manage your account access</h2>
+                  <p className="text-xs font-black uppercase tracking-[0.25em] text-[#8bbdff]">{t('profile.userProfile')}</p>
+                  <h2 className="mt-2 text-3xl font-black tracking-tight">{t('profile.manageTitle')}</h2>
                   <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65">
-                    Review your email identity and update your local password when needed.
+                    {t('profile.manageText')}
                   </p>
                 </div>
                 <span className="inline-flex items-center gap-2 rounded-full bg-white/8 px-4 py-2 text-xs font-black uppercase text-white/70">
                   <ShieldCheck size={15} />
-                  {profile?.auth_provider === 'google' ? 'Google OAuth' : 'Local account'}
+                  {profile?.auth_provider === 'google' ? t('profile.googleOAuth') : t('profile.localAccount')}
                 </span>
               </div>
             </div>
@@ -164,12 +166,12 @@ const ProfilePage: React.FC = () => {
                       <Mail size={20} />
                     </span>
                     <div>
-                      <h2 className="text-lg font-black">Profile information</h2>
-                      <p className="mt-1 text-sm text-[#64708d] dark:text-white/55">Update the email linked to this account.</p>
+                      <h2 className="text-lg font-black">{t('profile.profileInfo')}</h2>
+                      <p className="mt-1 text-sm text-[#64708d] dark:text-white/55">{t('profile.profileInfoText')}</p>
                     </div>
                   </div>
 
-                  <label className="mb-2 block text-xs font-black uppercase text-[#64708d] dark:text-white/50">Email address</label>
+                  <label className="mb-2 block text-xs font-black uppercase text-[#64708d] dark:text-white/50">{t('common.emailAddress')}</label>
                   <input
                     type="email"
                     value={email}
@@ -186,7 +188,7 @@ const ProfilePage: React.FC = () => {
                     className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#2f80ed] px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#256fdb] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {savingProfile ? <Loader2 className="animate-spin" size={17} /> : <Save size={17} />}
-                    Save profile
+                    {t('profile.saveProfile')}
                   </button>
                 </form>
 
@@ -196,15 +198,15 @@ const ProfilePage: React.FC = () => {
                       <KeyRound size={20} />
                     </span>
                     <div>
-                      <h2 className="text-lg font-black">Change password</h2>
-                      <p className="mt-1 text-sm text-[#64708d] dark:text-white/55">Use your current password before setting a new one.</p>
+                      <h2 className="text-lg font-black">{t('profile.changePassword')}</h2>
+                      <p className="mt-1 text-sm text-[#64708d] dark:text-white/55">{t('profile.changePasswordText')}</p>
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    <PasswordInput label="Current password" value={currentPassword} onChange={setCurrentPassword} />
-                    <PasswordInput label="New password" value={newPassword} onChange={setNewPassword} />
-                    <PasswordInput label="Confirm new password" value={confirmPassword} onChange={setConfirmPassword} />
+                    <PasswordInput label={t('profile.currentPassword')} value={currentPassword} onChange={setCurrentPassword} />
+                    <PasswordInput label={t('profile.newPassword')} value={newPassword} onChange={setNewPassword} />
+                    <PasswordInput label={t('profile.confirmNewPassword')} value={confirmPassword} onChange={setConfirmPassword} />
                   </div>
 
                   {passwordError && <p className="mt-4 text-sm font-bold text-red-600 dark:text-red-300">{passwordError}</p>}
@@ -216,7 +218,7 @@ const ProfilePage: React.FC = () => {
                     className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#111b3f] px-5 py-3 text-sm font-black text-white shadow-lg shadow-[#111b3f]/12 transition hover:bg-[#1d2b5b] disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-[#111b3f]"
                   >
                     {savingPassword ? <Loader2 className="animate-spin" size={17} /> : <KeyRound size={17} />}
-                    Update password
+                    {t('profile.updatePassword')}
                   </button>
                 </form>
               </div>

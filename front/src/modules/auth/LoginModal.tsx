@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/authService';
 import { useAuthStore } from '../../store/useAuthStore';
 import GoogleSignInButton from '../../shared/components/GoogleSignInButton';
-import { useTranslation } from '../../i18n/TranslationProvider';
+import { useI18n } from '../../i18n';
 import type { AuthResponse } from '../../shared/types/auth';
 import { EMAIL_REGEX, PASSWORD_REGEX } from '../../services/validation';
 
@@ -38,7 +38,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
   const navigate = useNavigate();
   const setToken = useAuthStore((state) => state.setToken);
-  const { t } = useTranslation();
+  const { t } = useI18n();
   const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined;
   console.log('LoginModal: VITE_RECAPTCHA_SITE_KEY=', RECAPTCHA_SITE_KEY);
 

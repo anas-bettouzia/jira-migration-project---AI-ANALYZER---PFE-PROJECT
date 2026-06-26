@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, Lock, Mail, X } from 'lucide-react';
 import { authService } from '../../services/authService';
-import { useTranslation } from '../../i18n/TranslationProvider';
+import { useI18n } from '../../i18n';
 import { EMAIL_REGEX, PASSWORD_REGEX } from '../../services/validation';
 
 interface ResetPasswordProps {
@@ -17,7 +17,7 @@ const getResetErrorMessage = (error: unknown, fallback: string) => {
 
 const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t } = useI18n();
   const [searchParams] = useSearchParams();
   const initialEmail = useMemo(() => searchParams.get('email') || '', [searchParams]);
   const token = useMemo(() => searchParams.get('token') || '', [searchParams]);

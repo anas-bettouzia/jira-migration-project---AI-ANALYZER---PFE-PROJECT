@@ -1,12 +1,14 @@
 import React, { useRef, useState } from 'react';
 import { CheckCircle2, Info, Loader2, UploadCloud, X } from 'lucide-react';
 import { analysisService } from '../../services/analysisService';
+import { useI18n } from '../../i18n';
 
 interface FileUploaderProps {
   onUploadSuccess: (jobId: string) => void;
 }
 
 export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadSuccess }) => {
+  const { t } = useI18n();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -23,7 +25,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadSuccess }) =
       const result = await analysisService.uploadFile(file);
       onUploadSuccess(result.job_id);
     } catch {
-      alert("Erreur lors de l'envoi du fichier.");
+      alert(t('uploader.uploadError'));
     } finally {
       setLoading(false);
     }
@@ -49,10 +51,10 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadSuccess }) =
         }`}
       >
         <span className="absolute left-5 top-4 rounded-full border border-[#d5dfef] bg-white px-3 py-1 text-[10px] font-black text-[#64708d] dark:border-white/10 dark:bg-[#0c1730] dark:text-white/60">
-          Encrypted
+          {t('uploader.encrypted')}
         </span>
         <span className="absolute right-3 top-3 rounded-full bg-[#111b3f] px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-[#ffb13b]">
-          .zip package
+          {t('uploader.package')}
         </span>
 
         <span className="flex h-20 w-20 items-center justify-center rounded-full border border-[#bdd5fa] bg-[#eaf3ff] dark:border-[#2f80ed]/30 dark:bg-[#10264d]">
@@ -62,14 +64,14 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadSuccess }) =
         </span>
 
         <p className="mt-4 max-w-full break-words text-sm font-black text-[#111b3f] dark:text-white">
-          {file ? file.name : 'Drop your archive into the intake zone'}
+          {file ? file.name : t('uploader.drop')}
         </p>
-        <p className="mt-1 text-sm text-[#64708d] dark:text-white/60">Drag and drop your export file here, or browse from device.</p>
+        <p className="mt-1 text-sm text-[#64708d] dark:text-white/60">{t('uploader.drag')}</p>
 
         <div className="mt-5 grid w-full max-w-[520px] gap-3 sm:grid-cols-3">
-          <UploadFact label="Accepted" value=".zip export package" />
-          <UploadFact label="Max size" value="200 MB" />
-          <UploadFact label="Security" value="Encrypted in transit" />
+          <UploadFact label={t('uploader.accepted')} value={t('uploader.acceptedValue')} />
+          <UploadFact label={t('uploader.maxSize')} value={t('uploader.maxSizeValue')} />
+          <UploadFact label={t('uploader.security')} value={t('uploader.securityValue')} />
         </div>
 
         <input
@@ -94,7 +96,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadSuccess }) =
             className="flex min-w-20 items-center justify-center gap-2 rounded-lg border border-[#d7e0ef] bg-white px-5 py-3 text-sm font-black text-[#64708d] transition disabled:cursor-not-allowed disabled:opacity-45 dark:border-white/10 dark:bg-white/5 dark:text-white/65"
           >
             <X size={15} />
-            Clear
+            {t('common.clear')}
           </button>
           <button
             type="button"
@@ -103,7 +105,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadSuccess }) =
             className="flex min-w-36 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#6b8cff] to-[#c462e8] px-5 py-3 text-sm font-black text-white shadow-lg shadow-purple-500/20 transition enabled:hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? <Loader2 className="animate-spin" size={16} /> : <UploadCloud size={16} />}
-            {loading ? 'Analysing...' : 'Start analysis'}
+            {loading ? t('uploader.analysing') : t('uploader.startAnalysis')}
           </button>
         </div>
       </div>
