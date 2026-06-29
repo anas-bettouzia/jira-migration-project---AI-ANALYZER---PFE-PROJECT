@@ -122,6 +122,44 @@ def generate_report_text(prompt: str, fallback_text: str = "") -> dict:
     }
 
 
+def _extract_json_object(text: str) -> str | None:
+    """Extract the first top-level JSON object from text, ignoring braces inside strings."""
+    start = text.find("{")
+    if start == -1:
+        return None
+
+    brace_count = 0
+    in_string = False
+    escape = False
+
+    for index in range(start, len(text)):
+        char = text[index]
+
+        if escape:
+            escape = False
+            continue
+
+        if char == "\\":
+            escape = True
+            continue
+
+        if char == '"':
+            in_string = not in_string
+            continue
+
+        if in_string:
+            continue
+
+        if char == "{":
+            brace_count += 1
+        elif char == "}":
+            brace_count -= 1
+            if brace_count == 0:
+                return text[start:index + 1]
+
+    return None
+
+
 def generate_report_json(prompt: str, fallback_json: dict | None = None) -> dict:
     """
     Optional JSON-generation helper for future structured AI reports.
@@ -146,11 +184,8 @@ def generate_report_json(prompt: str, fallback_json: dict | None = None) -> dict
     except json.JSONDecodeError as error:
         logger.warning("Gemini JSON parsing failed: %s", error)
 
-        # Attempt to extract a JSON object from the response if Gemini prepends or appends text.
-        json_start = text.find("{")
-        json_end = text.rfind("}")
-        if json_start != -1 and json_end != -1 and json_end > json_start:
-            candidate = text[json_start:json_end + 1]
+        candidate = _extract_json_object(text)
+        if candidate:
             try:
                 parsed = json.loads(candidate)
                 logger.info("Recovered JSON translation from Gemini output.")
