@@ -42,17 +42,17 @@ def parse_jira_export():
     """
     Parse a Jira ZIP export and return structured entities and components.
     """
-    print("DEBUG: file in request.files:", "file" in request.files)
+    logger.debug("File part present in request: %s", "file" in request.files)
     if "file" not in request.files:
-        print("DEBUG: No file part")
+        logger.debug("No file part received")
         return jsonify({"error": "No file part"}), 400
 
     uploaded_file = request.files["file"]
-    print("DEBUG: filename:", repr(uploaded_file.filename))
-    print("DEBUG: content_type:", uploaded_file.content_type)
+    logger.debug("Received filename: %r", uploaded_file.filename)
+    logger.debug("Received content type: %s", uploaded_file.content_type)
 
     if uploaded_file.filename == "":
-        print("DEBUG: No selected file")
+        logger.debug("No selected file")
         return jsonify({"error": "No selected file"}), 400
 
     filename = secure_filename(uploaded_file.filename)
@@ -61,7 +61,7 @@ def parse_jira_export():
 
     try:
         uploaded_file.save(zip_path)
-        print("DEBUG: Saved uploaded file to", zip_path)
+        logger.debug("Saved uploaded file to %s", zip_path)
         logger.info("Received file saved to %s", zip_path)
 
         extract_dir, routed_files = zip_handler.extract_and_route(zip_path)
@@ -154,4 +154,5 @@ def _to_dict(value):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    debug = os.getenv("DEBUG", "false").lower() in {"1", "true", "yes"}
+    app.run(host="0.0.0.0", port=port, debug=debug)

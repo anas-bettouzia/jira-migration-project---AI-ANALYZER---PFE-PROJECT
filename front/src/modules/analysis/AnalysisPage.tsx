@@ -155,7 +155,7 @@ export const AnalysisPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Erreur suppression rapport:', error);
-      alert('Unable to delete this report.');
+      alert(t('analysis.deleteError'));
     }
   };
 
@@ -173,7 +173,7 @@ export const AnalysisPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Erreur archivage rapport:', error);
-      alert('Unable to archive this report.');
+      alert(t('analysis.archiveError'));
     }
   };
 
@@ -616,11 +616,13 @@ const SecondarySidebar = ({
 
           <div className="mt-auto space-y-4 pb-2">
             <div className="rounded-lg border border-[#ffd36d] bg-[#fff9e6] px-4 py-3 text-sm text-[#9b4f00] dark:border-[#f59e0b]/35 dark:bg-[#f59e0b]/10 dark:text-[#ffbe4d]">
-              <div className="mb-1 flex items-center gap-2 font-black">
-                <AlertCircle size={16} />
-                {t('analysis.aiWarningTitle')}
+              <div className="flex items-start gap-3">
+                <AlertCircle className="mt-0.5 shrink-0" size={16} />
+                <div className="min-w-0 flex-1">
+                  <p className="font-black leading-5 break-words">{t('analysis.aiWarningTitle')}</p>
+                  <p className="mt-1 leading-5 break-words">{t('analysis.aiWarningText')}</p>
+                </div>
               </div>
-              <p>{t('analysis.aiWarningText')}</p>
             </div>
             <div className="space-y-3 px-1 text-base text-[#8291b3] dark:text-white/55">
               <button className="flex items-center gap-2 transition hover:text-[#2f80ed]">

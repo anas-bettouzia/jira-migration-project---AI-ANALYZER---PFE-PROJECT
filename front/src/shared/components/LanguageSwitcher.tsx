@@ -32,17 +32,17 @@ export const LanguageSwitcher = ({ className = '' }: LanguageSwitcherProps) => {
 
   return (
     <div ref={ref} className={`relative inline-block ${className}`}>
+      {/* Bouton principal : Uniquement le drapeau */}
       <button
         type="button"
         onClick={() => setOpen((s) => !s)}
-        className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#d7e0ef] bg-[#f7f9fd] px-3 py-2 text-xs font-black text-[#64708d] transition hover:bg-[#eef6ff] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/8"
+        className="inline-flex p-2 rounded-lg border border-[#d7e0ef] bg-[#f7f9fd] transition hover:bg-[#eef6ff] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/8"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t('common.language')}
-        title={t('common.language')}
+        title={t(currentLanguage.labelKey)}
       >
-        <FlagIcon locale={currentLanguage.code} size={20} />
-        <span>{t(currentLanguage.labelKey)}</span>
+        <FlagIcon locale={currentLanguage.code} size={24} />
       </button>
 
       {open && (
@@ -53,11 +53,16 @@ export const LanguageSwitcher = ({ className = '' }: LanguageSwitcherProps) => {
               setLanguage(otherLanguage.code);
               setOpen(false);
             }}
-            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 transition hover:bg-[#eef6ff] dark:hover:bg-white/10 w-full"
+            className="inline-flex items-center gap-3 rounded-lg pl-2 pr-4 py-2 transition hover:bg-[#eef6ff] dark:hover:bg-white/10 w-full"
             aria-label={`${t('common.switchTo')} ${t(otherLanguage.labelKey)}`}
           >
-            <FlagIcon locale={otherLanguage.code} size={20} />
-            <span className="text-sm font-black text-[#111b3f] dark:text-white">{t(otherLanguage.labelKey)}</span>
+            {/* Drapeau parfaitement aligné sous le premier */}
+            <FlagIcon locale={otherLanguage.code} size={24} />
+            
+            {/* Style du texte ajusté pour correspondre à votre image */}
+            <span className="text-base font-bold text-[#64708d] dark:text-white/80">
+              {t(otherLanguage.labelKey)}
+            </span>
           </button>
         </div>
       )}

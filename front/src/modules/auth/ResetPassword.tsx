@@ -35,12 +35,12 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
     setSuccess('');
 
     if (!token) {
-      setError(t('resetLinkInvalid'));
+      setError(t('auth.invalidResetLink'));
       return;
     }
 
     if (!EMAIL_REGEX.test(email.trim())) {
-      setError(t('invalidEmail'));
+      setError(t('auth.invalidEmail'));
       return;
     }
 
@@ -50,11 +50,11 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
     }
 
     if (password !== confirmPassword) {
-      setError(t('passwordsDoNotMatch'));
+      setError(t('auth.passwordMismatch'));
       return;
     }
 
-    const fallbackErrorMessage = t('unableResetPassword');
+    const fallbackErrorMessage = t('auth.resetPasswordError');
 
     try {
       setIsLoading(true);
@@ -108,10 +108,10 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
 
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-            {t('resetPasswordTitle')}
+            {t('auth.resetPageTitle')}
           </h2>
           <p className="text-sm text-slate-500 mt-2">
-            {t('resetPasswordDesc')}
+            {t('auth.resetPageSubtitle')}
           </p>
         </div>
 
@@ -135,7 +135,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
 
           <div>
             <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">
-              {t('newPassword')}
+              {t('auth.newPassword')}
             </label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -152,7 +152,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
 
           <div>
             <label className="text-xs font-bold uppercase text-slate-500 ml-1 mb-2 block">
-              {t('confirmNewPassword')}
+              {t('auth.confirmPassword')}
             </label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -175,7 +175,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
             disabled={isLoading}
             className="w-full py-4 bg-[var(--spectrum-blue)] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 flex justify-center items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-70 disabled:hover:scale-100"
           >
-            {isLoading ? <Loader2 className="animate-spin" size={20} /> : t('updatePassword')}
+            {isLoading ? <Loader2 className="animate-spin" size={20} /> : t('auth.updatePassword')}
           </button>
         </form>
 
@@ -185,7 +185,7 @@ const ResetPassword = ({ isModal = false, onClose }: ResetPasswordProps) => {
             onClick={() => navigate('/?auth=login')}
             className="text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
           >
-            {t('backToLogin')}
+            {t('auth.backToLogin')}
           </button>
         </div>
       </div>

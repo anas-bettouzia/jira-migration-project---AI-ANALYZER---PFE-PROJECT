@@ -14,7 +14,7 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
 
   const getVerifyErrorMessage = (error: unknown) => {
     const response = (error as { response?: { data?: { error?: string } } }).response;
-    return response?.data?.error || t('unableVerifyEmail');
+    return response?.data?.error || t('auth.unableVerifyEmail');
   };
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -65,7 +65,7 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
     }
 
     if (!EMAIL_REGEX.test(email.trim())) {
-      setError(t('invalidEmail'));
+      setError(t('auth.invalidEmail'));
       return;
     }
 
@@ -139,17 +139,17 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
               onClick={() => navigate('/?auth=login')}
               className="w-full py-4 bg-[var(--spectrum-blue)] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 hover:scale-[1.02] active:scale-95 transition-all"
             >
-              {t('backToLogin')}
+              {t('auth.backToLogin')}
             </button>
           </div>
         ) : (
           <>
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                {t('verifyEmailButton')}
+                {t('auth.verifyEmailButton')}
               </h2>
               <p className="text-sm text-slate-500 mt-2">
-                {t('verifyingEmailDesc')}
+                {t('auth.verifyingEmailDesc')}
               </p>
             </div>
 

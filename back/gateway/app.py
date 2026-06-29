@@ -35,7 +35,6 @@ from shared.core.errors import register_error_handlers
 from shared.core.extensions import jwt, mongo
 from shared.repositories.user_repository import UserRepository
 from shared.core.logger import setup_logger
-from .translation_utils import translate_text
 
 load_dotenv()
 
@@ -752,26 +751,6 @@ def create_app():
         """Gateway health check."""
         return jsonify({"status": "ok", "service": "gateway"}), 200
 
-    @app.route("/api/translate", methods=["POST"])
-    def translate():
-        """Translate application text using the configured AI model."""
-        data = request.get_json() or {}
-        text = data.get("text", "")
-        target_locale = data.get("target_locale")
-        source_locale = data.get("source_locale") or "en"
-
-        if not text or not target_locale:
-            return jsonify({"error": "text and target_locale are required"}), 400
-
-        if target_locale not in {"en", "fr"}:
-            return jsonify({"error": "Unsupported target_locale. Use 'en' or 'fr'."}), 400
-
-        if source_locale not in {"en", "fr"}:
-            source_locale = "en"
-
-        result = translate_text(text, source_locale, target_locale)
-        return jsonify(result), 200
-
     @app.route("/api/login", methods=["POST"])
     def login():
         """
@@ -1436,4 +1415,5 @@ def create_app():
 if __name__ == "__main__":
     gateway_app = create_app()
     port = int(os.environ.get("PORT", 5000))
-    gateway_app.run(host="0.0.0.0", port=port, debug=True)
+    debug = os.getenv("DEBUG", "false").lower() in {"1", "true", "yes"}
+    gateway_app.run(host="0.0.0.0", port=port, debug=debug)

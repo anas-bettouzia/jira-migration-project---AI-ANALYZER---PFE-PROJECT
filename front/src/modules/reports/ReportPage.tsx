@@ -507,6 +507,7 @@ const securityToneClasses = {
 };
 
 const SecurityPanel = ({ status }: { status: SecurityStatus }) => {
+  const { t } = useI18n();
   const tone = securityToneClasses[status.tone];
 
   return (
@@ -516,7 +517,7 @@ const SecurityPanel = ({ status }: { status: SecurityStatus }) => {
           {tone.icon}
         </span>
         <div>
-          <p className="text-xs font-black uppercase tracking-wide opacity-70">Security status</p>
+          <p className="text-xs font-black uppercase tracking-wide opacity-70">{t('reports.securityStatus')}</p>
           <h3 className="mt-1 text-3xl font-black">{status.label}</h3>
           <p className="mt-3 text-sm leading-6 opacity-80">{status.description}</p>
         </div>
@@ -577,7 +578,7 @@ const ComponentFindingCard = ({
             {componentDisplayName(component, index)}
           </h4>
           <p className="mt-1 text-xs font-bold text-[#8a96b3] dark:text-white/45">
-            {[component.plugin, component.component_type, location].filter(Boolean).join(' Â· ') || 'Migration component'}
+            {[component.plugin, component.component_type, location].filter(Boolean).join(' / ') || t('reports.migrationComponent')}
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
