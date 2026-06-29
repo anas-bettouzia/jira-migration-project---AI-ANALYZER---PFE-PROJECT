@@ -4,6 +4,7 @@ Report Service for Jira DC → Cloud migration analysis.
 Generates structured migration reports from compatibility matrices.
 """
 
+import json
 import logging
 import os
 import sys
@@ -256,10 +257,10 @@ def translate_report(report_id):
         prompt = (
             "Translate the following structured report fields into French. "
             "Preserve component names, API identifiers, code snippets and technical terms "
-            "in English. Keep a professional consulting tone, and return only valid "
-            "JSON with the same structure.\n\n"
-            "Input:\n"
-            f"{source_payload}"
+            "in English. Keep a professional consulting tone. "
+            "Return exactly one valid JSON object with the same structure and no extra text.\n\n"
+            "Input JSON:\n"
+            f"{json.dumps(source_payload, ensure_ascii=False, indent=2)}"
         )
 
         result = generate_report_json(prompt, fallback_json=source_payload)
