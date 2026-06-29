@@ -177,6 +177,11 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
         container.innerHTML = '';
       }
       setRecaptchaWidgetId(null);
+      setRecaptchaToken(undefined);
+      
+      // Remove all old reCAPTCHA scripts so they can be reloaded with the new language
+      const allScripts = document.querySelectorAll('script[data-recaptcha]');
+      allScripts.forEach((script) => script.remove());
     }
   }, [recaptchaLocale]);
 
@@ -245,7 +250,8 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
       }
     };
 
-    const existing = document.querySelector(`script[data-recaptcha="${RECAPTCHA_SITE_KEY}"]`);
+    // Include locale in the data attribute so different languages have different script identifiers
+    const existing = document.querySelector(`script[data-recaptcha-lang="${recaptchaLocale}"]`);
     console.log('recaptcha script existing', existing);
     if (!existing) {
       const script = document.createElement('script');
@@ -254,6 +260,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
       script.async = true;
       script.defer = true;
       script.setAttribute('data-recaptcha', RECAPTCHA_SITE_KEY);
+      script.setAttribute('data-recaptcha-lang', recaptchaLocale);
       document.head.appendChild(script);
 
       script.onload = () => {

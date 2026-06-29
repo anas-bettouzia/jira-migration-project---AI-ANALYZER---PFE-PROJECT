@@ -406,7 +406,7 @@ const dictionaries: Record<Language, Dictionary> = {
     'sidebar.goHome': 'Aller a l accueil',
 
     'home.badge': 'Solutions de migration IA',
-    'home.hero.title': 'Auditez votre migration Jira Cloud avant qu elle devienne risquee.',
+    'home.hero.title': 'Auditez votre migration Jira Cloud avant qu\'elle devienne risquée.',
     'home.hero.subtitle': 'Importez votre package Jira Data Center, detectez les blocages de compatibilite et generez un rapport de migration pret pour la decision.',
     'home.hero.startAuthenticated': 'Lancer une nouvelle analyse',
     'home.hero.startGuest': 'Demarrer l audit de migration',
