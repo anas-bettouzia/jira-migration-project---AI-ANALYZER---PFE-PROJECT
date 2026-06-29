@@ -171,18 +171,25 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   }, []);
 
   useEffect(() => {
-    if (recaptchaWidgetId !== null) {
-      const container = document.getElementById('recaptcha-container');
-      if (container) {
-        container.innerHTML = '';
-      }
-      setRecaptchaWidgetId(null);
-      setRecaptchaToken(undefined);
-      
-      // Remove all old reCAPTCHA scripts so they can be reloaded with the new language
-      const allScripts = document.querySelectorAll('script[data-recaptcha]');
-      allScripts.forEach((script) => script.remove());
+    // Always clean up reCAPTCHA when language changes
+    const container = document.getElementById('recaptcha-container');
+    if (container) {
+      container.innerHTML = '';
     }
+
+    const recaptchaScripts = document.querySelectorAll('script[src*="recaptcha/api.js"]');
+    recaptchaScripts.forEach((script) => script.remove());
+
+    // Clear reCAPTCHA globals so the widget reloads correctly
+    if ((window as any).grecaptcha) {
+      delete (window as any).grecaptcha;
+    }
+    if ((window as any).___grecaptcha_cfg) {
+      delete (window as any).___grecaptcha_cfg;
+    }
+
+    setRecaptchaWidgetId(null);
+    setRecaptchaToken(undefined);
   }, [recaptchaLocale]);
 
   useEffect(() => {
@@ -250,45 +257,48 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
       }
     };
 
-    // Include locale in the data attribute so different languages have different script identifiers
-    const existing = document.querySelector(`script[data-recaptcha-lang="${recaptchaLocale}"]`);
-    console.log('recaptcha script existing', existing);
-    if (!existing) {
-      const script = document.createElement('script');
-      // Force explicit render mode for v2 checkbox widgets and use the active UI language.
-      script.src = `https://www.google.com/recaptcha/api.js?render=explicit&hl=${recaptchaLocale}`;
-      script.async = true;
-      script.defer = true;
-      script.setAttribute('data-recaptcha', RECAPTCHA_SITE_KEY);
-      script.setAttribute('data-recaptcha-lang', recaptchaLocale);
-      document.head.appendChild(script);
+    // Always create a fresh script with the current language
+    const script = document.createElement('script');
+    script.src = `https://www.google.com/recaptcha/api.js?render=explicit&hl=${recaptchaLocale}`;
+    script.async = true;
+    script.defer = true;
+    script.setAttribute('data-recaptcha', RECAPTCHA_SITE_KEY);
+    script.setAttribute('data-recaptcha-lang', recaptchaLocale);
+    document.head.appendChild(script);
 
-      script.onload = () => {
-        console.log('recaptcha script loaded');
-        const grecaptcha = (window as any).grecaptcha;
-        if (grecaptcha && typeof grecaptcha.ready === 'function') {
-          try {
-            grecaptcha.ready(() => {
-              renderRecaptcha();
-            });
-          } catch (err) {
-            console.warn('grecaptcha.ready threw, calling renderRecaptcha directly', err);
+    script.onload = () => {
+      console.log('recaptcha script loaded with locale', recaptchaLocale);
+      const grecaptcha = (window as any).grecaptcha;
+      if (grecaptcha && typeof grecaptcha.ready === 'function') {
+        try {
+          grecaptcha.ready(() => {
             renderRecaptcha();
-          }
-        } else {
-          // Fallback: call render directly if ready isn't available
+          });
+        } catch (err) {
+          console.warn('grecaptcha.ready threw, calling renderRecaptcha directly', err);
           renderRecaptcha();
         }
-      };
+      } else {
+        renderRecaptcha();
+      }
+    };
 
-      script.onerror = (error) => {
-        console.error('recaptcha script failed to load', error);
-        setError(t('loginModalRecaptchaLoadFailed'));
-      };
-    } else {
-      renderRecaptcha();
-    }
-  }, [RECAPTCHA_SITE_KEY, recaptchaLocale, recaptchaWidgetId]);
+    script.onerror = (error) => {
+      console.error('recaptcha script failed to load', error);
+      setError(t('loginModalRecaptchaLoadFailed'));
+    };
+    
+    return () => {
+      // Cleanup: remove the script if component unmounts or language changes
+      script.remove();
+      if ((window as any).grecaptcha) {
+        delete (window as any).grecaptcha;
+      }
+      if ((window as any).___grecaptcha_cfg) {
+        delete (window as any).___grecaptcha_cfg;
+      }
+    };
+  }, [RECAPTCHA_SITE_KEY, recaptchaLocale, recaptchaWidgetId, t]);
 
   if (!isOpen) return null;
 

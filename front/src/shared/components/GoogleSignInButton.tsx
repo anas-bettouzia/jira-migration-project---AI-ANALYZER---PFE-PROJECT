@@ -51,24 +51,23 @@ declare global {
 const googleScriptsLoaded: Record<string, Promise<void>> = {};
 
 const loadGoogleScript = (lang: string) => {
-  if (window.google?.accounts?.id && document.querySelector(`script[src*="hl=${lang}"]`)) {
+  const scriptSelector = `script[src*="accounts.google.com/gsi/client?hl=${lang}"]`;
+  const existingScript = document.querySelector(scriptSelector);
+
+  if (window.google?.accounts?.id && existingScript) {
     return Promise.resolve();
   }
 
-  if (!googleScriptsLoaded[lang]) {
+  if (!googleScriptsLoaded[lang] || !existingScript || !window.google?.accounts?.id) {
     googleScriptsLoaded[lang] = new Promise((resolve, reject) => {
-      // Supprimer l'ancien script d'une autre langue s'il existe pour éviter les conflits
-      const oldScript = document.querySelector('script[src^="https://accounts.google.com/gsi/client"]');
-      if (oldScript) {
-        oldScript.remove();
-        // On réinitialise l'objet global pour forcer Google à se recharger avec la bonne langue
-        if (window.google) {
-          delete (window as any).google;
-        }
+      // Supprimer les anciens scripts Google Sign-In pour éviter les conflits
+      const oldScripts = document.querySelectorAll('script[src*="accounts.google.com/gsi/client"]');
+      oldScripts.forEach((script) => script.remove());
+      if (window.google) {
+        delete (window as any).google;
       }
 
       const script = document.createElement('script');
-      // Modification ici : injection dynamique de la langue active ({lang})
       script.src = `https://accounts.google.com/gsi/client?hl=${lang}`;
       script.async = true;
       script.defer = true;
