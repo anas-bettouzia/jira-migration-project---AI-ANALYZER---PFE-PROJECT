@@ -45,6 +45,49 @@ interface DetailEntry {
 
 const THEME_KEY = 'jira-migration-theme';
 
+const getTranslatedComponentField = (
+  component: ReportComponent,
+  field: 'reasoning_summary' | 'recommended_action',
+  report: ReportData | null,
+  language?: string,
+) => {
+  if (language !== 'fr' || !report?.translations?.fr?.sections?.components) {
+    return component[field] ?? '';
+  }
+
+  const translation = report.translations.fr.sections?.components?.find(
+    (translated) => translated.component_id && translated.component_id === component.component_id,
+  );
+
+  return (translation?.[field] as string | undefined) ?? component[field] ?? '';
+};
+
+const getTranslatedRecommendationField = (
+  recommendation: ReportRecommendation,
+  field: 'action' | 'reason',
+  report: ReportData | null,
+  language?: string,
+) => {
+  if (language !== 'fr' || !report?.translations?.fr?.sections?.recommendations) {
+    return recommendation[field] ?? '';
+  }
+
+  const translation = report.translations.fr.sections?.recommendations?.find(
+    (translated) => translated.component_id && translated.component_id === recommendation.component_id,
+  );
+
+  return (translation?.[field] as string | undefined) ?? recommendation[field] ?? '';
+};
+
+const getTranslatedText = (
+  value: string | undefined,
+  translated: string | undefined,
+  language?: string,
+) => {
+  if (language !== 'fr') return value ?? '';
+  return translated ?? value ?? '';
+};
+
 export const ReportPage: React.FC = () => {
   const { reportId } = useParams<{ reportId: string }>();
   const navigate = useNavigate();
@@ -63,6 +106,11 @@ export const ReportPage: React.FC = () => {
   }, [isLight]);
 
   const originalAiSummaryRef = useRef<string | null>(null);
+
+  const getCachedTranslation = (reportData: ReportData | null) => {
+    if (!reportData) return null;
+    return reportData.ai_summary_fr ?? (reportData.translations?.fr?.ai_summary as string | undefined) ?? null;
+  };
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -89,8 +137,7 @@ export const ReportPage: React.FC = () => {
     const applyTranslation = async () => {
       try {
         if (language === 'fr') {
-          // If French translation is already present, use it
-          const cached = (report as any).ai_summary_fr || ((report as any).translations || {}).fr?.ai_summary;
+          const cached = getCachedTranslation(report);
           if (cached) {
             setReport((r) => {
               if (!r) return r;
@@ -100,18 +147,35 @@ export const ReportPage: React.FC = () => {
             return;
           }
 
-          // Otherwise request translation from backend and update state
           const res = await reportService.translateReport(reportId, 'fr');
           const translated = res?.ai_summary_fr || res?.ai_summary || '';
+          const translatedSectionData = res?.translations?.fr ?? {};
+
           if (translated) {
             setReport((r) => {
               if (!r) return r;
-              if (r.ai_summary === String(translated) && r.ai_summary_fr === String(translated)) return r;
-              return { ...r, ai_summary: String(translated), ai_summary_fr: String(translated) };
+              const nextTranslations = {
+                ...r.translations,
+                fr: {
+                  ...((r.translations?.fr as Record<string, unknown>) || {}),
+                  ...translatedSectionData,
+                  ai_summary: translated,
+                },
+              };
+
+              if (r.ai_summary === String(translated) && r.ai_summary_fr === String(translated)) {
+                return { ...r, translations: nextTranslations };
+              }
+
+              return {
+                ...r,
+                ai_summary: String(translated),
+                ai_summary_fr: String(translated),
+                translations: nextTranslations,
+              };
             });
           }
         } else {
-          // Restore original English summary
           setReport((r) => {
             if (!r) return r;
             const original = originalAiSummaryRef.current ?? (r.ai_summary as string);
@@ -127,6 +191,11 @@ export const ReportPage: React.FC = () => {
     applyTranslation();
   }, [language, reportId, report]);
 
+  const getTranslatedMigrationRecommendation = () => {
+    if (language !== 'fr') return report?.migration_recommendation;
+    return report?.translations?.fr?.migration_recommendation ?? report?.migration_recommendation;
+  };
+
   const metrics = useMemo(() => {
     const statistics = report?.statistics;
     return {
@@ -136,9 +205,9 @@ export const ReportPage: React.FC = () => {
       compatible: statistics?.compatible_count ?? 0,
       incompatible: statistics?.incompatible_count ?? 0,
       major: statistics?.major_count ?? 0,
-      recommendation: statistics?.migration_recommendation ?? report?.migration_recommendation,
+      recommendation: getTranslatedMigrationRecommendation() ?? statistics?.migration_recommendation ?? report?.migration_recommendation,
     };
-  }, [report]);
+  }, [report, language]);
 
   const securityStatus = useMemo<SecurityStatus>(() => {
     if (metrics.incompatible > 0 || metrics.blockers > 0) {
@@ -164,13 +233,28 @@ export const ReportPage: React.FC = () => {
     };
   }, [metrics.blockers, metrics.incompatible, metrics.major, t]);
 
-  const detailEntries = useMemo(() => normalizeDetails(report?.details), [report?.details]);
+  const detailEntries = useMemo(
+    () => normalizeDetails(language === 'fr' ? report?.translations?.fr?.details ?? report?.details : report?.details),
+    [report?.details, report?.translations?.fr?.details, language],
+  );
   const componentFindings = useMemo(() => report?.sections?.components ?? [], [report?.sections?.components]);
   const prioritizedRecommendations = useMemo(
     () => report?.sections?.recommendations ?? [],
     [report?.sections?.recommendations],
   );
-  const sanitizedAiSummary = useMemo(() => sanitizeReportText(report?.ai_summary ?? '', report), [report]);
+  const sanitizedAiSummary = useMemo(
+    () => sanitizeReportText(getTranslatedText(report?.ai_summary, report?.translations?.fr?.ai_summary, language), report),
+    [report, language],
+  );
+  const translatedAiInsights = useMemo(
+    () => getTranslatedText(report?.ai_insights, report?.translations?.fr?.ai_insights, language),
+    [report?.ai_insights, report?.translations?.fr?.ai_insights, language],
+  );
+  const translatedAiError = useMemo(
+    () => getTranslatedText(report?.ai_error, report?.translations?.fr?.ai_error, language),
+    [report?.ai_error, report?.translations?.fr?.ai_error, language],
+  );
+
   const reportDetails = useMemo(() => {
     const details: Array<{ label: string; value: unknown }> = [];
 
@@ -350,9 +434,9 @@ export const ReportPage: React.FC = () => {
                   </ContentPanel>
                 )}
 
-                {report.ai_insights && (
+                {translatedAiInsights && (
                   <ContentPanel title={t('reports.aiInsights')} icon={<Zap size={18} />}>
-                    <p className="text-sm leading-7 text-[#64708d] dark:text-white/68">{report.ai_insights}</p>
+                    <p className="text-sm leading-7 text-[#64708d] dark:text-white/68">{translatedAiInsights}</p>
                   </ContentPanel>
                 )}
 
@@ -378,10 +462,10 @@ export const ReportPage: React.FC = () => {
                   </ContentPanel>
                 )}
 
-                {report.ai_error && (
+                {translatedAiError && (
                   <ContentPanel title={t('reports.aiError')} icon={<AlertTriangle size={18} />}>
                     <p className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm leading-7 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
-                      {report.ai_error}
+                      {translatedAiError}
                     </p>
                   </ContentPanel>
                 )}
@@ -610,11 +694,13 @@ const ComponentFindingCard = ({
   index: number;
   report: ReportData;
 }) => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const risk = component.final_risk ?? component.risk_level ?? 'INFO';
   const status = component.final_status ?? component.overall_status ?? 'NEEDS_REVIEW';
+  const reasoningText = getTranslatedComponentField(component, 'reasoning_summary', report, language);
+  const actionText = getTranslatedComponentField(component, 'recommended_action', report, language);
   const description = sanitizeReportText(
-    component.reasoning_summary || component.recommended_action || t('reports.noReasoning'),
+    [reasoningText, actionText].filter(Boolean).join('\n\n') || t('reports.noReasoning'),
     report,
   );
   const location = locationLabel(component.location);
@@ -653,8 +739,10 @@ const RecommendationCard = ({
   index: number;
   report: ReportData;
 }) => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const priority = recommendation.priority ?? 'INFO';
+  const actionText = getTranslatedRecommendationField(recommendation, 'action', report, language);
+  const reasonText = getTranslatedRecommendationField(recommendation, 'reason', report, language);
 
   return (
     <article className="rounded-2xl border border-[#edf1f8] bg-[#f8faff] p-4 dark:border-white/10 dark:bg-white/5">
@@ -672,7 +760,7 @@ const RecommendationCard = ({
         </span>
       </div>
       <p className="mt-3 text-sm leading-7 text-[#64708d] dark:text-white/68">
-        {sanitizeReportText(recommendation.action || recommendation.reason || t('reports.noAction'), report)}
+        {sanitizeReportText(actionText || reasonText || t('reports.noAction'), report)}
       </p>
     </article>
   );

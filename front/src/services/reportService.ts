@@ -26,9 +26,36 @@ export interface ReportData {
   sections?: ReportSections;
   ai_insights?: string;
   ai_summary?: string;
+  ai_summary_fr?: string;
   ai_used?: boolean;
   ai_error?: string;
   ai_model?: string;
+  translations?: {
+    fr?: {
+      ai_summary?: string;
+      migration_recommendation?: string;
+      ai_insights?: string;
+      ai_error?: string;
+      details?: unknown;
+      sections?: {
+        components?: Array<{
+          component_id?: string;
+          reasoning_summary?: string;
+          recommended_action?: string;
+        }>;
+        blockers?: Array<{
+          component_id?: string;
+          reasoning_summary?: string;
+          recommended_action?: string;
+        }>;
+        recommendations?: Array<{
+          component_id?: string;
+          action?: string;
+          reason?: string;
+        }>;
+      };
+    };
+  };
   analysis_id?: string;
   matrix_id?: string;
   [key: string]: unknown; // Accepter d'autres champs

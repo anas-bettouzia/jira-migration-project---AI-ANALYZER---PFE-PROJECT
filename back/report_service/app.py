@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from report_service.generators.json_export import export_report_to_json
 from report_service.generators.pdf_export import export_report_to_pdf
 from report_service.generators.report_builder import build_report
-from report_service.llm.gemini_client import generate_report_text
+from report_service.llm.gemini_client import generate_report_json
 from shared.repositories.compatibility_repository import CompatibilityRepository
 from shared.repositories.report_repository import ReportRepository
 
@@ -200,37 +200,99 @@ def translate_report(report_id):
 
         # If French translation already exists, return it
         translations = report.get("translations", {}) or {}
-        existing = report.get("ai_summary_fr") or translations.get("fr", {}).get("ai_summary")
-        if existing:
-            return jsonify({"ai_summary_fr": existing}), 200
+        existing_fr = translations.get("fr", {}) or {}
+        existing_summary = report.get("ai_summary_fr") or existing_fr.get("ai_summary")
+        if existing_summary:
+            merged_translations = {
+                **existing_fr,
+                "ai_summary": existing_summary,
+            }
+            return jsonify({
+                "ai_summary_fr": merged_translations.get("ai_summary"),
+                "migration_recommendation_fr": merged_translations.get("migration_recommendation"),
+                "ai_insights_fr": merged_translations.get("ai_insights"),
+                "ai_error_fr": merged_translations.get("ai_error"),
+                "details_fr": merged_translations.get("details"),
+                "translations": {"fr": merged_translations},
+                "used_ai": False,
+            }), 200
 
-        # Prepare source text
-        source_text = report.get("ai_summary") or report.get("summary") or ""
+        # Build structured translation payload covering the main report fields.
+        source_payload = {
+            "ai_summary": report.get("ai_summary", ""),
+            "migration_recommendation": report.get("migration_recommendation", ""),
+            "ai_insights": report.get("ai_insights", ""),
+            "ai_error": report.get("ai_error", ""),
+            "details": report.get("details", ""),
+            "sections": {
+                "components": [
+                    {
+                        "component_id": component.get("component_id", ""),
+                        "reasoning_summary": component.get("reasoning_summary", ""),
+                        "recommended_action": component.get("recommended_action", ""),
+                    }
+                    for component in report.get("sections", {}).get("components", [])
+                ],
+                "blockers": [
+                    {
+                        "component_id": blocker.get("component_id", ""),
+                        "reasoning_summary": blocker.get("reasoning_summary", ""),
+                        "recommended_action": blocker.get("recommended_action", ""),
+                    }
+                    for blocker in report.get("sections", {}).get("blockers", [])
+                ],
+                "recommendations": [
+                    {
+                        "component_id": recommendation.get("component_id", ""),
+                        "action": recommendation.get("action", ""),
+                        "reason": recommendation.get("reason", ""),
+                    }
+                    for recommendation in report.get("sections", {}).get("recommendations", [])
+                ],
+            },
+        }
 
-        if not source_text:
-            return jsonify({"error": "No source summary available to translate."}), 400
-
-        # Build simple translation prompt
+        # Build a prompt that asks Gemini to translate the structured content.
         prompt = (
-            "Translate the following English executive summary into French. "
-            "Preserve component names, API identifiers and code snippets in English. "
-            "Keep a professional consulting tone and be concise.\n\n"
-            f"Original:\n{source_text}"
+            "Translate the following structured report fields into French. "
+            "Preserve component names, API identifiers, code snippets and technical terms "
+            "in English. Keep a professional consulting tone, and return only valid "
+            "JSON with the same structure.\n\n"
+            "Input:\n"
+            f"{source_payload}"
         )
 
-        ai_result = generate_report_text(prompt, fallback_text=source_text)
-        translated = ai_result.get("text", "") or source_text
+        result = generate_report_json(prompt, fallback_json=source_payload)
+        translated_data = result.get("data", {})
 
-        # Store the translated summary in the report document
+        translated_ai_summary = translated_data.get("ai_summary", source_payload["ai_summary"])
+        translated_recommendation = translated_data.get(
+            "migration_recommendation", source_payload["migration_recommendation"]
+        )
+        translated_ai_insights = translated_data.get("ai_insights", source_payload["ai_insights"])
+        translated_ai_error = translated_data.get("ai_error", source_payload["ai_error"])
+        translated_details = translated_data.get("details", source_payload["details"])
+        translated_sections = translated_data.get("sections", source_payload["sections"])
+
         updates = {
-            "ai_summary_fr": translated,
-            "translations.fr.ai_summary": translated,
+            "ai_summary_fr": translated_ai_summary,
+            "translations.fr.ai_summary": translated_ai_summary,
+            "translations.fr.migration_recommendation": translated_recommendation,
+            "translations.fr.ai_insights": translated_ai_insights,
+            "translations.fr.ai_error": translated_ai_error,
+            "translations.fr.details": translated_details,
+            "translations.fr.sections": translated_sections,
         }
         report_repo.update_report(report_id, updates)
 
         response_body = {
-            "ai_summary_fr": translated,
-            "used_ai": ai_result.get("used_ai", False),
+            "ai_summary_fr": translated_ai_summary,
+            "migration_recommendation_fr": translated_recommendation,
+            "ai_insights_fr": translated_ai_insights,
+            "ai_error_fr": translated_ai_error,
+            "details_fr": translated_details,
+            "translations": {"fr": translated_data},
+            "used_ai": result.get("used_ai", False),
         }
         return jsonify(response_body), 200
 
