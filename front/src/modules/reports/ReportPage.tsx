@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -48,7 +48,7 @@ const THEME_KEY = 'jira-migration-theme';
 export const ReportPage: React.FC = () => {
   const { reportId } = useParams<{ reportId: string }>();
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [report, setReport] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLight, setIsLight] = useState(() => {
@@ -62,12 +62,16 @@ export const ReportPage: React.FC = () => {
     localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark');
   }, [isLight]);
 
+  const originalAiSummaryRef = useRef<string | null>(null);
+
   useEffect(() => {
     const fetchReport = async () => {
       if (!reportId) return;
       try {
         const data = await reportService.getReport(reportId);
         setReport(data);
+        // keep original AI summary so we can restore when switching back to English
+        originalAiSummaryRef.current = (data && (data.ai_summary as string)) || '';
       } catch (error) {
         console.error('Erreur chargement rapport:', error);
       } finally {
@@ -77,6 +81,51 @@ export const ReportPage: React.FC = () => {
 
     fetchReport();
   }, [reportId]);
+
+  // Auto-translate or restore summary when language changes
+  useEffect(() => {
+    if (!report || !reportId) return;
+
+    const applyTranslation = async () => {
+      try {
+        if (language === 'fr') {
+          // If French translation is already present, use it
+          const cached = (report as any).ai_summary_fr || ((report as any).translations || {}).fr?.ai_summary;
+          if (cached) {
+            setReport((r) => {
+              if (!r) return r;
+              if (r.ai_summary === String(cached)) return r;
+              return { ...r, ai_summary: String(cached) };
+            });
+            return;
+          }
+
+          // Otherwise request translation from backend and update state
+          const res = await reportService.translateReport(reportId, 'fr');
+          const translated = res?.ai_summary_fr || res?.ai_summary || '';
+          if (translated) {
+            setReport((r) => {
+              if (!r) return r;
+              if (r.ai_summary === String(translated) && r.ai_summary_fr === String(translated)) return r;
+              return { ...r, ai_summary: String(translated), ai_summary_fr: String(translated) };
+            });
+          }
+        } else {
+          // Restore original English summary
+          setReport((r) => {
+            if (!r) return r;
+            const original = originalAiSummaryRef.current ?? (r.ai_summary as string);
+            if (r.ai_summary === original) return r;
+            return { ...r, ai_summary: original };
+          });
+        }
+      } catch (err) {
+        console.error('Erreur traduction du rapport:', err);
+      }
+    };
+
+    applyTranslation();
+  }, [language, reportId, report]);
 
   const metrics = useMemo(() => {
     const statistics = report?.statistics;

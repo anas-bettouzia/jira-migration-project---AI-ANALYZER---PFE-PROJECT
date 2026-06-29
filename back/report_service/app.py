@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from report_service.generators.json_export import export_report_to_json
 from report_service.generators.pdf_export import export_report_to_pdf
 from report_service.generators.report_builder import build_report
+from report_service.llm.gemini_client import generate_report_text
 from shared.repositories.compatibility_repository import CompatibilityRepository
 from shared.repositories.report_repository import ReportRepository
 
@@ -58,8 +59,11 @@ def generate_report():
             "error": "No compatibility matrix found for provided identifier."
         }), 404
 
+    # Optional language parameter (default: 'en') to request report language
+    language = data.get("language", "en")
+
     try:
-        report = build_report(matrix)
+        report = build_report(matrix, language=language)
     except Exception as error:  # pylint: disable=broad-exception-caught
         logger.error("Report generation failed: %s", error)
         return jsonify({"error": f"Report generation failed: {error}"}), 500
@@ -168,6 +172,71 @@ def export_pdf(report_id):
     report.pop("_id", None)
     file_path = export_report_to_pdf(report)
     return send_file(file_path, as_attachment=True)
+
+
+@app.route("/reports/<report_id>/translate", methods=["POST"])
+def translate_report(report_id):
+    """Translate the AI-generated summary of a report into a target language and cache it.
+
+    Request body: { "target_language": "fr" }
+    """
+    data = request.get_json(silent=True) or {}
+    target = data.get("target_language", "fr")
+
+    if target not in ("fr", "en"):
+        return jsonify({"error": "Unsupported target_language. Use 'fr' or 'en'."}), 400
+
+    try:
+        report_repo = ReportRepository()
+        report = report_repo.get_report_by_id(report_id)
+
+        if not report:
+            return jsonify({"error": f"Report '{report_id}' not found."}), 404
+
+        # If target is English, just return existing ai_summary
+        if target == "en":
+            summary_val = report.get("ai_summary", report.get("summary", ""))
+            return jsonify({"ai_summary": summary_val}), 200
+
+        # If French translation already exists, return it
+        translations = report.get("translations", {}) or {}
+        existing = report.get("ai_summary_fr") or translations.get("fr", {}).get("ai_summary")
+        if existing:
+            return jsonify({"ai_summary_fr": existing}), 200
+
+        # Prepare source text
+        source_text = report.get("ai_summary") or report.get("summary") or ""
+
+        if not source_text:
+            return jsonify({"error": "No source summary available to translate."}), 400
+
+        # Build simple translation prompt
+        prompt = (
+            "Translate the following English executive summary into French. "
+            "Preserve component names, API identifiers and code snippets in English. "
+            "Keep a professional consulting tone and be concise.\n\n"
+            f"Original:\n{source_text}"
+        )
+
+        ai_result = generate_report_text(prompt, fallback_text=source_text)
+        translated = ai_result.get("text", "") or source_text
+
+        # Store the translated summary in the report document
+        updates = {
+            "ai_summary_fr": translated,
+            "translations.fr.ai_summary": translated,
+        }
+        report_repo.update_report(report_id, updates)
+
+        response_body = {
+            "ai_summary_fr": translated,
+            "used_ai": ai_result.get("used_ai", False),
+        }
+        return jsonify(response_body), 200
+
+    except Exception as error:  # pylint: disable=broad-exception-caught
+        logger.error("Error translating report %s: %s", report_id, error)
+        return jsonify({"error": str(error)}), 500
 
 
 def _load_matrix(data: dict) -> dict | None:

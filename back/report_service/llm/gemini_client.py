@@ -12,7 +12,13 @@ import logging
 import os
 import time
 
-import google.generativeai as genai
+# Import google.generativeai optionally — the package may not be installed in
+# developer environments. When unavailable we fall back to deterministic text.
+try:
+    # Use a clear variable name to satisfy linting naming conventions.
+    import google.generativeai as google_genai  # type: ignore[import]
+except ImportError:  # pragma: no cover - optional dependency
+    google_genai = None  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +38,8 @@ def get_gemini_model() -> str:
 
 
 def is_gemini_available() -> bool:
-    """Return True if Gemini API key is configured."""
-    return bool(get_gemini_api_key().strip())
+    """Return True if Gemini API key is configured and client library is present."""
+    return bool(get_gemini_api_key().strip()) and google_genai is not None
 
 
 def generate_report_text(prompt: str, fallback_text: str = "") -> dict:
@@ -65,9 +71,10 @@ def generate_report_text(prompt: str, fallback_text: str = "") -> dict:
             "error": "Gemini API key not configured.",
         }
 
-    genai.configure(api_key=get_gemini_api_key())
+    # Configure and call the Google Generative AI client
+    google_genai.configure(api_key=get_gemini_api_key())
     model_name = get_gemini_model()
-    model = genai.GenerativeModel(model_name)
+    model = google_genai.GenerativeModel(model_name)
 
     last_error = ""
 

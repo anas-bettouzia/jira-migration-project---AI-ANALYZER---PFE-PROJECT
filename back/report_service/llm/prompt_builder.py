@@ -8,7 +8,7 @@ human-readable migration reports.
 from datetime import datetime
 
 
-def build_report_prompt(report: dict) -> str:
+def build_report_prompt(report: dict, language: str = "en") -> str:
     """
     Build a prompt for generating a high-level migration report.
 
@@ -30,6 +30,17 @@ def build_report_prompt(report: dict) -> str:
         if component.get("final_risk") == "BLOCKER"
     ]
 
+    # Language instruction: default is English. If French requested, instruct the
+    # model to produce the report in French while preserving technical identifiers
+    # (component names, code snippets) in English.
+    lang_instruction = (
+        "Write the report in English." if language == "en"
+        else (
+            "Write the report in French. Preserve code, component names and technical "
+            "identifiers in English where appropriate; keep a professional tone."
+        )
+    )
+
     prompt = f"""
 You are a Jira Cloud migration expert.
 
@@ -44,6 +55,8 @@ Summary:
 
 Global Recommendation:
 {recommendation}
+
+Language Instruction: {lang_instruction}
 
 === BLOCKERS ===
 """

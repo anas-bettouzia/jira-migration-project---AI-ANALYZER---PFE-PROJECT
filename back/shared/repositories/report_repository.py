@@ -116,3 +116,20 @@ class ReportRepository:
             .sort("archived_at", -1)
             .limit(limit)
         )
+
+    def update_report(self, report_id: str, updates: dict) -> bool:
+        """
+        Update a report document with the provided fields.
+
+        Args:
+            report_id: the report identifier
+            updates: dict of fields to set on the document
+
+        Returns:
+            True if a document was modified.
+        """
+        if not updates:
+            return False
+
+        result = self.collection.update_one({"report_id": report_id}, {"$set": updates})
+        return result.modified_count > 0

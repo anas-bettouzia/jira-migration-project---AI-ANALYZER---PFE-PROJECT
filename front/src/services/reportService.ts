@@ -75,6 +75,15 @@ export const reportService = {
   },
 
   /**
+   * Request a translated version (cached) of the report AI summary.
+   * Returns object with ai_summary_fr and used_ai flag when available.
+   */
+  async translateReport(reportId: string, target = 'fr') {
+    const response = await api.post(`/reports/${reportId}/translate`, { target_language: target });
+    return response.data;
+  },
+
+  /**
    * Liste tous les rapports (version courte)
    */
   async listReports() {

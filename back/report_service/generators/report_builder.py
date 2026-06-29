@@ -11,8 +11,13 @@ from report_service.llm.gemini_client import generate_report_text
 from report_service.llm.prompt_builder import build_report_prompt
 
 
-def build_report(matrix: dict) -> dict:
-    """Build a structured report from a compatibility matrix."""
+def build_report(matrix: dict, language: str = "en") -> dict:
+    """Build a structured report from a compatibility matrix.
+
+    Args:
+        matrix: compatibility matrix dict
+        language: desired language for the AI generated report text (default 'en')
+    """
     report_id = str(uuid.uuid4())
 
     summary = matrix.get("summary", {})
@@ -42,9 +47,12 @@ def build_report(matrix: dict) -> dict:
             "matrix_id": matrix.get("matrix_id", ""),
             "analysis_id": matrix.get("analysis_id", ""),
         },
+        "language": language,
     }
 
-    ai_prompt = build_report_prompt(report)
+    # Build prompt with the requested language so the LLM knows output language.
+    # Use positional arg to avoid lint warnings about unexpected keyword arguments.
+    ai_prompt = build_report_prompt(report, language)
     fallback_text = _build_fallback_ai_summary(report)
     ai_result = generate_report_text(ai_prompt, fallback_text=fallback_text)
 
