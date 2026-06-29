@@ -77,6 +77,27 @@ def _hash_reset_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
+def _get_password_reset_success_message(language: str | None = None) -> str:
+    """Return the password reset success message in the requested language."""
+    locale = (language or "").strip().lower()
+    if locale.startswith("fr"):
+        return (
+            "Un lien de réinitialisation de mot de passe a été envoyé. "
+            "Vérifiez votre boîte de réception ou les courriers indésirables."
+        )
+    return "A password reset link has been sent. Check your inbox or spam."
+
+
+def _get_registration_success_message(language: str | None = None) -> str:
+    """Return the registration success message in the requested language."""
+    locale = (language or "").strip().lower()
+    if locale.startswith("fr"):
+        return (
+            "Inscription réussie. Veuillez vérifier votre e-mail pour valider votre compte."
+        )
+    return "Registration successful. Please check your email to verify your account."
+
+
 def _password_reset_link(email: str, token: str) -> str:
     """Build a frontend password reset URL."""
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
@@ -926,8 +947,9 @@ def create_app():
             )
             # Don't fail the registration, just log the error
 
+        requested_language = data.get("language")
         return jsonify({
-            "message": "Registration successful. Please check your email to verify your account."
+            "message": _get_registration_success_message(requested_language)
         }), 201
 
     @app.route("/api/password/forgot", methods=["POST"])
@@ -944,10 +966,9 @@ def create_app():
                 "error": "Email must be valid and end with .com, .fr, or .tn."
             }), 400
 
+        requested_language = data.get("language")
         generic_message = {
-            "message": (
-                "A password reset link has been sent. Check your inbox or spam."
-            )
+            "message": _get_password_reset_success_message(requested_language)
         }
 
         user = user_repo.get_user_by_email(email)

@@ -2,8 +2,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useAuthStore } from './store/useAuthStore';
 import Home from './modules/overview/Home';
 import Login from './modules/auth/Login';
-import ResetPassword from './modules/auth/ResetPassword';
-import VerifyEmail from './modules/auth/VerifyEmail';
 import ProfilePage from './modules/profile/ProfilePage';
 import { AnalysisPage } from './modules/analysis/AnalysisPage';
 import { ReportPage } from './modules/reports/ReportPage';
@@ -28,8 +26,8 @@ function App() {
             path="/login" 
             element={token ? <Navigate to="/" /> : <Login />} 
           />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/reset-password" element={<Home />} />
+          <Route path="/verify-email" element={<Home />} />
           <Route
             path="/profile"
             element={token ? <ProfilePage /> : <Navigate to="/" />}

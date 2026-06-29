@@ -47,30 +47,29 @@ declare global {
   }
 }
 
-let googleScriptPromise: Promise<void> | null = null;
+// Map pour suivre le chargement du script par langue
+const googleScriptsLoaded: Record<string, Promise<void>> = {};
 
-const loadGoogleScript = () => {
-  if (window.google?.accounts?.id) {
+const loadGoogleScript = (lang: string) => {
+  if (window.google?.accounts?.id && document.querySelector(`script[src*="hl=${lang}"]`)) {
     return Promise.resolve();
   }
 
-  if (!googleScriptPromise) {
-    googleScriptPromise = new Promise((resolve, reject) => {
-      const existingScript = document.querySelector<HTMLScriptElement>(
-        'script[src="https://accounts.google.com/gsi/client"]'
-      );
-
-      if (existingScript) {
-        existingScript.addEventListener('load', () => resolve(), { once: true });
-        existingScript.addEventListener('error', () => reject(new Error('Google script failed to load.')), {
-          once: true,
-        });
-        return;
+  if (!googleScriptsLoaded[lang]) {
+    googleScriptsLoaded[lang] = new Promise((resolve, reject) => {
+      // Supprimer l'ancien script d'une autre langue s'il existe pour éviter les conflits
+      const oldScript = document.querySelector('script[src^="https://accounts.google.com/gsi/client"]');
+      if (oldScript) {
+        oldScript.remove();
+        // On réinitialise l'objet global pour forcer Google à se recharger avec la bonne langue
+        if (window.google) {
+          delete (window as any).google;
+        }
       }
 
       const script = document.createElement('script');
-      // Force English label for the rendered button
-      script.src = 'https://accounts.google.com/gsi/client?hl=en';
+      // Modification ici : injection dynamique de la langue active ({lang})
+      script.src = `https://accounts.google.com/gsi/client?hl=${lang}`;
       script.async = true;
       script.defer = true;
       script.onload = () => resolve();
@@ -79,7 +78,7 @@ const loadGoogleScript = () => {
     });
   }
 
-  return googleScriptPromise;
+  return googleScriptsLoaded[lang];
 };
 
 const getGoogleAuthErrorMessage = (error: unknown, fallbackMessage: string) => {
@@ -93,7 +92,8 @@ const GoogleSignInButton = ({
   theme = 'outline',
   width = 340,
 }: GoogleSignInButtonProps) => {
-  const { t } = useI18n();
+  // Récupération de la langue actuelle ('en' ou 'fr') depuis votre contexte i18n
+  const { t, language } = useI18n();
   const buttonRef = useRef<HTMLDivElement | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [scriptError, setScriptError] = useState('');
@@ -106,7 +106,8 @@ const GoogleSignInButton = ({
       return;
     }
 
-    loadGoogleScript()
+    // On passe le paramètre 'language' à la fonction de chargement
+    loadGoogleScript(language)
       .then(() => {
         if (!isMounted || !buttonRef.current || !window.google?.accounts?.id) {
           return;
@@ -165,7 +166,8 @@ const GoogleSignInButton = ({
       isMounted = false;
       window.google?.accounts?.id.cancel();
     };
-  }, [clientId, onAuthenticated, onError, theme, width]);
+    // Ajout de 'language' dans les dépendances pour recharger le bouton au changement de langue
+  }, [clientId, onAuthenticated, onError, theme, width, language, t]);
 
   const configError = clientId ? scriptError : t('auth.googleNotConfigured');
 

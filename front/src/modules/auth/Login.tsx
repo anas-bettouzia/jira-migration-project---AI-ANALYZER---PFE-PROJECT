@@ -20,7 +20,7 @@ const Login = () => {
   
   const navigate = useNavigate();
   const setToken = useAuthStore((state) => state.setToken);
-  const { t } = useI18n();
+  const { t, language } = useI18n();
 
   // Theme toggle
   useEffect(() => {
@@ -59,7 +59,7 @@ const Login = () => {
 
     try {
       setIsResetLoading(true);
-      const data = await authService.requestPasswordReset(email.trim());
+      const data = await authService.requestPasswordReset(email.trim(), language);
       setSuccess(data.message);
     } catch (error) {
       const response = (error as { response?: { data?: { error?: string } } }).response;

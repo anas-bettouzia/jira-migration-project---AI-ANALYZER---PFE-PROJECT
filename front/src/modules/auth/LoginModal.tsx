@@ -38,8 +38,9 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
   const navigate = useNavigate();
   const setToken = useAuthStore((state) => state.setToken);
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined;
+  const recaptchaLocale = language === 'fr' ? 'fr' : 'en';
   console.log('LoginModal: VITE_RECAPTCHA_SITE_KEY=', RECAPTCHA_SITE_KEY);
 
   const resetFeedback = () => {
@@ -61,7 +62,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
       }
 
       try {
-        const data = await authService.requestPasswordReset(email.trim());
+        const data = await authService.requestPasswordReset(email.trim(), language);
         setSuccess(data.message);
       } catch (error) {
         setError(getAuthErrorMessage(error, t('loginModalRequestFailed')));
@@ -110,7 +111,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
         onClose();
         navigate('/analysis');
       } else {
-        const data = await authService.register(email, username, password, recaptchaToken);
+        const data = await authService.register(email, username, password, recaptchaToken, language);
         // Do not auto-login: account must be verified first.
         setSuccess(data.message);
         setRegistrationSuccess(true);
@@ -170,7 +171,17 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   }, []);
 
   useEffect(() => {
-    console.log('LoginModal useEffect recaptcha, site key=', RECAPTCHA_SITE_KEY, 'widgetId=', recaptchaWidgetId);
+    if (recaptchaWidgetId !== null) {
+      const container = document.getElementById('recaptcha-container');
+      if (container) {
+        container.innerHTML = '';
+      }
+      setRecaptchaWidgetId(null);
+    }
+  }, [recaptchaLocale]);
+
+  useEffect(() => {
+    console.log('LoginModal useEffect recaptcha, site key=', RECAPTCHA_SITE_KEY, 'widgetId=', recaptchaWidgetId, 'locale=', recaptchaLocale);
     if (!RECAPTCHA_SITE_KEY) return;
     if (typeof window === 'undefined') return;
 
@@ -238,8 +249,8 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     console.log('recaptcha script existing', existing);
     if (!existing) {
       const script = document.createElement('script');
-      // Force explicit render mode for v2 checkbox widgets
-      script.src = 'https://www.google.com/recaptcha/api.js?render=explicit&hl=en';
+      // Force explicit render mode for v2 checkbox widgets and use the active UI language.
+      script.src = `https://www.google.com/recaptcha/api.js?render=explicit&hl=${recaptchaLocale}`;
       script.async = true;
       script.defer = true;
       script.setAttribute('data-recaptcha', RECAPTCHA_SITE_KEY);
@@ -270,7 +281,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     } else {
       renderRecaptcha();
     }
-  }, [RECAPTCHA_SITE_KEY, recaptchaWidgetId]);
+  }, [RECAPTCHA_SITE_KEY, recaptchaLocale, recaptchaWidgetId]);
 
   if (!isOpen) return null;
 

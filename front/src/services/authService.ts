@@ -27,10 +27,17 @@ export const authService = {
     }
   },
 
-  register: async (email: string, username: string, password: string, recaptchaToken?: string): Promise<{ message: string }> => {
+  register: async (
+    email: string,
+    username: string,
+    password: string,
+    recaptchaToken?: string,
+    language?: string
+  ): Promise<{ message: string }> => {
     try {
       const payload: Record<string, unknown> = { email, username, password };
       if (recaptchaToken) payload.recaptcha_token = recaptchaToken;
+      if (language) payload.language = language;
       const response = await api.post<{ message: string }>('/register', payload);
       return response.data;
     } catch (error) {
@@ -75,10 +82,11 @@ export const authService = {
     }
   },
 
-  requestPasswordReset: async (email: string): Promise<{ message: string }> => {
+  requestPasswordReset: async (email: string, language?: string): Promise<{ message: string }> => {
     try {
       const response = await api.post<{ message: string }>('/password/forgot', {
         email,
+        language,
       });
       return response.data;
     } catch (error) {
