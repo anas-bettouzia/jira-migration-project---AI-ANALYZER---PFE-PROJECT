@@ -1350,6 +1350,18 @@ def create_app():
             logger.error("Archive report request failed: %s", error)
             return jsonify({"error": f"Report request failed: {error}"}), 502
 
+    @app.route("/api/reports/<report_id>/translate", methods=["POST"])
+    @jwt_required()
+    def translate_report(report_id):
+        """Proxy report translation request to the report service."""
+        try:
+            url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports/{report_id}/translate"
+            response = requests.post(url, json=request.get_json(), timeout=REQUEST_TIMEOUT)
+            return jsonify(response.json()), response.status_code
+        except requests.exceptions.RequestException as error:
+            logger.error("Translate report request failed: %s", error)
+            return jsonify({"error": f"Report request failed: {error}"}), 502
+
     @app.route("/api/reports/generate", methods=["POST"])
     @jwt_required()
     def generate_report():
