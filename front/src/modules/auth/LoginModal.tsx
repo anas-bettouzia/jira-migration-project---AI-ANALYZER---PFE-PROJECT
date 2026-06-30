@@ -49,6 +49,22 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     setRegistrationSuccess(false);
   };
 
+  const resetToLogin = useCallback(() => {
+    setIsForgotPassword(false);
+    setIsLogin(true);
+    setError('');
+    setSuccess('');
+    setRegistrationSuccess(false);
+    setEmail('');
+    setUsername('');
+    setPassword('');
+    setConfirmPassword('');
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    setRecaptchaToken(undefined);
+    setRecaptchaWidgetId(null);
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -152,8 +168,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
         setCountdown((c) => {
           if (c <= 1) {
             if (timer) clearInterval(timer);
-            setIsForgotPassword(false);
-            resetFeedback();
+            resetToLogin();
             return 0;
           }
           return c - 1;
@@ -523,10 +538,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
             ) : isForgotPassword ? (
               <button
                 type="button"
-                onClick={() => {
-                  setIsForgotPassword(false);
-                  resetFeedback();
-                }}
+                onClick={resetToLogin}
                 className="mb-3 text-sm font-bold text-[var(--spectrum-blue)] hover:underline"
               >
                 {t('loginModalBackToLogin')}
