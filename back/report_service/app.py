@@ -196,32 +196,7 @@ def translate_report(report_id):
 
         logger.info("Translate report request: report_id=%s target=%s", report_id, target)
 
-        # If target is English, just return existing ai_summary
-        if target == "en":
-            summary_val = report.get("ai_summary", report.get("summary", ""))
-            return jsonify({"ai_summary": summary_val}), 200
-
-        # If French translation already exists, return it
-        translations = report.get("translations", {}) or {}
-        existing_fr = translations.get("fr", {}) or {}
-        existing_summary = report.get("ai_summary_fr") or existing_fr.get("ai_summary")
-        if existing_summary:
-            logger.info("Returning cached French translation for report_id=%s", report_id)
-            merged_translations = {
-                **existing_fr,
-                "ai_summary": existing_summary,
-            }
-            return jsonify({
-                "ai_summary_fr": merged_translations.get("ai_summary"),
-                "migration_recommendation_fr": merged_translations.get("migration_recommendation"),
-                "ai_insights_fr": merged_translations.get("ai_insights"),
-                "ai_error_fr": merged_translations.get("ai_error"),
-                "details_fr": merged_translations.get("details"),
-                "translations": {"fr": merged_translations},
-                "used_ai": False,
-            }), 200
-
-        # Build structured translation payload covering the main report fields.
+        # Build structured payload used for translation and cache validation.
         source_payload = {
             "ai_summary": report.get("ai_summary", ""),
             "migration_recommendation": report.get("migration_recommendation", ""),
@@ -255,6 +230,43 @@ def translate_report(report_id):
                 ],
             },
         }
+
+        if target == "en":
+            summary_val = report.get("ai_summary", report.get("summary", ""))
+            return jsonify({"ai_summary": summary_val}), 200
+
+        # If a French translation already exists and is not identical
+        # to the English source, return it.
+        translations = report.get("translations", {}) or {}
+        existing_fr = translations.get("fr", {}) or {}
+        existing_summary = report.get("ai_summary_fr") or existing_fr.get("ai_summary")
+        if existing_summary:
+            cached_translation = {
+                **existing_fr,
+                "ai_summary": existing_summary,
+            }
+            if cached_translation != source_payload:
+                logger.info(
+                    "Returning cached French translation for report_id=%s",
+                    report_id,
+                )
+                return jsonify({
+                    "ai_summary_fr": cached_translation.get("ai_summary"),
+                    "migration_recommendation_fr": cached_translation.get(
+                        "migration_recommendation"
+                    ),
+                    "ai_insights_fr": cached_translation.get("ai_insights"),
+                    "ai_error_fr": cached_translation.get("ai_error"),
+                    "details_fr": cached_translation.get("details"),
+                    "translations": {"fr": cached_translation},
+                    "used_ai": False,
+                }), 200
+
+            logger.info(
+                "Cached French translation for report_id=%s is identical to source payload,"
+                " regenerating translation.",
+                report_id,
+            )
 
         # Build a prompt that asks Gemini to translate the structured content.
         prompt = (
