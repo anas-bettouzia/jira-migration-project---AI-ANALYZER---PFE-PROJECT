@@ -520,7 +520,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
               >
                 {t('forgotPassword')}
               </button>
-            ) : (
+            ) : isForgotPassword ? (
               <button
                 type="button"
                 onClick={() => {
@@ -531,7 +531,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
               >
                 {t('loginModalBackToLogin')}
               </button>
-            )}
+            ) : null}
 
             <p className="text-sm text-slate-500 dark:text-slate-400">
               {isLogin ? t('loginModalDontHaveAccount') : t('loginModalAlreadyHaveAccount')}
