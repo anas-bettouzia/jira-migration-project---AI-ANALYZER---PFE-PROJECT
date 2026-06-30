@@ -109,7 +109,12 @@ export const ReportPage: React.FC = () => {
 
   const getCachedTranslation = (reportData: ReportData | null) => {
     if (!reportData) return null;
-    return reportData.ai_summary_fr ?? (reportData.translations?.fr?.ai_summary as string | undefined) ?? null;
+
+    const cached = reportData.ai_summary_fr ?? (reportData.translations?.fr?.ai_summary as string | undefined) ?? null;
+    if (!cached) return null;
+
+    const original = reportData.ai_summary ?? '';
+    return cached === original ? null : cached;
   };
 
   useEffect(() => {

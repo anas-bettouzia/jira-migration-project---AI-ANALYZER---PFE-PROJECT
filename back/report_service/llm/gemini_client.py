@@ -183,12 +183,14 @@ def generate_report_json(prompt: str, fallback_json: dict | None = None) -> dict
         }
     except json.JSONDecodeError as error:
         logger.warning("Gemini JSON parsing failed: %s", error)
+        logger.debug("Gemini raw text for JSON parse failure: %s", text)
 
         candidate = _extract_json_object(text)
         if candidate:
             try:
                 parsed = json.loads(candidate)
                 logger.info("Recovered JSON translation from Gemini output.")
+                logger.debug("Gemini extracted JSON candidate: %s", candidate)
                 return {
                     "used_ai": result["used_ai"],
                     "model": result["model"],
@@ -197,6 +199,7 @@ def generate_report_json(prompt: str, fallback_json: dict | None = None) -> dict
                 }
             except json.JSONDecodeError as nested_error:
                 logger.warning("Gemini JSON candidate extraction failed: %s", nested_error)
+                logger.debug("Gemini candidate text: %s", candidate)
 
         return {
             "used_ai": False,

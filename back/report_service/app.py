@@ -194,6 +194,8 @@ def translate_report(report_id):
         if not report:
             return jsonify({"error": f"Report '{report_id}' not found."}), 404
 
+        logger.info("Translate report request: report_id=%s target=%s", report_id, target)
+
         # If target is English, just return existing ai_summary
         if target == "en":
             summary_val = report.get("ai_summary", report.get("summary", ""))
@@ -204,6 +206,7 @@ def translate_report(report_id):
         existing_fr = translations.get("fr", {}) or {}
         existing_summary = report.get("ai_summary_fr") or existing_fr.get("ai_summary")
         if existing_summary:
+            logger.info("Returning cached French translation for report_id=%s", report_id)
             merged_translations = {
                 **existing_fr,
                 "ai_summary": existing_summary,
@@ -266,6 +269,15 @@ def translate_report(report_id):
         result = generate_report_json(prompt, fallback_json=source_payload)
         translated_data = result.get("data", {})
 
+        logger.info(
+            "Gemini translation response for report_id=%s: used_ai=%s error=%s data_keys=%s",
+            report_id,
+            result.get("used_ai", False),
+            result.get("error", ""),
+            list(translated_data.keys()),
+        )
+        logger.debug("Gemini translated_data payload: %s", translated_data)
+
         translated_ai_summary = translated_data.get("ai_summary", source_payload["ai_summary"])
         translated_recommendation = translated_data.get(
             "migration_recommendation", source_payload["migration_recommendation"]
@@ -275,17 +287,6 @@ def translate_report(report_id):
         translated_details = translated_data.get("details", source_payload["details"])
         translated_sections = translated_data.get("sections", source_payload["sections"])
 
-        updates = {
-            "ai_summary_fr": translated_ai_summary,
-            "translations.fr.ai_summary": translated_ai_summary,
-            "translations.fr.migration_recommendation": translated_recommendation,
-            "translations.fr.ai_insights": translated_ai_insights,
-            "translations.fr.ai_error": translated_ai_error,
-            "translations.fr.details": translated_details,
-            "translations.fr.sections": translated_sections,
-        }
-        report_repo.update_report(report_id, updates)
-
         response_body = {
             "ai_summary_fr": translated_ai_summary,
             "migration_recommendation_fr": translated_recommendation,
@@ -294,7 +295,40 @@ def translate_report(report_id):
             "details_fr": translated_details,
             "translations": {"fr": translated_data},
             "used_ai": result.get("used_ai", False),
+            "error": result.get("error", ""),
         }
+
+        # Only cache real translated content when Gemini actually generated a translation
+        # and the result is not just the original English payload.
+        should_cache = bool(result.get("used_ai"))
+        if not should_cache:
+            try:
+                should_cache = translated_data != source_payload
+            except TypeError:
+                should_cache = False
+
+        logger.info(
+            "Translation finished for report_id=%s target=%s used_ai=%s should_cache=%s error=%s",
+            report_id,
+            target,
+            result.get("used_ai", False),
+            should_cache,
+            result.get("error", ""),
+        )
+
+        if should_cache:
+            updates = {
+                "ai_summary_fr": translated_ai_summary,
+                "translations.fr.ai_summary": translated_ai_summary,
+                "translations.fr.migration_recommendation": translated_recommendation,
+                "translations.fr.ai_insights": translated_ai_insights,
+                "translations.fr.ai_error": translated_ai_error,
+                "translations.fr.details": translated_details,
+                "translations.fr.sections": translated_sections,
+            }
+            report_repo.update_report(report_id, updates)
+            logger.info("Cached French translation for report_id=%s", report_id)
+
         return jsonify(response_body), 200
 
     except Exception as error:  # pylint: disable=broad-exception-caught
