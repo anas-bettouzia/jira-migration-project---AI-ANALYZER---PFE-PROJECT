@@ -245,9 +245,30 @@ def translate_report(report_id):
                 **existing_fr,
                 "ai_summary": existing_summary,
             }
-            if cached_translation != source_payload:
+
+            # Helper: check if translations.sections contains any translated entries
+            def _has_nonempty_sections(trans: dict) -> bool:
+                if not trans:
+                    return False
+                secs = trans.get("sections") or {}
+                comps = secs.get("components") or []
+                blockers = secs.get("blockers") or []
+                recs = secs.get("recommendations") or []
+                return bool(comps or blockers or recs)
+
+            # Consider translation 'complete' if sections or other fields are present
+            is_complete = (
+                _has_nonempty_sections(cached_translation)
+                or bool(cached_translation.get("migration_recommendation"))
+                or bool(cached_translation.get("ai_insights"))
+                or bool(cached_translation.get("details"))
+            )
+
+            # Only return cached translation when it's both complete and different
+            # from the original source payload (i.e., a real translation)
+            if is_complete and cached_translation != source_payload:
                 logger.info(
-                    "Returning cached French translation for report_id=%s",
+                    "Returning cached French translation for report_id=%s (complete)",
                     report_id,
                 )
                 return jsonify({
@@ -263,8 +284,8 @@ def translate_report(report_id):
                 }), 200
 
             logger.info(
-                "Cached French translation for report_id=%s is identical to source payload,"
-                " regenerating translation.",
+                "Cached French translation for report_id=%s is incomplete or identical to "
+                "source payload; regenerating.",
                 report_id,
             )
 
