@@ -71,7 +71,11 @@ const Login = () => {
 
   const handleGoogleAuthenticated = useCallback(
     (data: AuthResponse) => {
-      setToken(data.token);
+      if (data.user) {
+        setToken(data.token, data.user);
+      } else {
+        setToken(data.token);
+      }
       navigate('/analysis');
     },
     [navigate, setToken]

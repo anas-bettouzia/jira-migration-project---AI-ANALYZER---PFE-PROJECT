@@ -4,9 +4,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
   Brain,
+  Cpu,
   Database,
   FileText,
   GitBranch,
+  MapPin,
   Menu,
   Moon,
   Shield,
@@ -17,6 +19,8 @@ import {
 
 import logoSpectrumDark from '../../assets/img/logo-spectrum-groupe-darkmode.png';
 import logoSpectrum from '../../assets/img/logo-spectrum-groupe.png';
+import worldMapSpectrum from '../../assets/img/world-map-spectrum.jpg';
+import atlassianPartnerBadge from '../../assets/img/atlassian partner.png';
 import LoginModal from '../auth/LoginModal';
 import ResetPassword from '../auth/ResetPassword';
 import VerifyEmail from '../auth/VerifyEmail';
@@ -44,6 +48,7 @@ const Home = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
   const logo = isLight ? logoSpectrum : logoSpectrumDark;
+  const badgeLogo = atlassianPartnerBadge;
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 18);
@@ -102,7 +107,15 @@ const Home = () => {
   };
 
   const scrollToSection = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    const target = document.getElementById(id);
+    if (!target) {
+      setIsMobileMenuOpen(false);
+      return;
+    }
+
+    const navHeight = document.querySelector('nav')?.clientHeight ?? 0;
+    const top = Math.round(target.getBoundingClientRect().top + window.pageYOffset - navHeight - 16);
+    window.scrollTo({ top, behavior: 'smooth' });
     setIsMobileMenuOpen(false);
   };
 
@@ -129,6 +142,7 @@ const Home = () => {
               <button onClick={() => scrollToSection('features')} className="transition hover:text-[#2f80ed]">{t('nav.features')}</button>
               <button onClick={() => scrollToSection('pipeline')} className="transition hover:text-[#2f80ed]">{t('nav.pipeline')}</button>
               <button onClick={() => scrollToSection('reports')} className="transition hover:text-[#2f80ed]">{t('nav.reports')}</button>
+              <button onClick={() => scrollToSection('about')} className="transition hover:text-[#2f80ed]">{t('nav.about')}</button>
             </div>
 
             <div className="flex items-center gap-2">
@@ -182,6 +196,7 @@ const Home = () => {
                 <button onClick={() => scrollToSection('features')} className="block w-full rounded-xl px-4 py-3 text-left text-sm font-black text-[#64708d] hover:bg-[#f8faff] dark:text-white/65 dark:hover:bg-white/6">{t('nav.features')}</button>
                 <button onClick={() => scrollToSection('pipeline')} className="block w-full rounded-xl px-4 py-3 text-left text-sm font-black text-[#64708d] hover:bg-[#f8faff] dark:text-white/65 dark:hover:bg-white/6">{t('nav.pipeline')}</button>
                 <button onClick={() => scrollToSection('reports')} className="block w-full rounded-xl px-4 py-3 text-left text-sm font-black text-[#64708d] hover:bg-[#f8faff] dark:text-white/65 dark:hover:bg-white/6">{t('nav.reports')}</button>
+              <button onClick={() => scrollToSection('about')} className="block w-full rounded-xl px-4 py-3 text-left text-sm font-black text-[#64708d] hover:bg-[#f8faff] dark:text-white/65 dark:hover:bg-white/6">{t('nav.about')}</button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -290,6 +305,50 @@ const Home = () => {
             </div>
           </section>
 
+          <section id="about" className="scroll-mt-28 mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+            <div className="overflow-hidden rounded-[28px] border border-[#dbe4f2] bg-white shadow-xl shadow-[#1d2b5b]/8 dark:border-white/10 dark:bg-[#101d3a]">
+              <div className="grid gap-0 lg:grid-cols-[0.92fr_1.08fr]">
+                <div className="border-b border-[#edf1f8] p-6 dark:border-white/10 sm:p-8 lg:border-b-0 lg:border-r">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <img src={logoSpectrum} alt="Spectrum Groupe" className="h-10 w-auto object-contain dark:hidden" />
+                    <img src={logoSpectrumDark} alt="Spectrum Groupe" className="hidden h-10 w-auto object-contain dark:block" />
+                    <span className="rounded-full border border-[#bdd5fa] bg-[#f5f9ff] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#2f80ed] dark:border-[#2f80ed]/35 dark:bg-[#10264d] dark:text-[#8bbdff]">
+                      {t('home.about.eyebrow')}
+                    </span>
+                  </div>
+
+                  <h2 className="mt-7 text-3xl font-black tracking-tight text-[#111b3f] dark:text-white sm:text-4xl">
+                    {t('home.about.title')}
+                    <span className="mt-2 block text-xl font-black text-[#2f80ed] sm:text-2xl">
+                      {t('home.about.subtitle')}
+                    </span>
+                  </h2>
+
+                  <p className="mt-5 text-sm leading-7 text-[#64708d] dark:text-white/58">
+                    {t('home.about.text')}
+                  </p>
+
+                  <div className="mt-6 rounded-2xl border border-[#dbe4f2] bg-[#f8faff] p-5 dark:border-white/10 dark:bg-white/5">
+                    <h3 className="flex items-center gap-2 text-sm font-black text-[#111b3f] dark:text-white">
+                      <Cpu className="h-5 w-5 text-[#2f80ed]" />
+                      {t('home.about.projectTitle')}
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-[#64708d] dark:text-white/58">
+                      {t('home.about.projectText')}
+                    </p>
+                  </div>
+
+                  <div className="mt-7 grid gap-3 sm:grid-cols-3">
+                    <AboutMetric value={t('home.about.metric.atlassian.value')} label={t('home.about.metric.atlassian.label')} />
+                    <AboutMetric value={t('home.about.metric.global.value')} label={t('home.about.metric.global.label')} />
+                    <AboutMetric value={t('home.about.metric.cloud.value')} label={t('home.about.metric.cloud.label')} />
+                  </div>
+                </div>
+
+                <SpectrumPresenceMap t={t} badgeLogo={badgeLogo} />
+              </div>
+            </div>
+          </section>
           <section className="mx-auto mt-10 max-w-7xl rounded-[22px] bg-[#2f80ed] p-6 text-white shadow-xl shadow-blue-500/20 sm:p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -313,7 +372,7 @@ const Home = () => {
         <footer className="border-t border-[#dce4f4] px-6 py-8 text-center dark:border-white/10">
           <img src={logo} alt="Spectrum Groupe" className={`${isLight ? 'h-7' : 'h-10'} mx-auto w-auto object-contain opacity-70`} />
           <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-[#8a96b3] dark:text-white/40">
-            © 2026 Spectrum Groupe · {t('home.footer')}
+            &copy; 2026 Spectrum Groupe &middot; {t('home.footer')}
           </p>
         </footer>
       </div>
@@ -337,6 +396,75 @@ const Home = () => {
   );
 };
 
+const AboutMetric = ({ value, label }: { value: string; label: string }) => (
+  <div className="rounded-2xl border border-[#dbe4f2] bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
+    <p className="text-lg font-black text-[#111b3f] dark:text-white">{value}</p>
+    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#8a96b3] dark:text-white/45">{label}</p>
+  </div>
+);
+
+const SpectrumPresenceMap = ({ t, badgeLogo }: { t: (key: string) => string; badgeLogo: string }) => {
+  const locations = [
+    { key: 'uk', city: t('home.about.location.uk.city'), country: t('home.about.location.uk.country'), left: '48.8%', top: '36.5%' },
+    { key: 'france', city: t('home.about.location.france.city'), country: t('home.about.location.france.country'), left: '49.8%', top: '41.5%' },
+    { key: 'tunisia', city: t('home.about.location.tunisia.city'), country: t('home.about.location.tunisia.country'), left: '51.5%', top: '49.5%' },
+    { key: 'egypt', city: t('home.about.location.egypt.city'), country: t('home.about.location.egypt.country'), left: '56.8%', top: '54.5%' },
+    { key: 'saudi', city: t('home.about.location.saudi.city'), country: t('home.about.location.saudi.country'), left: '60.0%', top: '58.5%' },
+    { key: 'uae', city: t('home.about.location.uae.city'), country: t('home.about.location.uae.country'), left: '62.8%', top: '58.0%' },
+    { key: 'ivory', city: t('home.about.location.ivory.city'), country: t('home.about.location.ivory.country'), left: '47.0%', top: '64.5%' },
+  ];
+
+  return (
+    <div className="w-full max-w-3xl overflow-hidden rounded-[32px] lg:rounded-l-none lg:rounded-r-[32px] bg-white/90 shadow-xl shadow-[#1d2b5b]/10 dark:bg-[#071426]/95">
+      <div className="relative overflow-hidden bg-[#f4f7fb] dark:bg-[#09182d]">
+        <img
+          src={worldMapSpectrum}
+          alt={t('home.about.mapAria')}
+          className="w-full select-none object-contain opacity-100 filter contrast-110 dark:brightness-95 dark:contrast-125"
+          draggable={false}
+        />
+        <div className="absolute inset-0">
+          {locations.map((location) => (
+            <PresencePoint key={location.key} city={location.city} country={location.country} left={location.left} top={location.top} />
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-5 p-6 sm:p-8">
+        <div className="flex items-center justify-center rounded-[28px] bg-white px-6 py-5 shadow-sm dark:bg-[#0b1f3b]">
+          <img src={badgeLogo} alt="Atlassian Partner" className="h-24 w-auto max-w-[220px] object-contain dark:brightness-125 dark:contrast-125" />
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl border border-[#dbe4f2] bg-white/90 px-4 py-3 text-center shadow-sm dark:border-white/10 dark:bg-[#0b1f3b]">
+            <p className="text-sm font-black text-[#111b3f] dark:text-white">{t('home.about.stat.expertise')}</p>
+          </div>
+          <div className="rounded-2xl border border-[#dbe4f2] bg-white/90 px-4 py-3 text-center shadow-sm dark:border-white/10 dark:bg-[#0b1f3b]">
+            <p className="text-sm font-black text-[#111b3f] dark:text-white">{t('home.about.stat.clients')}</p>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-[#dbe4f2] bg-white/90 px-5 py-3 shadow-sm dark:border-white/10 dark:bg-[#0b1f3b]">
+          <p className="text-center text-xs font-bold leading-5 text-[#64708d] dark:text-[#cfd8ff]">
+            {t('home.about.presenceLine')}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PresencePoint = ({ city, country, left, top }: { city: string; country: string; left: string; top: string }) => (
+  <div className="group absolute z-10 -translate-x-1/2 -translate-y-full" style={{ left, top }}>
+    <div className="relative flex h-5 w-5 items-center justify-center">
+      <MapPin className="h-4 w-4 fill-[#2f80ed] text-[#2f80ed] drop-shadow-sm" />
+      <span className="absolute h-1.5 w-1.5 rounded-full bg-white shadow-sm" />
+    </div>
+    <span className="pointer-events-none absolute left-5 top-1/2 hidden min-w-max -translate-y-1/2 rounded-full bg-white px-3 py-1.5 text-[10px] font-black text-[#111b3f] shadow-lg ring-1 ring-[#dbe4f2] sm:group-hover:block">
+      {city} - {country}
+    </span>
+  </div>
+);
 const HeroMetric = ({ value, label }: { value: string; label: string }) => (
   <div>
     <p className="text-2xl font-black">{value}</p>
@@ -435,6 +563,8 @@ const PreviewFinding = ({ title, text, tone }: { title: string; text: string; to
   </div>
 );
 
+
+
 const SectionHeading = ({ eyebrow, title }: { eyebrow: string; title: string }) => (
   <div>
     <p className="text-xs font-black uppercase tracking-[0.25em] text-[#2f80ed]">{eyebrow}</p>
@@ -507,4 +637,3 @@ const ReportArtifact = ({ icon, title, text }: { icon: React.ReactNode; title: s
 );
 
 export default Home;
-

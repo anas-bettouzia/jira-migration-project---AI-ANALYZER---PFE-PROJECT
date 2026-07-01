@@ -152,7 +152,11 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
   const handleGoogleAuthenticated = useCallback(
     (data: AuthResponse) => {
-      setToken(data.token);
+      if (data.user) {
+        setToken(data.token, data.user);
+      } else {
+        setToken(data.token);
+      }
       onClose();
       navigate('/analysis');
     },
