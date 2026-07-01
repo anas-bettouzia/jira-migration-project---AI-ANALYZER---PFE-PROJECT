@@ -1,5 +1,6 @@
 export interface AuthUser {
   email: string;
+  username?: string;
   name?: string;
   picture?: string;
   role?: string;

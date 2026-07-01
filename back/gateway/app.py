@@ -674,6 +674,7 @@ def _public_user(user: dict) -> dict:
     """Return user fields that are safe for the frontend."""
     return {
         "email": user.get("email"),
+        "username": user.get("username"),
         "name": user.get("name"),
         "picture": user.get("picture"),
         "role": user.get("role", "user"),

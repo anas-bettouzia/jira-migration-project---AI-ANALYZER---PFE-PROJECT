@@ -42,7 +42,10 @@ export const ProfileMenu = ({ variant = 'navbar' }: ProfileMenuProps) => {
     return () => document.removeEventListener('mousedown', handlePointerDown);
   }, []);
 
-  const initials = useMemo(() => getInitials(user?.name || user?.email), [user?.email, user?.name]);
+  const initials = useMemo(
+    () => getInitials(user?.username || user?.name || user?.email),
+    [user?.email, user?.name, user?.username]
+  );
   const profileIcon = (
     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#eaf3ff] text-[#2f80ed] dark:bg-[#2f80ed]/10 dark:text-[#8bbdff]">
       <User size={16} />
@@ -86,7 +89,7 @@ export const ProfileMenu = ({ variant = 'navbar' }: ProfileMenuProps) => {
                 )}
               </span>
               <div className="min-w-0">
-                <p className="truncate text-sm font-black text-[#111b3f] dark:text-white">{user?.name || t('common.userProfile')}</p>
+                <p className="truncate text-sm font-black text-[#111b3f] dark:text-white">{user?.username || user?.name || t('common.userProfile')}</p>
                 <p className="truncate text-xs font-semibold text-[#64708d] dark:text-white/55">{user?.email || t('common.authenticatedUser')}</p>
               </div>
             </div>
