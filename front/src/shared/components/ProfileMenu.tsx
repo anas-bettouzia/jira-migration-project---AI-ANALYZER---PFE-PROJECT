@@ -78,8 +78,12 @@ export const ProfileMenu = ({ variant = 'navbar' }: ProfileMenuProps) => {
         <div className={`absolute z-50 w-64 overflow-hidden rounded-2xl border border-[#dbe4f2] bg-white shadow-xl shadow-[#111b3f]/12 dark:border-white/10 dark:bg-[#101d3a] ${dropdownPosition}`}>
           <div className="border-b border-[#edf1f8] p-4 dark:border-white/10">
             <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eaf3ff] text-sm font-black text-[#2f80ed] dark:bg-[#2f80ed]/12 dark:text-[#8bbdff]">
-                {initials}
+              <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl bg-[#eaf3ff] text-sm font-black text-[#2f80ed] dark:bg-[#2f80ed]/12 dark:text-[#8bbdff]">
+                {user?.picture ? (
+                  <img src={user.picture} alt="Profile" className="h-full w-full object-cover" />
+                ) : (
+                  initials
+                )}
               </span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-black text-[#111b3f] dark:text-white">{user?.name || t('common.userProfile')}</p>
