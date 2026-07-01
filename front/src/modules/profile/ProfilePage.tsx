@@ -21,6 +21,8 @@ const ProfilePage: React.FC = () => {
   const { user, setUser, setToken } = useAuthStore();
   const [profile, setProfile] = useState<AuthUser | null>(user);
   const [email, setEmail] = useState(user?.email ?? '');
+  const [picturePreview, setPicturePreview] = useState<string | null>(user?.picture ?? null);
+  const [selectedPictureFile, setSelectedPictureFile] = useState<File | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -41,6 +43,7 @@ const ProfilePage: React.FC = () => {
         if (!isMounted) return;
         setProfile(data);
         setEmail(data.email);
+        setPicturePreview(data.picture ?? null);
         setUser(data);
       } catch (error) {
         if (isMounted) setProfileError(getErrorMessage(error, t('profile.loadError')));
@@ -69,9 +72,11 @@ const ProfilePage: React.FC = () => {
 
     setSavingProfile(true);
     try {
-      const data = await authService.updateProfile(nextEmail);
+      const pictureValue = selectedPictureFile ? picturePreview ?? undefined : undefined;
+      const data = await authService.updateProfile(nextEmail, pictureValue);
       setProfile(data.user);
       setEmail(data.user.email);
+      setPicturePreview(data.user.picture ?? null);
       if (data.token) setToken(data.token, data.user);
       else setUser(data.user);
       setProfileMessage(data.message);
@@ -109,6 +114,27 @@ const ProfilePage: React.FC = () => {
     } finally {
       setSavingPassword(false);
     }
+  };
+
+  const handlePictureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setProfileError('');
+    const file = event.target.files?.[0];
+    if (!file) {
+      setSelectedPictureFile(null);
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setProfileError(t('profile.imageTypeError'));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPicturePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    setSelectedPictureFile(file);
   };
 
   return (
@@ -168,6 +194,31 @@ const ProfilePage: React.FC = () => {
                     <div>
                       <h2 className="text-lg font-black">{t('profile.profileInfo')}</h2>
                       <p className="mt-1 text-sm text-[#64708d] dark:text-white/55">{t('profile.profileInfoText')}</p>
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <label className="mb-2 block text-xs font-black uppercase text-[#64708d] dark:text-white/50">{t('profile.profilePhoto')}</label>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                      <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-3xl bg-[#f8faff] dark:bg-[#15203e]">
+                        {picturePreview ? (
+                          <img src={picturePreview} alt={t('profile.profilePhoto')} className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="text-xs font-black uppercase tracking-[0.2em] text-[#64708d] dark:text-white/50">{t('profile.noPhoto')}</span>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block cursor-pointer rounded-2xl border border-[#d7e0ef] bg-white px-4 py-3 text-sm font-semibold text-[#111b3f] transition hover:border-[#2f80ed] dark:border-white/10 dark:bg-[#0f172a] dark:text-white">
+                          <span>{t('profile.choosePhoto')}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handlePictureChange}
+                          />
+                        </label>
+                        <p className="text-xs text-[#64708d] dark:text-white/55">{t('profile.profilePhotoHint')}</p>
+                      </div>
                     </div>
                   </div>
 

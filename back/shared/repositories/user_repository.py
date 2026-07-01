@@ -98,15 +98,24 @@ class UserRepository:
         """Retrieve a user document by username."""
         return self.collection.find_one({"username": username})
 
-    def update_user_profile(self, current_email: str, new_email: str) -> None:
+    def update_user_profile(
+        self,
+        current_email: str,
+        new_email: str,
+        picture: str | None = None,
+    ) -> None:
         """Update editable user profile fields."""
+        update_fields = {
+            "email": new_email,
+            "updated_at": datetime.utcnow().isoformat(),
+        }
+        if picture is not None:
+            update_fields["picture"] = picture
+
         self.collection.update_one(
             {"email": current_email},
             {
-                "$set": {
-                    "email": new_email,
-                    "updated_at": datetime.utcnow().isoformat(),
-                }
+                "$set": update_fields,
             },
         )
 

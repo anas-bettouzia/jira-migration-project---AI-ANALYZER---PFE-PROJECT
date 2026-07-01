@@ -1130,15 +1130,27 @@ def create_app():
         if new_email != current_email and user_repo.get_user_by_email(new_email):
             return jsonify({"error": "Email already registered"}), 409
 
+        picture = data.get("picture")
+        if picture is not None and not isinstance(picture, str):
+            return jsonify({"error": "Profile picture must be a valid string."}), 400
+
         if new_email != current_email:
-            user_repo.update_user_profile(current_email, new_email)
-            user = user_repo.get_user_by_email(new_email) or {**user, "email": new_email}
+            user_repo.update_user_profile(current_email, new_email, picture)
+            user = user_repo.get_user_by_email(new_email) or {
+                **user,
+                "email": new_email,
+                "picture": picture if picture is not None else user.get("picture"),
+            }
             token = create_access_token(identity=new_email)
             return jsonify({
                 "message": "Profile updated successfully.",
                 "user": _public_user(user),
                 "token": token,
             }), 200
+
+        if picture is not None:
+            user_repo.update_user_profile(current_email, current_email, picture)
+            user["picture"] = picture
 
         return jsonify({
             "message": "Profile updated successfully.",

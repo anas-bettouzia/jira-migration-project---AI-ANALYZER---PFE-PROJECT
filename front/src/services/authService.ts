@@ -56,9 +56,11 @@ export const authService = {
     }
   },
 
-  updateProfile: async (email: string): Promise<ProfileUpdateResponse> => {
+  updateProfile: async (email: string, picture?: string): Promise<ProfileUpdateResponse> => {
     try {
-      const response = await api.put<ProfileUpdateResponse>('/me/profile', { email });
+      const payload: Record<string, unknown> = { email };
+      if (picture !== undefined) payload.picture = picture;
+      const response = await api.put<ProfileUpdateResponse>('/me/profile', payload);
       return response.data;
     } catch (error) {
       console.error('Error updating profile:', error);
