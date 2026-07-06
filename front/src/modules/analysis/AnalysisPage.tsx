@@ -78,6 +78,18 @@ export const AnalysisPage: React.FC = () => {
   }, [isLight]);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    const syncSidebarState = () => {
+      if (!mediaQuery.matches) setIsSidebarCollapsed(false);
+    };
+
+    syncSidebarState();
+    mediaQuery.addEventListener('change', syncSidebarState);
+
+    return () => mediaQuery.removeEventListener('change', syncSidebarState);
+  }, []);
+
+  useEffect(() => {
     let isMounted = true;
 
     const fetchRecentJobs = async () => {
@@ -202,7 +214,7 @@ export const AnalysisPage: React.FC = () => {
       <div className="flex min-h-screen">
         <MainSidebar activePage="analysis" />
 
-        <div className="flex min-h-screen flex-1 flex-col md:pl-[72px]">
+        <div className="flex min-h-screen flex-1 flex-col pb-20 md:pb-0 md:pl-[72px]">
           <header className="sticky top-0 z-30 border-b border-[#dce4f4] bg-white/95 backdrop-blur transition-colors duration-300 dark:border-white/10 dark:bg-[#0c1730]/95">
             <div className="flex h-[62px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
               <div className="flex min-w-0 items-center gap-4">
@@ -214,7 +226,7 @@ export const AnalysisPage: React.FC = () => {
                   <img
                     src={isLight ? logoSpectrum : logoSpectrumDark}
                     alt="Jira Migration Spectrum Groupe"
-                    className={`${isLight ? 'h-9' : 'h-12'} w-auto object-contain`}
+                    className={`${isLight ? 'h-8 sm:h-9' : 'h-10 sm:h-12'} max-w-[145px] object-contain sm:max-w-none`}
                   />
                 </button>
                 <div className="hidden h-8 w-px bg-[#d4deee] sm:block" />
@@ -254,7 +266,8 @@ export const AnalysisPage: React.FC = () => {
                   className="flex items-center gap-2 rounded-xl bg-[#2f80ed] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition disabled:cursor-not-allowed disabled:opacity-55"
                 >
                   <FileText size={16} />
-                  {t('common.viewReport')}
+                  <span className="hidden sm:inline">{t('common.viewReport')}</span>
+                  <span className="sm:hidden">{t('common.report')}</span>
                 </button>
               </div>
             </div>
@@ -281,7 +294,7 @@ export const AnalysisPage: React.FC = () => {
               status={jobStatus?.status}
             />
 
-            <section className="px-4 py-5 sm:px-6 lg:px-8">
+            <section className="min-w-0 px-4 py-5 sm:px-6 lg:px-8">
               <AnimatePresence mode="wait">
                 {!jobId ? (
                   <motion.div
@@ -486,7 +499,7 @@ const SecondarySidebar = ({
   const { t } = useI18n();
 
   return (
-    <section className={`hidden border-r border-[#dce4f4] bg-white py-5 transition-all duration-300 dark:border-white/10 dark:bg-[#0c1730] lg:flex lg:min-h-[calc(100vh-62px)] lg:flex-col ${isCollapsed ? 'items-center px-3' : 'px-4'}`}>
+    <section className={`flex flex-col border-b border-[#dce4f4] bg-white transition-all duration-300 dark:border-white/10 dark:bg-[#0c1730] lg:min-h-[calc(100vh-62px)] lg:border-b-0 lg:border-r ${isCollapsed ? 'px-3 py-4 lg:items-center lg:py-5' : 'px-4 py-4 lg:py-5'}`}>
       {isCollapsed ? (
         <>
           <button
@@ -530,7 +543,7 @@ const SecondarySidebar = ({
               </button>
               <button
                 onClick={() => setIsCollapsed(true)}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#dbe4f2] text-[#64708d] transition hover:border-[#bdd5fa] hover:bg-[#f8faff] hover:text-[#2f80ed] dark:border-white/10 dark:text-white/60 dark:hover:bg-white/6 dark:hover:text-white"
+                className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#dbe4f2] text-[#64708d] transition hover:border-[#bdd5fa] hover:bg-[#f8faff] hover:text-[#2f80ed] dark:border-white/10 dark:text-white/60 dark:hover:bg-white/6 dark:hover:text-white lg:flex"
                 aria-label={t('analysis.collapseSidebar')}
                 title={t('analysis.collapseSidebar')}
               >
@@ -551,7 +564,7 @@ const SecondarySidebar = ({
                 <p className="mt-3 text-xs font-bold text-[#8a96b3] dark:text-white/45">{t('analysis.loadingRecent')}</p>
               </div>
             ) : recentJobs.length > 0 ? (
-              <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
+              <div className="max-h-[280px] space-y-2 overflow-y-auto pr-1 sm:max-h-[320px]">
                 {recentJobs.map((job) => (
                   <RecentJobItem
                     key={job.job_id}
@@ -614,7 +627,7 @@ const SecondarySidebar = ({
             </div>
           </div>
 
-          <div className="mt-auto space-y-4 pb-2">
+          <div className="mt-4 space-y-4 pb-2 lg:mt-auto">
             <div className="rounded-lg border border-[#ffd36d] bg-[#fff9e6] px-4 py-3 text-sm text-[#9b4f00] dark:border-[#f59e0b]/35 dark:bg-[#f59e0b]/10 dark:text-[#ffbe4d]">
               <div className="flex items-start gap-3">
                 <AlertCircle className="mt-0.5 shrink-0" size={16} />
@@ -902,7 +915,7 @@ const ResourceCards = () => {
   const { t } = useI18n();
 
   return (
-    <div className="mt-16 grid gap-4 md:grid-cols-3">
+    <div className="mt-8 grid gap-4 sm:mt-12 md:grid-cols-3">
       <ResourceCard icon={<Home size={17} />} eyebrow={t('analysis.docsEyebrow')} title={t('analysis.docsTitle')} text={t('analysis.docsText')} action={t('analysis.docsAction')} tone="blue" />
       <ResourceCard icon={<Layers3 size={17} />} eyebrow={t('analysis.academyEyebrow')} title={t('analysis.academyTitle')} text={t('analysis.academyText')} action={t('analysis.academyAction')} tone="purple" />
       <ResourceCard icon={<Activity size={17} />} eyebrow={t('analysis.benchmarkEyebrow')} title={t('analysis.benchmarkTitle')} text={t('analysis.benchmarkText')} action={t('analysis.benchmarkAction')} tone="pink" />

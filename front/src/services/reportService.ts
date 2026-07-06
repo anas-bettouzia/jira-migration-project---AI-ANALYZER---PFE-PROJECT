@@ -2,6 +2,7 @@ import { api } from '../core/api';
 
 export interface ReportData {
   report_id: string;
+  source_filename?: string;
   summary?: string; // Résumé texte exécutif
   statistics?: {
     migration_score?: number;

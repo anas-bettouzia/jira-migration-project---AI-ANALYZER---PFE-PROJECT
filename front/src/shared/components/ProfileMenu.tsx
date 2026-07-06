@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { LogOut, Settings, User, UserRound } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { authService } from '../../services/authService';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useI18n } from '../../i18n';
 
 interface ProfileMenuProps {
-  variant?: 'navbar' | 'sidebar';
+  variant?: 'navbar' | 'sidebar' | 'mobile';
 }
 
 export const ProfileMenu = ({ variant = 'navbar' }: ProfileMenuProps) => {
@@ -15,6 +15,7 @@ export const ProfileMenu = ({ variant = 'navbar' }: ProfileMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated, logout, setUser } = useAuthStore();
 
   useEffect(() => {
@@ -51,10 +52,16 @@ export const ProfileMenu = ({ variant = 'navbar' }: ProfileMenuProps) => {
       <User size={16} />
     </span>
   );
-  const dropdownPosition = variant === 'sidebar' ? 'bottom-0 left-12' : 'right-0 top-12';
-  const buttonClasses = variant === 'sidebar'
-    ? 'flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-xs font-black text-white ring-1 ring-white/12 transition hover:bg-white/16'
-    : 'flex h-10 w-10 items-center justify-center rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] text-xs font-black text-[#2f80ed] transition hover:border-[#bdd5fa] hover:bg-[#eaf3ff] dark:border-white/10 dark:bg-white/5 dark:text-[#8bbdff] dark:hover:bg-white/8';
+  const dropdownPosition = variant === 'mobile'
+    ? 'bottom-14 right-0'
+    : variant === 'sidebar'
+      ? 'bottom-0 left-12'
+      : 'right-0 top-12';
+  const buttonClasses = variant === 'mobile'
+    ? 'flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-xs font-black text-white ring-1 ring-white/12 transition hover:bg-white/16'
+    : variant === 'sidebar'
+      ? 'flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-xs font-black text-white ring-1 ring-white/12 transition hover:bg-white/16'
+      : 'flex h-10 w-10 items-center justify-center rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] text-xs font-black text-[#2f80ed] transition hover:border-[#bdd5fa] hover:bg-[#eaf3ff] dark:border-white/10 dark:bg-white/5 dark:text-[#8bbdff] dark:hover:bg-white/8';
 
   const handleLogout = () => {
     logout();
@@ -99,7 +106,7 @@ export const ProfileMenu = ({ variant = 'navbar' }: ProfileMenuProps) => {
             <button
               onClick={() => {
                 setIsOpen(false);
-                navigate('/profile');
+                navigate('/profile', { replace: location.pathname === '/profile' });
               }}
               className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-[#64708d] transition hover:bg-[#f5f9ff] hover:text-[#2f80ed] dark:text-white/65 dark:hover:bg-white/6 dark:hover:text-white"
             >

@@ -14,6 +14,65 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   const response = (error as { response?: { data?: { error?: string; message?: string } } }).response;
   return response?.data?.error || response?.data?.message || fallback;
 };
+const AVATAR_SIZE = 384;
+const AVATAR_QUALITY = 0.82;
+const MAX_COMPRESSED_AVATAR_BYTES = 750 * 1024;
+
+const getDataUrlByteSize = (dataUrl: string) => {
+  const base64Payload = dataUrl.split(',')[1] ?? '';
+  return Math.ceil((base64Payload.length * 3) / 4);
+};
+
+const compressProfilePicture = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => reject(new Error('Unable to read image.'));
+    reader.onload = () => {
+      const image = new Image();
+
+      image.onerror = () => reject(new Error('Unable to load image.'));
+      image.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = AVATAR_SIZE;
+        canvas.height = AVATAR_SIZE;
+
+        const context = canvas.getContext('2d');
+        if (!context) {
+          reject(new Error('Unable to prepare image.'));
+          return;
+        }
+
+        const sourceSize = Math.min(image.width, image.height);
+        const sourceX = (image.width - sourceSize) / 2;
+        const sourceY = (image.height - sourceSize) / 2;
+
+        context.drawImage(
+          image,
+          sourceX,
+          sourceY,
+          sourceSize,
+          sourceSize,
+          0,
+          0,
+          AVATAR_SIZE,
+          AVATAR_SIZE
+        );
+
+        const compressed = canvas.toDataURL('image/jpeg', AVATAR_QUALITY);
+        if (getDataUrlByteSize(compressed) > MAX_COMPRESSED_AVATAR_BYTES) {
+          reject(new Error('Image is too large.'));
+          return;
+        }
+
+        resolve(compressed);
+      };
+
+      image.src = String(reader.result);
+    };
+
+    reader.readAsDataURL(file);
+  });
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -116,7 +175,7 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  const handlePictureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePictureChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     setProfileError('');
     const file = event.target.files?.[0];
     if (!file) {
@@ -126,15 +185,19 @@ const ProfilePage: React.FC = () => {
 
     if (!file.type.startsWith('image/')) {
       setProfileError(t('profile.imageTypeError'));
+      event.target.value = '';
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPicturePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-    setSelectedPictureFile(file);
+    try {
+      const compressedPicture = await compressProfilePicture(file);
+      setPicturePreview(compressedPicture);
+      setSelectedPictureFile(file);
+    } catch {
+      setProfileError(t('profile.imageTypeError'));
+      setSelectedPictureFile(null);
+      event.target.value = '';
+    }
   };
 
   return (

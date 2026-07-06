@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -23,6 +23,7 @@ import {
 import { MainSidebar } from '../../shared/components/MainSidebar';
 import { LocaleSwitcher } from '../../shared/components/LocaleSwitcher';
 import { useI18n } from '../../i18n';
+import { analysisService } from '../../services/analysisService';
 import {
   reportService,
   type ReportComponent,
@@ -88,11 +89,18 @@ const getTranslatedText = (
   return translated ?? value ?? '';
 };
 
+const getSourceFilename = (report: ReportData | null) => {
+  const value = report?.source_filename;
+  if (typeof value !== 'string') return '';
+  return value.split(/[\\\\/]/).pop()?.trim() ?? '';
+};
+
 export const ReportPage: React.FC = () => {
   const { reportId } = useParams<{ reportId: string }>();
   const navigate = useNavigate();
   const { t, language } = useI18n();
   const [report, setReport] = useState<ReportData | null>(null);
+  const [sourceFilename, setSourceFilename] = useState("");
   const [loading, setLoading] = useState(true);
   const [isLight, setIsLight] = useState(() => {
     const savedTheme = localStorage.getItem(THEME_KEY);
@@ -123,6 +131,19 @@ export const ReportPage: React.FC = () => {
       try {
         const data = await reportService.getReport(reportId);
         setReport(data);
+        const reportFilename = getSourceFilename(data);
+        if (reportFilename) {
+          setSourceFilename(reportFilename);
+        } else {
+          try {
+            const jobs = await analysisService.listJobs(50);
+            const matchingJob = jobs.find((job) => job.result?.report_id === reportId);
+            const jobFilename = matchingJob?.payload?.filename;
+            setSourceFilename(typeof jobFilename === "string" ? jobFilename : "");
+          } catch (jobError) {
+            console.warn("Unable to resolve report source filename:", jobError);
+          }
+        }
         // keep original AI summary so we can restore when switching back to English
         originalAiSummaryRef.current = (data && (data.ai_summary as string)) || '';
       } catch (error) {
@@ -196,10 +217,10 @@ export const ReportPage: React.FC = () => {
     applyTranslation();
   }, [language, reportId, report]);
 
-  const getTranslatedMigrationRecommendation = () => {
+  const getTranslatedMigrationRecommendation = useCallback(() => {
     if (language !== 'fr') return report?.migration_recommendation;
     return report?.translations?.fr?.migration_recommendation ?? report?.migration_recommendation;
-  };
+  }, [language, report?.migration_recommendation, report?.translations?.fr?.migration_recommendation]);
 
   const metrics = useMemo(() => {
     const statistics = report?.statistics;
@@ -212,7 +233,7 @@ export const ReportPage: React.FC = () => {
       major: statistics?.major_count ?? 0,
       recommendation: getTranslatedMigrationRecommendation() ?? statistics?.migration_recommendation ?? report?.migration_recommendation,
     };
-  }, [report, language]);
+  }, [report, getTranslatedMigrationRecommendation]);
 
   const securityStatus = useMemo<SecurityStatus>(() => {
     if (metrics.incompatible > 0 || metrics.blockers > 0) {
@@ -323,10 +344,10 @@ export const ReportPage: React.FC = () => {
     <div className="min-h-screen bg-[#eef2fb] text-[#111b3f] transition-colors duration-300 dark:bg-[#071126] dark:text-white">
       <MainSidebar activePage="reports" />
 
-      <div className="min-h-screen md:pl-[72px]">
+      <div className="min-h-screen pb-20 md:pb-0 md:pl-[72px]">
         <header className="sticky top-0 z-30 border-b border-[#dce4f4] bg-white/95 backdrop-blur transition-colors duration-300 dark:border-white/10 dark:bg-[#0c1730]/95">
-          <div className="flex h-[62px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-            <div className="flex min-w-0 items-center gap-3">
+          <div className="flex min-h-[62px] items-center justify-between gap-2 px-3 py-2 sm:gap-4 sm:px-6 sm:py-0 lg:px-8">
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
               <button
                 onClick={() => navigate(-1)}
                 className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#d7e0ef] text-[#64708d] transition hover:border-[#bdd5fa] hover:text-[#2f80ed] dark:border-white/10 dark:text-white/65 dark:hover:bg-white/6"
@@ -336,11 +357,11 @@ export const ReportPage: React.FC = () => {
               </button>
               <div className="min-w-0">
                 <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">{t('reports.migrationReport')}</p>
-                <h1 className="truncate text-base font-black sm:text-lg">{t('common.report')} {shortId(reportId)}</h1>
+                <h1 className="truncate text-base font-black sm:text-lg">{sourceFilename ? t('reports.reportOfFile', { filename: sourceFilename }) : t('reports.cloudReadiness')}</h1>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               <LocaleSwitcher className="hidden sm:flex" />
               <button
                 onClick={() => setIsLight((value) => !value)}
@@ -355,33 +376,33 @@ export const ReportPage: React.FC = () => {
               </button>
               <button
                 onClick={() => handleDownload('json')}
-                className="flex items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-3 py-2 text-sm font-bold text-[#64708d] transition hover:border-[#bdd5fa] hover:text-[#2f80ed] dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/8"
+                className="flex h-10 items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-3 text-sm font-bold text-[#64708d] transition hover:border-[#bdd5fa] hover:text-[#2f80ed] dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/8"
               >
                 <FileJson size={16} />
-                {t('common.json')}
+                <span className="hidden sm:inline">{t('common.json')}</span>
               </button>
               <button
                 onClick={() => handleDownload('pdf')}
-                className="flex items-center gap-2 rounded-xl bg-[#2f80ed] px-4 py-2 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#256fdb]"
+                className="flex h-10 items-center gap-2 rounded-xl bg-[#2f80ed] px-3 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#256fdb] sm:px-4"
               >
                 <Download size={16} />
-                {t('common.pdf')}
+                <span className="hidden sm:inline">{t('common.pdf')}</span>
               </button>
             </div>
           </div>
         </header>
 
-        <main className="px-4 py-6 sm:px-6 lg:px-8">
+        <main className="px-3 py-5 sm:px-6 lg:px-8">
           <section className="mx-auto max-w-7xl">
             <div className="mb-6 grid gap-4 lg:grid-cols-[1fr_360px]">
-              <div className="rounded-[22px] bg-white p-6 shadow-sm ring-1 ring-[#dbe4f2] dark:bg-[#101d3a] dark:ring-white/10 sm:p-8">
+              <div className="rounded-[22px] bg-white p-5 shadow-sm ring-1 ring-[#dbe4f2] dark:bg-[#101d3a] dark:ring-white/10 sm:p-8">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#bdd5fa] bg-[#f5f9ff] px-4 py-2 text-xs font-black text-[#2f80ed] dark:border-[#2f80ed]/35 dark:bg-[#10264d] dark:text-[#8bbdff]">
                       <Sparkles size={14} />
                       {t('reports.aiAssessment')}
                     </div>
-                    <h2 className="max-w-3xl text-3xl font-black tracking-tight sm:text-4xl">{t('reports.cloudReadiness')}</h2>
+                    <h2 className="max-w-3xl text-2xl font-black tracking-tight sm:text-4xl">{t('reports.cloudReadiness')}</h2>
                     <p className="mt-4 max-w-3xl text-sm leading-7 text-[#64708d] dark:text-white/60">
                       {metrics.recommendation || t('reports.noRecommendation')}
                     </p>
@@ -441,7 +462,7 @@ export const ReportPage: React.FC = () => {
 
                 {translatedAiInsights && (
                   <ContentPanel title={t('reports.aiInsights')} icon={<Zap size={18} />}>
-                    <p className="text-sm leading-7 text-[#64708d] dark:text-white/68">{translatedAiInsights}</p>
+                    <p className="break-words text-sm leading-7 text-[#64708d] dark:text-white/68">{translatedAiInsights}</p>
                   </ContentPanel>
                 )}
 
@@ -483,7 +504,6 @@ export const ReportPage: React.FC = () => {
   );
 };
 
-const shortId = (value?: string) => (value ? `${value.substring(0, 8)}...` : '-');
 
 const formatValue = (value: unknown) => {
   if (value === undefined || value === null || value === '') return '-';
@@ -753,7 +773,7 @@ const RecommendationCard = ({
     <article className="rounded-2xl border border-[#edf1f8] bg-[#f8faff] p-4 dark:border-white/10 dark:bg-white/5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h4 className="text-sm font-black text-[#111b3f] dark:text-white">
+          <h4 className="break-words text-sm font-black text-[#111b3f] dark:text-white">
             {componentDisplayName(recommendation, index)}
           </h4>
           <p className="mt-1 text-xs font-bold text-[#8a96b3] dark:text-white/45">
@@ -772,12 +792,12 @@ const RecommendationCard = ({
 };
 
 const ContentPanel = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => (
-  <section className="rounded-[22px] border border-[#dbe4f2] bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#101d3a]">
-    <div className="mb-5 flex items-center gap-3">
+  <section className="rounded-[22px] border border-[#dbe4f2] bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#101d3a] sm:p-6">
+    <div className="mb-5 flex min-w-0 items-center gap-3">
       <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eaf3ff] text-[#2f80ed] dark:bg-[#10264d] dark:text-[#8bbdff]">
         {icon}
       </span>
-      <h3 className="text-xl font-black">{title}</h3>
+      <h3 className="min-w-0 text-lg font-black sm:text-xl">{title}</h3>
     </div>
     {children}
   </section>
@@ -844,7 +864,7 @@ const AISummaryRenderer = ({ content }: { content: string }) => {
       elements.push(<div key={`hr-${i}`} className="my-4 border-t border-[#dbe4f2] dark:border-white/10" />);
     } else if (trimmedLine !== '') {
       elements.push(
-        <p key={`p-${i}`} className="text-sm leading-7 text-[#64708d] dark:text-white/68">
+        <p key={`p-${i}`} className="break-words text-sm leading-7 text-[#64708d] dark:text-white/68">
           {line.replace(/\*\*/g, '')}
         </p>,
       );

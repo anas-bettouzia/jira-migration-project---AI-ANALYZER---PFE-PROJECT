@@ -123,7 +123,7 @@ const Home = () => {
     <div className="min-h-screen bg-[#eef2fb] text-[#111b3f] transition-colors duration-300 dark:bg-[#071126] dark:text-white">
       {isAuthenticated && <MainSidebar activePage="overview" />}
 
-      <div className={isAuthenticated ? 'md:pl-[72px]' : ''}>
+      <div className={isAuthenticated ? 'pb-20 md:pb-0 md:pl-[72px]' : ''}>
         <nav
           className={`fixed left-0 top-0 z-40 w-full transition-all duration-300 ${
             isAuthenticated ? 'md:left-[72px] md:w-[calc(100%-72px)]' : ''
@@ -133,9 +133,9 @@ const Home = () => {
               : 'border-b border-transparent bg-transparent py-5'
           }`}
         >
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 sm:gap-4 sm:px-6 lg:px-8">
             <button onClick={() => navigate('/')} className="flex items-center gap-3" aria-label={t('sidebar.goHome')}>
-              <img src={logo} alt="Spectrum Groupe" className={`${isLight ? 'h-9' : 'h-12'} w-auto object-contain`} />
+              <img src={logo} alt="Spectrum Groupe" className={`${isLight ? 'h-8 sm:h-9' : 'h-10 sm:h-12'} max-w-[150px] object-contain sm:max-w-none`} />
             </button>
 
             <div className="hidden items-center gap-8 text-sm font-bold text-[#64708d] dark:text-white/58 lg:flex">
@@ -145,7 +145,7 @@ const Home = () => {
               <button onClick={() => scrollToSection('about')} className="transition hover:text-[#2f80ed]">{t('nav.about')}</button>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               <button
                 onClick={() => setIsMobileMenuOpen((value) => !value)}
                 className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] text-[#64708d] transition dark:border-white/10 dark:bg-white/5 dark:text-white/70 lg:hidden"
@@ -157,7 +157,7 @@ const Home = () => {
               <LanguageSwitcher className="hidden lg:flex text-sm" />
               <button
                 onClick={() => setIsLight((value) => !value)}
-                className="flex items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-3 py-2 text-xs font-bold text-[#64708d] transition dark:border-white/10 dark:bg-white/5 dark:text-white/70"
+                className="hidden items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-3 py-2 text-xs font-bold text-[#64708d] transition dark:border-white/10 dark:bg-white/5 dark:text-white/70 sm:flex"
                 aria-label={t('common.toggleColorMode')}
               >
                 <span className="flex h-5 w-9 items-center rounded-full bg-[#dce4f1] p-0.5 dark:bg-[#2c3a57]">
@@ -170,14 +170,14 @@ const Home = () => {
               {isAuthenticated ? (
                 <button
                   onClick={() => navigate('/analysis')}
-                  className="rounded-xl bg-[#2f80ed] px-4 py-2 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#256fdb]"
+                  className="hidden rounded-xl bg-[#2f80ed] px-4 py-2 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#256fdb] sm:inline-flex"
                 >
                   {t('common.openAnalysis')}
                 </button>
               ) : (
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="rounded-xl bg-[#111b3f] px-4 py-2 text-sm font-black text-white transition hover:bg-[#1d2b5b] dark:bg-white dark:text-[#111b3f]"
+                  className="hidden rounded-xl bg-[#111b3f] px-4 py-2 text-sm font-black text-white transition hover:bg-[#1d2b5b] dark:bg-white dark:text-[#111b3f] sm:inline-flex"
                 >
                   {t('common.signIn')}
                 </button>
@@ -196,14 +196,36 @@ const Home = () => {
                 <button onClick={() => scrollToSection('features')} className="block w-full rounded-xl px-4 py-3 text-left text-sm font-black text-[#64708d] hover:bg-[#f8faff] dark:text-white/65 dark:hover:bg-white/6">{t('nav.features')}</button>
                 <button onClick={() => scrollToSection('pipeline')} className="block w-full rounded-xl px-4 py-3 text-left text-sm font-black text-[#64708d] hover:bg-[#f8faff] dark:text-white/65 dark:hover:bg-white/6">{t('nav.pipeline')}</button>
                 <button onClick={() => scrollToSection('reports')} className="block w-full rounded-xl px-4 py-3 text-left text-sm font-black text-[#64708d] hover:bg-[#f8faff] dark:text-white/65 dark:hover:bg-white/6">{t('nav.reports')}</button>
-              <button onClick={() => scrollToSection('about')} className="block w-full rounded-xl px-4 py-3 text-left text-sm font-black text-[#64708d] hover:bg-[#f8faff] dark:text-white/65 dark:hover:bg-white/6">{t('nav.about')}</button>
+                <button onClick={() => scrollToSection('about')} className="block w-full rounded-xl px-4 py-3 text-left text-sm font-black text-[#64708d] hover:bg-[#f8faff] dark:text-white/65 dark:hover:bg-white/6">{t('nav.about')}</button>
+
+                <div className="my-2 border-t border-[#edf1f8] dark:border-white/10" />
+                <div className="flex items-center justify-between gap-3 px-2 py-2">
+                  <LanguageSwitcher className="flex text-sm" />
+                  <button
+                    onClick={() => setIsLight((value) => !value)}
+                    className="flex items-center gap-2 rounded-xl border border-[#d7e0ef] bg-[#f7f9fd] px-3 py-2 text-xs font-bold text-[#64708d] transition dark:border-white/10 dark:bg-white/5 dark:text-white/70"
+                    aria-label={t('common.toggleColorMode')}
+                  >
+                    {isLight ? <Sun size={14} className="text-amber-500" /> : <Moon size={14} />}
+                    {isLight ? t('common.light') : t('common.dark')}
+                  </button>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    handleMainAction();
+                  }}
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#2f80ed] px-4 py-3 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#256fdb]"
+                >
+                  {isAuthenticated ? t('common.openAnalysis') : t('common.signIn')}
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
         </nav>
 
-        <main className="px-4 pb-20 pt-32 sm:px-6 lg:px-8">
-          <section className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.03fr_0.97fr]">
+        <main className="overflow-hidden px-3 pb-24 pt-28 sm:px-6 sm:pt-32 lg:px-8">
+          <section className="mx-auto grid max-w-7xl min-w-0 items-center gap-8 lg:grid-cols-[1.03fr_0.97fr] lg:gap-12">
             <motion.div
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
@@ -214,11 +236,11 @@ const Home = () => {
                 {t('home.badge')}
               </div>
 
-              <h1 className="max-w-4xl text-4xl font-black leading-[1.05] tracking-tight sm:text-6xl">
+              <h1 className="max-w-4xl text-[2.35rem] font-black leading-[1.08] tracking-normal sm:text-6xl">
                 {t('home.hero.title')}
               </h1>
 
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-[#64708d] dark:text-white/62">
+              <p className="mt-5 max-w-2xl text-base leading-7 text-[#64708d] dark:text-white/62 sm:mt-6 sm:text-lg sm:leading-8">
                 {t('home.hero.subtitle')}
               </p>
 
@@ -238,7 +260,7 @@ const Home = () => {
                 </button>
               </div>
 
-              <div className="mt-10 grid max-w-2xl grid-cols-3 gap-3 border-t border-[#dce4f4] pt-7 dark:border-white/10">
+              <div className="mt-8 grid max-w-2xl grid-cols-1 gap-3 border-t border-[#dce4f4] pt-6 dark:border-white/10 xs:grid-cols-3 sm:mt-10 sm:grid-cols-3 sm:pt-7">
                 <HeroMetric value="3" label={t('home.metrics.pipelineStages')} />
                 <HeroMetric value="PDF" label={t('home.metrics.reportOutput')} />
                 <HeroMetric value="<2m" label={t('home.metrics.fastPreview')} />
@@ -248,13 +270,13 @@ const Home = () => {
             <HeroProductPreview t={t} />
           </section>
 
-          <section className="mx-auto mt-8 grid max-w-7xl gap-3 md:grid-cols-3">
+          <section className="mx-auto mt-8 grid max-w-7xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <ProductHighlight icon={<Shield size={18} />} label={t('home.highlight.secure.title')} text={t('home.highlight.secure.text')} />
             <ProductHighlight icon={<Brain size={18} />} label={t('home.highlight.ai.title')} text={t('home.highlight.ai.text')} />
             <ProductHighlight icon={<FileText size={18} />} label={t('home.highlight.report.title')} text={t('home.highlight.report.text')} />
           </section>
 
-          <section id="features" className="mx-auto mt-24 max-w-7xl">
+          <section id="features" className="mx-auto mt-16 max-w-7xl sm:mt-24">
             <SectionHeading eyebrow={t('home.features.eyebrow')} title={t('home.features.title')} />
             <div className="mt-8 grid gap-4 md:grid-cols-3">
               {featureCards.map((feature) => (
@@ -263,7 +285,7 @@ const Home = () => {
             </div>
           </section>
 
-          <section id="pipeline" className="mx-auto mt-24 max-w-7xl overflow-hidden rounded-[22px] bg-[#111b3f] p-6 text-white shadow-xl shadow-[#111b3f]/10 sm:p-8 lg:p-10">
+          <section id="pipeline" className="mx-auto mt-16 max-w-7xl overflow-hidden rounded-[22px] bg-[#111b3f] p-5 text-white shadow-xl shadow-[#111b3f]/10 sm:mt-24 sm:p-8 lg:p-10">
             <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.25em] text-[#8bbdff]">{t('home.pipeline.eyebrow')}</p>
@@ -287,7 +309,7 @@ const Home = () => {
             </div>
           </section>
 
-          <section id="reports" className="mx-auto mt-24 max-w-7xl rounded-[22px] border border-[#dbe4f2] bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#101d3a] sm:p-8">
+          <section id="reports" className="mx-auto mt-16 max-w-7xl rounded-[22px] border border-[#dbe4f2] bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#101d3a] sm:mt-24 sm:p-8">
             <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.25em] text-[#2f80ed]">{t('home.reports.eyebrow')}</p>
@@ -305,7 +327,7 @@ const Home = () => {
             </div>
           </section>
 
-          <section id="about" className="scroll-mt-28 mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+          <section id="about" className="scroll-mt-28 mx-auto max-w-7xl py-16 sm:py-20">
             <div className="overflow-hidden rounded-[28px] border border-[#dbe4f2] bg-white shadow-xl shadow-[#1d2b5b]/8 dark:border-white/10 dark:bg-[#101d3a]">
               <div className="grid gap-0 lg:grid-cols-[0.92fr_1.08fr]">
                 <div className="border-b border-[#edf1f8] p-6 dark:border-white/10 sm:p-8 lg:border-b-0 lg:border-r">
@@ -349,7 +371,7 @@ const Home = () => {
               </div>
             </div>
           </section>
-          <section className="mx-auto mt-10 max-w-7xl rounded-[22px] bg-[#2f80ed] p-6 text-white shadow-xl shadow-blue-500/20 sm:p-8">
+          <section className="mx-auto mt-10 max-w-7xl rounded-[22px] bg-[#2f80ed] p-5 text-white shadow-xl shadow-blue-500/20 sm:p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.25em] text-white/60">{t('home.cta.eyebrow')}</p>
@@ -369,7 +391,7 @@ const Home = () => {
           </section>
         </main>
 
-        <footer className="border-t border-[#dce4f4] px-6 py-8 text-center dark:border-white/10">
+        <footer className="border-t border-[#dce4f4] px-4 py-8 text-center dark:border-white/10">
           <img src={logo} alt="Spectrum Groupe" className={`${isLight ? 'h-7' : 'h-10'} mx-auto w-auto object-contain opacity-70`} />
           <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-[#8a96b3] dark:text-white/40">
             &copy; 2026 Spectrum Groupe &middot; {t('home.footer')}
@@ -415,24 +437,24 @@ const SpectrumPresenceMap = ({ t, badgeLogo }: { t: (key: string) => string; bad
   ];
 
   return (
-    <div className="w-full max-w-3xl overflow-hidden rounded-[32px] lg:rounded-l-none lg:rounded-r-[32px] bg-white/90 shadow-xl shadow-[#1d2b5b]/10 dark:bg-[#071426]/95">
+    <div className="w-full min-w-0 overflow-hidden rounded-[24px] bg-white/90 shadow-xl shadow-[#1d2b5b]/10 dark:bg-[#071426]/95 lg:max-w-3xl lg:rounded-l-none lg:rounded-r-[32px]">
       <div className="relative overflow-hidden bg-[#f4f7fb] dark:bg-[#09182d]">
         <img
           src={worldMapSpectrum}
           alt={t('home.about.mapAria')}
-          className="w-full select-none object-contain opacity-100 filter contrast-110 dark:brightness-95 dark:contrast-125"
+          className="w-full min-w-[520px] select-none object-contain opacity-100 filter contrast-110 dark:brightness-95 dark:contrast-125 sm:min-w-0"
           draggable={false}
         />
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 min-w-[520px] sm:min-w-0">
           {locations.map((location) => (
             <PresencePoint key={location.key} city={location.city} country={location.country} left={location.left} top={location.top} />
           ))}
         </div>
       </div>
 
-      <div className="space-y-5 p-6 sm:p-8">
+      <div className="space-y-4 p-4 sm:space-y-5 sm:p-8">
         <div className="flex items-center justify-center rounded-[28px] bg-white px-6 py-5 shadow-sm dark:bg-[#0b1f3b]">
-          <img src={badgeLogo} alt="Atlassian Partner" className="h-24 w-auto max-w-[220px] object-contain dark:brightness-125 dark:contrast-125" />
+          <img src={badgeLogo} alt="Atlassian Partner" className="h-16 w-auto max-w-[180px] object-contain dark:brightness-125 dark:contrast-125 sm:h-24 sm:max-w-[220px]" />
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -489,20 +511,20 @@ const HeroProductPreview = ({ t }: { t: (key: string) => string }) => (
     initial={{ opacity: 0, y: 22 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.45, delay: 0.08 }}
-    className="rounded-[22px] bg-white p-4 shadow-xl shadow-[#1d2b5b]/8 ring-1 ring-[#dbe4f2] dark:bg-[#101d3a] dark:ring-white/10"
+    className="min-w-0 rounded-[22px] bg-white p-3 shadow-xl shadow-[#1d2b5b]/8 ring-1 ring-[#dbe4f2] dark:bg-[#101d3a] dark:ring-white/10 sm:p-4"
   >
     <div className="overflow-hidden rounded-[18px] border border-[#dbe4f2] dark:border-white/10">
-      <div className="flex items-center justify-between bg-[#f8faff] px-5 py-4 dark:bg-white/5">
+      <div className="flex items-start justify-between gap-3 bg-[#f8faff] px-4 py-4 dark:bg-white/5 sm:items-center sm:px-5">
         <div>
           <p className="text-xs font-black uppercase text-[#8a96b3] dark:text-white/45">{t('home.preview.live')}</p>
-          <h2 className="mt-1 text-lg font-black">Spectrum-Prod-DC</h2>
+          <h2 className="mt-1 break-words text-base font-black sm:text-lg">Spectrum-Prod-DC</h2>
         </div>
         <span className="rounded-full bg-[#e9fbf4] px-3 py-1.5 text-[10px] font-black uppercase text-[#159866] dark:bg-[#23d18b]/12 dark:text-[#67e8b9]">
           {t('home.preview.ready')}
         </span>
       </div>
 
-      <div className="grid gap-4 p-5 md:grid-cols-[160px_1fr]">
+      <div className="grid gap-4 p-4 sm:p-5 md:grid-cols-[160px_1fr]">
         <div className="rounded-2xl bg-[#eaf3ff] p-5 text-center text-[#2f80ed] dark:bg-[#2f80ed]/12 dark:text-[#8bbdff]">
           <p className="text-[10px] font-black uppercase opacity-70">{t('home.preview.score')}</p>
           <p className="mt-3 text-5xl font-black">84</p>
@@ -516,12 +538,12 @@ const HeroProductPreview = ({ t }: { t: (key: string) => string }) => (
         </div>
       </div>
 
-      <div className="grid gap-3 px-5 pb-5 sm:grid-cols-2">
+      <div className="grid gap-3 px-4 pb-4 sm:grid-cols-2 sm:px-5 sm:pb-5">
         <PreviewFinding title={t('home.preview.scriptRunner')} text={t('home.preview.scriptRunnerText')} tone="warning" />
         <PreviewFinding title={t('home.preview.marketplace')} text={t('home.preview.marketplaceText')} tone="success" />
       </div>
 
-      <div className="m-5 mt-0 rounded-2xl bg-[#111b3f] p-4 text-white dark:bg-[#071126]">
+      <div className="m-4 mt-0 rounded-2xl bg-[#111b3f] p-4 text-white dark:bg-[#071126] sm:m-5 sm:mt-0">
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#2f80ed]">
