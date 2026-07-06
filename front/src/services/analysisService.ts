@@ -20,9 +20,10 @@ export interface AnalysisJob {
 }
 
 export const analysisService = {
-  async uploadFile(file: File) {
+  async uploadFile(file: File, language?: string) {
     const formData = new FormData();
     formData.append('file', file);
+    if (language) formData.append('language', language);
 
     const response = await api.post('/analyze', formData, {
       headers: {

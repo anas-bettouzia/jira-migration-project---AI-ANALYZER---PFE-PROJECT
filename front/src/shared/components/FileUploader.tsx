@@ -8,7 +8,7 @@ interface FileUploaderProps {
 }
 
 export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadSuccess }) => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -22,7 +22,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadSuccess }) =
     if (!file) return;
     setLoading(true);
     try {
-      const result = await analysisService.uploadFile(file);
+      const result = await analysisService.uploadFile(file, language);
       onUploadSuccess(result.job_id);
     } catch {
       alert(t('uploader.uploadError'));
@@ -86,7 +86,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadSuccess }) =
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="flex items-center gap-2 text-xs text-[#8a96b3] dark:text-white/45">
           <Info size={14} />
-          Recommended export: full Script Registry package
+          {t('uploader.recommended')}
         </p>
         <div className="flex gap-3">
           <button

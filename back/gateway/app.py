@@ -1252,6 +1252,14 @@ def create_app():
             }
 
             _, user_context = _current_user_context(user_repo)
+            # Include optional language preference from frontend. This
+            # enables worker/report services to localize AI output.
+            language = (
+                request.form.get('language') or request.headers.get('X-Language')
+            )
+            if language:
+                user_context = {**user_context, 'language': language}
+
             response = requests.post(
                 url,
                 files=files,

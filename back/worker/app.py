@@ -63,6 +63,7 @@ def run_job():
 
     user_email = request.form.get("user_email") or request.headers.get("X-User-Email")
     user_id = request.form.get("user_id") or request.headers.get("X-User-Id")
+    language = request.form.get("language") or request.headers.get("X-Language")
 
     # On cree le job en base de donnees tout de suite avec son proprietaire.
     job = create_job(
@@ -72,6 +73,7 @@ def run_job():
         },
         user_email=user_email,
         user_id=user_id,
+        language=language,
     )
 
     try:

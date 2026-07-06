@@ -186,6 +186,11 @@ def _get_user_context(job_id: str) -> dict:
     if user_id:
         context["user_id"] = str(user_id)
 
+    # Include optional language preference if present on job
+    language = job.get("language") if isinstance(job, dict) else None
+    if language:
+        context["language"] = str(language)
+
     return context
 
 
@@ -199,13 +204,19 @@ def _call_report_service(
 
     logger.info("Calling Report Service for matrix_id=%s", matrix_id)
 
+    # Build payload and forward language preference when present.
+    payload = {
+        "matrix_id": matrix_id,
+        "source_filename": source_filename,
+        **(user_context or {}),
+    }
+
+    if user_context and user_context.get("language"):
+        payload["language"] = user_context.get("language")
+
     response = requests.post(
         url,
-        json={
-            "matrix_id": matrix_id,
-            "source_filename": source_filename,
-            **(user_context or {}),
-        },
+        json=payload,
         timeout=(10, DEFAULT_TIMEOUT),
     )
 

@@ -735,7 +735,7 @@ const RecentJobItem = ({
 
         <div className="flex shrink-0 items-center gap-1">
           <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black uppercase ${getJobStatusTone(job.status)}`}>
-            {isCompleted ? 'Report' : job.status || 'Job'}
+            {isCompleted ? t('common.report') : job.status ? job.status : t('analysis.job')}
           </span>
 
           <div className="relative">

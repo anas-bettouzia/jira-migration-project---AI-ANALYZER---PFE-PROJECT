@@ -25,6 +25,7 @@ def create_job(
     payload: dict | None = None,
     user_email: str | None = None,
     user_id: str | None = None,
+    language: str | None = None,
 ) -> dict:
     """Create a new job record."""
     job_id = str(uuid.uuid4())
@@ -46,6 +47,7 @@ def create_job(
         "result": {},
         "user_email": user_email,
         "user_id": user_id,
+        "language": language,
     }
 
     _repo().insert_job(job)
