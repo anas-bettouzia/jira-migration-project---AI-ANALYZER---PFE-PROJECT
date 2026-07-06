@@ -11,12 +11,19 @@ from report_service.llm.gemini_client import generate_report_text
 from report_service.llm.prompt_builder import build_report_prompt
 
 
-def build_report(matrix: dict, language: str = "en") -> dict:
+def build_report(
+    matrix: dict,
+    language: str = "en",
+    source_filename: str = "",
+    user_email: str = "",
+    user_id: str = "",
+) -> dict:
     """Build a structured report from a compatibility matrix.
 
     Args:
         matrix: compatibility matrix dict
         language: desired language for the AI generated report text (default 'en')
+        source_filename: original uploaded migration package filename
     """
     report_id = str(uuid.uuid4())
 
@@ -32,6 +39,7 @@ def build_report(matrix: dict, language: str = "en") -> dict:
         "analysis_id": matrix.get("analysis_id", ""),
         "generated_at": datetime.utcnow().isoformat(),
         "title": "Jira Data Center to Cloud Migration Compatibility Report",
+        "source_filename": source_filename,
         "summary": executive_summary,
         "migration_score": summary.get("migration_score", 0),
         "migration_recommendation": summary.get("migration_recommendation", ""),

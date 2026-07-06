@@ -69,6 +69,8 @@ def analyze():
                 }), 404
 
             components = record.get("components", [])
+            user_email = record.get("user_email") or data.get("user_email")
+            user_id = record.get("user_id") or data.get("user_id")
             logger.info("Loaded %d components from MongoDB.", len(components))
 
         except Exception as error:  # pylint: disable=broad-exception-caught
@@ -78,6 +80,8 @@ def analyze():
     elif "components" in data:
         components = data["components"]
         analysis_id = data.get("analysis_id", "direct-input")
+        user_email = data.get("user_email")
+        user_id = data.get("user_id")
         logger.info("Using %d components from request body.", len(components))
 
     else:
@@ -91,6 +95,10 @@ def analyze():
     try:
         component_results = analyze_components_hybrid(components)
         matrix = build_matrix(analysis_id, component_results)
+        if user_email:
+            matrix["user_email"] = user_email
+        if user_id:
+            matrix["user_id"] = user_id
     except Exception as error:  # pylint: disable=broad-exception-caught
         logger.error("Analysis engine error: %s", error)
         return jsonify({"error": f"Analysis failed: {error}"}), 500

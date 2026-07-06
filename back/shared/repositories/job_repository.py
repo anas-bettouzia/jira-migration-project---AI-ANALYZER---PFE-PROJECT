@@ -37,30 +37,25 @@ class JobRepository:
         result = self.collection.update_one({"job_id": job_id}, {"$set": updates})
         return result.modified_count > 0
 
-    def get_job_by_id(self, job_id: str) -> dict | None:
+    def get_job_by_id(self, job_id: str, user_email: str | None = None) -> dict | None:
         """
-        Retrieve a job record by its job_id.
-
-        Args:
-            job_id: The unique identifier for the job.
-
-        Returns:
-            The job document if found, otherwise None.
+        Retrieve a job record by its job_id, optionally scoped to a user.
         """
-        return self.collection.find_one({"job_id": job_id})
+        query = {"job_id": job_id, "visible": {"$ne": False}}
+        if user_email:
+            query["user_email"] = user_email
+        return self.collection.find_one(query)
 
-    def list_jobs(self, limit: int = 50) -> list[dict]:
+    def list_jobs(self, limit: int = 50, user_email: str | None = None) -> list[dict]:
         """
-        Retrieve a list of recent job records.
-
-        Args:
-            limit: Maximum number of records to return.
-
-        Returns:
-            List of job documents.
+        Retrieve recent visible job records, optionally scoped to a user.
         """
+        query = {"visible": {"$ne": False}}
+        if user_email:
+            query["user_email"] = user_email
+
         return list(
-            self.collection.find({}, {"_id": 0})
+            self.collection.find(query, {"_id": 0})
             .sort("created_at", -1)
             .limit(limit)
         )

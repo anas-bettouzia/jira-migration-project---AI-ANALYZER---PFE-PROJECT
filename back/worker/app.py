@@ -61,12 +61,17 @@ def run_job():
         logger.error("Worker received file without filename")
         return jsonify({"error": "Uploaded file must have a filename."}), 400
 
-    # On crée le job en base de données tout de suite
+    user_email = request.form.get("user_email") or request.headers.get("X-User-Email")
+    user_id = request.form.get("user_id") or request.headers.get("X-User-Id")
+
+    # On cree le job en base de donnees tout de suite avec son proprietaire.
     job = create_job(
         job_type="FULL_ANALYSIS",
         payload={
             "filename": uploaded_file.filename,
         },
+        user_email=user_email,
+        user_id=user_id,
     )
 
     try:
@@ -118,7 +123,8 @@ def run_job():
 @app.route("/worker/jobs/<job_id>", methods=["GET"])
 def get_job_status(job_id):
     """Retrieve job status."""
-    job = get_job(job_id)
+    user_email = request.args.get("user_email") or request.headers.get("X-User-Email")
+    job = get_job(job_id, user_email=user_email)
 
     if not job:
         return jsonify({"error": f"Job '{job_id}' not found."}), 404
@@ -130,7 +136,8 @@ def get_job_status(job_id):
 def get_jobs():
     """List recent jobs."""
     limit = request.args.get("limit", 50, type=int)
-    jobs = list_jobs(limit=limit)
+    user_email = request.args.get("user_email") or request.headers.get("X-User-Email")
+    jobs = list_jobs(limit=limit, user_email=user_email)
 
     return jsonify({
         "jobs": jobs,

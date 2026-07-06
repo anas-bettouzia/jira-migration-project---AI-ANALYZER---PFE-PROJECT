@@ -35,14 +35,19 @@ class AnalysisRepository:
         """
         return self.collection.find_one({"analysis_id": analysis_id})
 
-    def get_all_analyses(self, limit: int = 50) -> list[dict]:
+    def get_all_analyses(
+        self,
+        limit: int = 50,
+        user_email: str | None = None,
+        active_only: bool = True,
+    ) -> list[dict]:
         """
-        Retrieve a list of recent analysis records.
-
-        Args:
-            limit: Maximum number of records to return.
-
-        Returns:
-            List of analysis documents.
+        Retrieve recent analysis records, optionally scoped to a user.
         """
-        return list(self.collection.find().sort("analysis_date", -1).limit(limit))
+        query = {}
+        if active_only:
+            query["status"] = {"$ne": False}
+        if user_email:
+            query["user_email"] = user_email
+
+        return list(self.collection.find(query).sort("analysis_date", -1).limit(limit))

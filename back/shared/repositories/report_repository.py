@@ -14,43 +14,22 @@ class ReportRepository:
         self.archived_collection = self.db.reports_archived
 
     def insert_report(self, report_data: dict) -> str:
-        """
-        Insert a new report record into the database.
-
-        Args:
-            report_data: Dictionary containing report details (report_id, title, etc.)
-
-        Returns:
-            The inserted document's ID as a string.
-        """
+        """Insert a new report record into the database."""
         result = self.collection.insert_one(report_data)
         return str(result.inserted_id)
 
-    def get_report_by_id(self, report_id: str) -> dict | None:
-        """
-        Retrieve a report record by its report_id.
-
-        Args:
-            report_id: The unique identifier for the report.
-
-        Returns:
-            The report document if found, otherwise None.
-        """
-        return self.collection.find_one({
+    def get_report_by_id(self, report_id: str, user_email: str | None = None) -> dict | None:
+        """Retrieve an active report by report_id, optionally scoped to a user."""
+        query = {
             "report_id": report_id,
-            "status": {"$ne": False}
-            })
+            "status": {"$ne": False},
+        }
+        if user_email:
+            query["user_email"] = user_email
+        return self.collection.find_one(query)
 
-    def list_reports(self, limit: int = 50) -> list[dict]:
-        """
-        Retrieve a list of recent report records with summary fields only.
-
-        Args:
-            limit: Maximum number of records to return.
-
-        Returns:
-            List of report summary documents.
-        """
+    def list_reports(self, limit: int = 50, user_email: str | None = None) -> list[dict]:
+        """Retrieve active report summaries, optionally scoped to a user."""
         projection = {
             "_id": 0,
             "report_id": 1,
@@ -60,46 +39,52 @@ class ReportRepository:
             "title": 1,
             "summary": 1,
             "status": 1,
+            "source_filename": 1,
+            "user_email": 1,
+            "user_id": 1,
         }
+        query = {"status": {"$ne": False}}
+        if user_email:
+            query["user_email"] = user_email
+
         return list(
-            self.collection.find({"status": {"$ne": False}}, projection)
+            self.collection.find(query, projection)
             .sort("generated_at", -1)
             .limit(limit)
         )
 
-    def soft_delete_report(self, report_id: str) -> bool:
-        """
-        Update report status to False instead of removing it from database.
-        """
-        result = self.collection.update_one(
-            {"report_id": report_id},
-            {"$set": {"status": False}}
-        )
+    def soft_delete_report(self, report_id: str, user_email: str | None = None) -> bool:
+        """Soft-delete a report by setting status to False."""
+        query = {"report_id": report_id}
+        if user_email:
+            query["user_email"] = user_email
+
+        result = self.collection.update_one(query, {"$set": {"status": False}})
         return result.modified_count > 0
 
-    def archive_report(self, report_id: str) -> bool:
-        """
-        Move a report from the active 'reports' collection to 'reports_archived'.
+    def archive_report(self, report_id: str, user_email: str | None = None) -> bool:
+        """Move a report from active reports to reports_archived."""
+        query = {"report_id": report_id}
+        if user_email:
+            query["user_email"] = user_email
 
-        Returns:
-            True if the report existed and was archived, False otherwise.
-        """
-        report = self.collection.find_one({"report_id": report_id})
+        report = self.collection.find_one(query)
         if not report:
             return False
 
-        # Remove the source document ID to avoid duplicate _id errors in the target collection
         report.pop("_id", None)
         report["archived_at"] = report.get("archived_at") or datetime.utcnow()
 
         self.archived_collection.insert_one(report)
-        self.collection.delete_one({"report_id": report_id})
+        self.collection.delete_one(query)
         return True
 
-    def list_archived_reports(self, limit: int = 50) -> list[dict]:
-        """
-        Retrieve a list of archived report records with summary fields only.
-        """
+    def list_archived_reports(
+        self,
+        limit: int = 50,
+        user_email: str | None = None,
+    ) -> list[dict]:
+        """Retrieve archived report summaries, optionally scoped to a user."""
         projection = {
             "_id": 0,
             "report_id": 1,
@@ -109,25 +94,23 @@ class ReportRepository:
             "title": 1,
             "summary": 1,
             "status": 1,
+            "source_filename": 1,
+            "user_email": 1,
+            "user_id": 1,
             "archived_at": 1,
         }
+        query = {}
+        if user_email:
+            query["user_email"] = user_email
+
         return list(
-            self.archived_collection.find({}, projection)
+            self.archived_collection.find(query, projection)
             .sort("archived_at", -1)
             .limit(limit)
         )
 
     def update_report(self, report_id: str, updates: dict) -> bool:
-        """
-        Update a report document with the provided fields.
-
-        Args:
-            report_id: the report identifier
-            updates: dict of fields to set on the document
-
-        Returns:
-            True if a document was modified.
-        """
+        """Update a report document with the provided fields."""
         if not updates:
             return False
 

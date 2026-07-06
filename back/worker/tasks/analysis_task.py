@@ -19,6 +19,7 @@ from worker.tasks.job_manager import (
     mark_failed,
     mark_running,
     update_job_progress,
+    get_job,
 )
 
 logger = logging.getLogger(__name__)
@@ -53,7 +54,8 @@ def run_full_analysis_job(job_id: str, file_path: str) -> dict:
         if not Path(file_path).exists():
             raise FileNotFoundError(f"Input file not found: {file_path}")
 
-        parse_result = _call_parsing_service(file_path)
+        user_context = _get_user_context(job_id)
+        parse_result = _call_parsing_service(file_path, user_context=user_context)
         analysis_id = parse_result.get("analysis_id")
 
         if not analysis_id:
@@ -65,7 +67,7 @@ def run_full_analysis_job(job_id: str, file_path: str) -> dict:
             "compatibility",
             "Parsing completed. Starting compatibility analysis.",
         )
-        compatibility_result = _call_compatibility_service(analysis_id)
+        compatibility_result = _call_compatibility_service(analysis_id, user_context=user_context)
         matrix_id = compatibility_result.get("matrix_id")
 
         if not matrix_id:
@@ -77,7 +79,8 @@ def run_full_analysis_job(job_id: str, file_path: str) -> dict:
             "report",
             "Compatibility analysis complete. Generating report.",
         )
-        report_result = _call_report_service(matrix_id)
+        source_filename = _get_source_filename(job_id)
+        report_result = _call_report_service(matrix_id, source_filename, user_context=user_context)
         report_id = report_result.get("report_id")
 
         if not report_id:
@@ -96,6 +99,7 @@ def run_full_analysis_job(job_id: str, file_path: str) -> dict:
                 "ai_model": report_result.get("ai_model", ""),
                 "title": report_result.get("title", ""),
                 "summary": report_result.get("summary", ""),
+                "source_filename": report_result.get("source_filename", source_filename),
             },
         }
 
@@ -114,7 +118,7 @@ def run_full_analysis_job(job_id: str, file_path: str) -> dict:
         }
 
 
-def _call_parsing_service(file_path: str) -> dict:
+def _call_parsing_service(file_path: str, user_context: dict | None = None) -> dict:
     """Call Parsing Service /parse endpoint."""
     url = f"{PARSING_SERVICE_URL.rstrip('/')}/parse"
     logger.info("Calling Parsing Service: %s", url)
@@ -128,7 +132,12 @@ def _call_parsing_service(file_path: str) -> dict:
         files = {
             "file": (os.path.basename(file_path), file, mime_type)
         }
-        response = requests.post(url, files=files, timeout=(10, DEFAULT_TIMEOUT))
+        response = requests.post(
+            url,
+            files=files,
+            data=user_context or {},
+            timeout=(10, DEFAULT_TIMEOUT),
+        )
 
     if response.status_code != 200:
         logger.error("Parsing failed (%s): %s", response.status_code, response.text)
@@ -137,7 +146,10 @@ def _call_parsing_service(file_path: str) -> dict:
     return response.json()
 
 
-def _call_compatibility_service(analysis_id: str) -> dict:
+def _call_compatibility_service(
+    analysis_id: str,
+    user_context: dict | None = None,
+) -> dict:
     """Call Compatibility Service /compatibility/analyze endpoint."""
     url = f"{COMPATIBILITY_SERVICE_URL.rstrip('/')}/compatibility/analyze"
 
@@ -145,7 +157,7 @@ def _call_compatibility_service(analysis_id: str) -> dict:
 
     response = requests.post(
         url,
-        json={"analysis_id": analysis_id},
+        json={"analysis_id": analysis_id, **(user_context or {})},
         timeout=(10, DEFAULT_TIMEOUT),
     )
 
@@ -153,7 +165,35 @@ def _call_compatibility_service(analysis_id: str) -> dict:
     return response.json()
 
 
-def _call_report_service(matrix_id: str) -> dict:
+def _get_source_filename(job_id: str) -> str:
+    """Return the original uploaded filename stored on the worker job."""
+    job = get_job(job_id) or {}
+    payload = job.get("payload", {}) if isinstance(job, dict) else {}
+    filename = payload.get("filename", "") if isinstance(payload, dict) else ""
+    return str(filename or "")
+
+
+def _get_user_context(job_id: str) -> dict:
+    """Return the user ownership context stored on the worker job."""
+    job = get_job(job_id) or {}
+    context = {}
+
+    user_email = job.get("user_email") if isinstance(job, dict) else None
+    user_id = job.get("user_id") if isinstance(job, dict) else None
+
+    if user_email:
+        context["user_email"] = str(user_email)
+    if user_id:
+        context["user_id"] = str(user_id)
+
+    return context
+
+
+def _call_report_service(
+    matrix_id: str,
+    source_filename: str = "",
+    user_context: dict | None = None,
+) -> dict:
     """Call Report Service /reports/generate endpoint."""
     url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports/generate"
 
@@ -161,7 +201,11 @@ def _call_report_service(matrix_id: str) -> dict:
 
     response = requests.post(
         url,
-        json={"matrix_id": matrix_id},
+        json={
+            "matrix_id": matrix_id,
+            "source_filename": source_filename,
+            **(user_context or {}),
+        },
         timeout=(10, DEFAULT_TIMEOUT),
     )
 

@@ -97,11 +97,17 @@ def parse_jira_export():
 
         analysis_id = str(uuid.uuid4())
 
+        user_email = request.form.get("user_email") or request.headers.get("X-User-Email")
+        user_id = request.form.get("user_id") or request.headers.get("X-User-Id")
+
         analysis_payload = {
             "analysis_id": analysis_id,
             "source_environment": "Jira Data Center",
             "target_environment": "Jira Cloud",
             "analysis_date": datetime.utcnow().strftime("%Y-%m-%d"),
+            "status": True,
+            "user_email": user_email,
+            "user_id": user_id,
             "components": [
                 _to_dict(component)
                 for component in final_data.components

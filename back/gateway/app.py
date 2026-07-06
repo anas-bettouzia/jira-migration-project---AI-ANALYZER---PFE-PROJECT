@@ -673,6 +673,7 @@ def _ensure_admin_user(user_repo: UserRepository) -> None:
 def _public_user(user: dict) -> dict:
     """Return user fields that are safe for the frontend."""
     return {
+        "id": str(user.get("_id", "")),
         "email": user.get("email"),
         "username": user.get("username"),
         "name": user.get("name"),
@@ -680,6 +681,20 @@ def _public_user(user: dict) -> dict:
         "role": user.get("role", "user"),
         "auth_provider": user.get("auth_provider", "local"),
     }
+
+
+def _current_user_context(user_repo: UserRepository) -> tuple[dict | None, dict]:
+    """Return authenticated user document and identity context for downstream services."""
+    email = get_jwt_identity()
+    user = user_repo.get_user_by_email(email)
+    if not user:
+        return None, {}
+
+    return user, {
+        "user_email": user.get("email", email),
+        "user_id": str(user.get("_id", "")),
+    }
+
 
 def _google_client_ids() -> list[str]:
     """Return configured Google OAuth client IDs."""
@@ -1236,9 +1251,11 @@ def create_app():
                 )
             }
 
+            _, user_context = _current_user_context(user_repo)
             response = requests.post(
                 url,
                 files=files,
+                data=user_context,
                 timeout=REQUEST_TIMEOUT,
             )
 
@@ -1257,8 +1274,9 @@ def create_app():
     def get_job(job_id):
         """Get worker job status."""
         try:
+            _, user_context = _current_user_context(user_repo)
             url = f"{WORKER_URL.rstrip('/')}/worker/jobs/{job_id}"
-            response = requests.get(url, timeout=REQUEST_TIMEOUT)
+            response = requests.get(url, params=user_context, timeout=REQUEST_TIMEOUT)
             return jsonify(response.json()), response.status_code
 
         except requests.exceptions.RequestException as error:
@@ -1271,8 +1289,13 @@ def create_app():
         """List worker jobs."""
         try:
             limit = request.args.get("limit", 50)
-            url = f"{WORKER_URL.rstrip('/')}/worker/jobs?limit={limit}"
-            response = requests.get(url, timeout=REQUEST_TIMEOUT)
+            _, user_context = _current_user_context(user_repo)
+            url = f"{WORKER_URL.rstrip('/')}/worker/jobs"
+            response = requests.get(
+                url,
+                params={**user_context, "limit": limit},
+                timeout=REQUEST_TIMEOUT,
+            )
             return jsonify(response.json()), response.status_code
 
         except requests.exceptions.RequestException as error:
@@ -1310,8 +1333,9 @@ def create_app():
     def get_report(report_id):
         """Proxy report retrieval."""
         try:
+            _, user_context = _current_user_context(user_repo)
             url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports/{report_id}"
-            response = requests.get(url, timeout=REQUEST_TIMEOUT)
+            response = requests.get(url, params=user_context, timeout=REQUEST_TIMEOUT)
 
             # Vérifier si la requête a réussi avant de parser le JSON
             if response.status_code != 200:
@@ -1332,8 +1356,9 @@ def create_app():
     def list_reports():
         """List all generated reports."""
         try:
+            _, user_context = _current_user_context(user_repo)
             url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports"
-            response = requests.get(url, timeout=REQUEST_TIMEOUT)
+            response = requests.get(url, params=user_context, timeout=REQUEST_TIMEOUT)
             return jsonify(response.json()), response.status_code
         except requests.exceptions.RequestException as error:
             logger.error("List reports failed: %s", error)
@@ -1344,8 +1369,9 @@ def create_app():
     def list_archived_reports():
         """List archived reports through the report service."""
         try:
+            _, user_context = _current_user_context(user_repo)
             url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports/archived"
-            response = requests.get(url, timeout=REQUEST_TIMEOUT)
+            response = requests.get(url, params=user_context, timeout=REQUEST_TIMEOUT)
             return jsonify(response.json()), response.status_code
         except requests.exceptions.RequestException as error:
             logger.error("List archived reports failed: %s", error)
@@ -1356,8 +1382,9 @@ def create_app():
     def archive_report(report_id):
         """Proxy report archival to the report service."""
         try:
+            _, user_context = _current_user_context(user_repo)
             url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports/{report_id}/archive"
-            response = requests.post(url, timeout=REQUEST_TIMEOUT)
+            response = requests.post(url, params=user_context, timeout=REQUEST_TIMEOUT)
             return jsonify(response.json()), response.status_code
         except requests.exceptions.RequestException as error:
             logger.error("Archive report request failed: %s", error)
@@ -1368,8 +1395,14 @@ def create_app():
     def translate_report(report_id):
         """Proxy report translation request to the report service."""
         try:
+            _, user_context = _current_user_context(user_repo)
             url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports/{report_id}/translate"
-            response = requests.post(url, json=request.get_json(), timeout=REQUEST_TIMEOUT)
+            response = requests.post(
+                url,
+                params=user_context,
+                json=request.get_json(),
+                timeout=REQUEST_TIMEOUT,
+            )
             return jsonify(response.json()), response.status_code
         except requests.exceptions.RequestException as error:
             logger.error("Translate report request failed: %s", error)
@@ -1380,9 +1413,15 @@ def create_app():
     def generate_report():
         """Generate a report from matrix_id or analysis_id."""
         try:
+            _, user_context = _current_user_context(user_repo)
             url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports/generate"
-            # Forward the JSON body to the report service
-            response = requests.post(url, json=request.get_json(), timeout=REQUEST_TIMEOUT)
+            # Forward the JSON body to the report service with the current owner context.
+            payload = request.get_json() or {}
+            response = requests.post(
+                url,
+                json={**payload, **user_context},
+                timeout=REQUEST_TIMEOUT,
+            )
             return jsonify(response.json()), response.status_code
         except requests.exceptions.RequestException as error:
             logger.error("Generate report failed: %s", error)
@@ -1393,8 +1432,9 @@ def create_app():
     def export_report_json(report_id):
         """Export report as JSON file."""
         try:
+            _, user_context = _current_user_context(user_repo)
             url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports/{report_id}/json"
-            response = requests.get(url, timeout=REQUEST_TIMEOUT)
+            response = requests.get(url, params=user_context, timeout=REQUEST_TIMEOUT)
 
             # If error (e.g. 404), return json error message
             if response.status_code != 200:
@@ -1419,8 +1459,9 @@ def create_app():
     def export_report_pdf(report_id):
         """Export report as PDF file."""
         try:
+            _, user_context = _current_user_context(user_repo)
             url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports/{report_id}/pdf"
-            response = requests.get(url, timeout=REQUEST_TIMEOUT)
+            response = requests.get(url, params=user_context, timeout=REQUEST_TIMEOUT)
 
             # If error (e.g. 404), return json error message
             if response.status_code != 200:
@@ -1448,8 +1489,9 @@ def create_app():
     def delete_report(report_id):
         """Proxy report soft-deletion to report_service."""
         try:
+            _, user_context = _current_user_context(user_repo)
             url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports/{report_id}"
-            response = requests.delete(url, timeout=REQUEST_TIMEOUT)
+            response = requests.delete(url, params=user_context, timeout=REQUEST_TIMEOUT)
             return jsonify(response.json()), response.status_code
         except requests.exceptions.RequestException as error:
             logger.error("Delete report request failed: %s", error)

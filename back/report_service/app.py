@@ -64,7 +64,13 @@ def generate_report():
     language = data.get("language", "en")
 
     try:
-        report = build_report(matrix, language=language)
+        report = build_report(
+            matrix,
+            language=language,
+            source_filename=data.get("source_filename", ""),
+            user_email=data.get("user_email", matrix.get("user_email", "")),
+            user_id=data.get("user_id", matrix.get("user_id", "")),
+        )
     except Exception as error:  # pylint: disable=broad-exception-caught
         logger.error("Report generation failed: %s", error)
         return jsonify({"error": f"Report generation failed: {error}"}), 500
@@ -82,12 +88,12 @@ def generate_report():
 
 @app.route("/reports/<report_id>", methods=["GET"])
 def get_report(report_id):
-    """Retrieve a generated report by report_id only if active."""
+    """Retrieve a generated report by report_id only if active and allowed."""
     try:
         report_repo = ReportRepository()
-        report = report_repo.get_report_by_id(report_id)
+        user_email = request.args.get("user_email") or request.headers.get("X-User-Email")
+        report = report_repo.get_report_by_id(report_id, user_email=user_email)
 
-        # Si le rapport n'existe pas OU si son statut est False, get_report_by_id renverra None
         if not report:
             return jsonify({"error": f"Report '{report_id}' not found."}), 404
 
@@ -98,14 +104,14 @@ def get_report(report_id):
         logger.error("Error retrieving report: %s", error)
         return jsonify({"error": str(error)}), 500
 
-
 @app.route("/reports", methods=["GET"])
 def list_reports():
-    """List generated reports with summary only (filtered by status=True)."""
+    """List active generated reports, optionally scoped to a user."""
     try:
         report_repo = ReportRepository()
-        # list_reports() applique automatiquement le filtre {"status": {"$ne": False}}
-        reports = report_repo.list_reports()
+        limit = request.args.get("limit", 50, type=int)
+        user_email = request.args.get("user_email") or request.headers.get("X-User-Email")
+        reports = report_repo.list_reports(limit=limit, user_email=user_email)
 
         return jsonify({"reports": reports, "count": len(reports)}), 200
 
@@ -113,25 +119,26 @@ def list_reports():
         logger.error("Error listing reports: %s", error)
         return jsonify({"error": str(error)}), 500
 
-
 @app.route("/reports/archived", methods=["GET"])
 def list_archived_reports():
-    """List archived reports from the archived collection."""
+    """List archived reports, optionally scoped to a user."""
     try:
         report_repo = ReportRepository()
-        archived_reports = report_repo.list_archived_reports()
+        limit = request.args.get("limit", 50, type=int)
+        user_email = request.args.get("user_email") or request.headers.get("X-User-Email")
+        archived_reports = report_repo.list_archived_reports(limit=limit, user_email=user_email)
         return jsonify({"reports": archived_reports, "count": len(archived_reports)}), 200
     except Exception as error:  # pylint: disable=broad-exception-caught
         logger.error("Error listing archived reports: %s", error)
         return jsonify({"error": str(error)}), 500
-
 
 @app.route("/reports/<report_id>/archive", methods=["POST"])
 def archive_report(report_id):
     """Archive a report by moving it from reports to reports_archived."""
     try:
         report_repo = ReportRepository()
-        success = report_repo.archive_report(report_id)
+        user_email = request.args.get("user_email") or request.headers.get("X-User-Email")
+        success = report_repo.archive_report(report_id, user_email=user_email)
 
         if not success:
             return jsonify({"error": f"Report '{report_id}' not found."}), 404
@@ -144,14 +151,13 @@ def archive_report(report_id):
         logger.error("Error archiving report: %s", error)
         return jsonify({"error": str(error)}), 500
 
-
 @app.route("/reports/<report_id>/json", methods=["GET"])
 def export_json(report_id):
     """Export an active report as JSON file."""
     report_repo = ReportRepository()
-    report = report_repo.get_report_by_id(report_id)
+    user_email = request.args.get("user_email") or request.headers.get("X-User-Email")
+    report = report_repo.get_report_by_id(report_id, user_email=user_email)
 
-    # Bloque l'export si le rapport est en status=False (renvoie None)
     if not report:
         return jsonify({"error": f"Report '{report_id}' not found."}), 404
 
@@ -159,21 +165,19 @@ def export_json(report_id):
     file_path = export_report_to_json(report)
     return send_file(file_path, as_attachment=True)
 
-
 @app.route("/reports/<report_id>/pdf", methods=["GET"])
 def export_pdf(report_id):
     """Export an active report as PDF file."""
     report_repo = ReportRepository()
-    report = report_repo.get_report_by_id(report_id)
+    user_email = request.args.get("user_email") or request.headers.get("X-User-Email")
+    report = report_repo.get_report_by_id(report_id, user_email=user_email)
 
-    # Bloque l'export si le rapport est en status=False (renvoie None)
     if not report:
         return jsonify({"error": f"Report '{report_id}' not found."}), 404
 
     report.pop("_id", None)
     file_path = export_report_to_pdf(report)
     return send_file(file_path, as_attachment=True)
-
 
 @app.route("/reports/<report_id>/translate", methods=["POST"])
 def translate_report(report_id):
@@ -189,7 +193,8 @@ def translate_report(report_id):
 
     try:
         report_repo = ReportRepository()
-        report = report_repo.get_report_by_id(report_id)
+        user_email = request.args.get("user_email") or request.headers.get("X-User-Email")
+        report = report_repo.get_report_by_id(report_id, user_email=user_email)
 
         if not report:
             return jsonify({"error": f"Report '{report_id}' not found."}), 404
@@ -388,7 +393,8 @@ def delete_report(report_id):
     """Soft delete a report by setting its status to False."""
     try:
         report_repo = ReportRepository()
-        success = report_repo.soft_delete_report(report_id)
+        user_email = request.args.get("user_email") or request.headers.get("X-User-Email")
+        success = report_repo.soft_delete_report(report_id, user_email=user_email)
 
         if not success:
             return jsonify({

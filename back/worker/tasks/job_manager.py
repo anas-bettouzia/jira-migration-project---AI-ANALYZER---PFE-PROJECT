@@ -20,7 +20,12 @@ def _repo() -> JobRepository:
     return JobRepository()
 
 
-def create_job(job_type: str = "FULL_ANALYSIS", payload: dict | None = None) -> dict:
+def create_job(
+    job_type: str = "FULL_ANALYSIS",
+    payload: dict | None = None,
+    user_email: str | None = None,
+    user_id: str | None = None,
+) -> dict:
     """Create a new job record."""
     job_id = str(uuid.uuid4())
     now = datetime.utcnow().isoformat()
@@ -39,6 +44,8 @@ def create_job(job_type: str = "FULL_ANALYSIS", payload: dict | None = None) -> 
         "completed_at": None,
         "error": None,
         "result": {},
+        "user_email": user_email,
+        "user_id": user_id,
     }
 
     _repo().insert_job(job)
@@ -117,9 +124,9 @@ def mark_failed(job_id: str, error: str) -> None:
     )
 
 
-def get_job(job_id: str) -> dict | None:
+def get_job(job_id: str, user_email: str | None = None) -> dict | None:
     """Retrieve a job by ID."""
-    job = _repo().get_job_by_id(job_id)
+    job = _repo().get_job_by_id(job_id, user_email=user_email)
 
     if job:
         job.pop("_id", None)
@@ -127,6 +134,6 @@ def get_job(job_id: str) -> dict | None:
     return job
 
 
-def list_jobs(limit: int = 50) -> list[dict]:
+def list_jobs(limit: int = 50, user_email: str | None = None) -> list[dict]:
     """List recent jobs."""
-    return _repo().list_jobs(limit)
+    return _repo().list_jobs(limit, user_email=user_email)
