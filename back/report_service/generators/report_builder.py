@@ -40,6 +40,8 @@ def build_report(
         "generated_at": datetime.utcnow().isoformat(),
         "title": "Jira Data Center to Cloud Migration Compatibility Report",
         "source_filename": source_filename,
+        "user_email": user_email,
+        "user_id": user_id,
         "summary": executive_summary,
         "migration_score": summary.get("migration_score", 0),
         "migration_recommendation": summary.get("migration_recommendation", ""),
