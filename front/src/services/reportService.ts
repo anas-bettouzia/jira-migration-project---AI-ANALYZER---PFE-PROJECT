@@ -122,18 +122,38 @@ export const reportService = {
    * Télécharge le rapport au format spécifié (pdf ou json)
    */
   async downloadReport(reportId: string, type: 'pdf' | 'json') {
+    // Try to fetch report metadata to create a nicer filename
+    let niceBase = `report_${reportId}`;
+    try {
+      const meta = await this.getReport(reportId);
+      const raw = typeof meta?.source_filename === 'string' ? meta.source_filename : undefined;
+      if (raw) {
+        // take last path segment and strip extension
+        const last = raw.split(/\\|\//).pop() ?? raw;
+        const stem = last.replace(/\.[^.]+$/, '');
+        // sanitize: replace spaces and non-word chars with underscore
+        const sanitized = stem.replace(/[^\w\-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '').slice(0, 120);
+        // detect current UI language (default to en)
+        const uiLang = (localStorage.getItem('jira-migration-language') as string) || 'en';
+        niceBase = uiLang === 'fr' ? `rapport_du_${sanitized}` : `report_of_${sanitized}`;
+      }
+    } catch (err) {
+      // ignore metadata errors and fallback to id-based name
+      // console.debug('Unable to fetch report metadata for filename', err);
+    }
+
     const response = await api.get(`/reports/${reportId}/${type}`, {
       responseType: 'blob',
     });
-    
+
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `report_${reportId}.${type}`);
+    link.setAttribute('download', `${niceBase}.${type}`);
     document.body.appendChild(link);
     link.click();
-    
-    // Nettoyage
+
+    // Cleanup
     link.remove();
     window.URL.revokeObjectURL(url);
   }
