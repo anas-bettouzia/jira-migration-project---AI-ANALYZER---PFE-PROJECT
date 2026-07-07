@@ -38,6 +38,7 @@ import logoSpectrumDark from '../../assets/img/logo-spectrum-groupe-darkmode.png
 import logoSpectrum from '../../assets/img/logo-spectrum-groupe.png';
 
 type JobStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | string | undefined;
+type Translate = (key: string, values?: Record<string, string | number>) => string;
 
 export const AnalysisPage: React.FC = () => {
   const [jobId, setJobId] = useState<string | null>(null);
@@ -395,7 +396,7 @@ export const AnalysisPage: React.FC = () => {
                               className="flex items-center gap-2 rounded-xl border border-[#d7e0ef] px-4 py-3 font-bold text-[#64708d] transition dark:border-white/10 dark:text-white/65 dark:hover:bg-white/5"
                             >
                               <RotateCcw size={16} />
-                              Clear
+                              {t('common.clear')}
                             </button>
                             {jobStatus?.status === 'COMPLETED' && (
                               <div className="flex flex-wrap gap-2">
@@ -411,7 +412,7 @@ export const AnalysisPage: React.FC = () => {
                                   onClick={() => navigate(`/reports/${reportId}`)}
                                   className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#6b8cff] to-[#c462e8] px-5 py-3 font-black text-white shadow-lg shadow-purple-500/20"
                                 >
-                                  View report
+                                  {t('common.viewReport')}
                                   <ChevronRight size={17} />
                                 </button>
                               </div>
@@ -463,6 +464,15 @@ const formatJobDate = (value?: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Recent';
   return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date);
+};
+
+const getTranslatedJobStatus = (t: Translate, status?: string) => {
+  if (status === 'QUEUED') return t('analysis.status.queued');
+  if (status === 'STARTED') return t('analysis.status.started');
+  if (status === 'RUNNING') return t('analysis.status.running');
+  if (status === 'COMPLETED') return t('analysis.status.completed');
+  if (status === 'FAILED') return t('analysis.status.failed');
+  return status || t('analysis.initializing');
 };
 
 const SecondarySidebar = ({
@@ -599,7 +609,7 @@ const SecondarySidebar = ({
                   <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[#23d18b] shadow-[0_0_0_4px_rgba(35,209,139,0.16)]" />
                 </div>
                 <div className="mb-2 flex items-center justify-between text-[10px] font-black uppercase text-[#8a96b3] dark:text-white/45">
-                  <span>{status || t('analysis.initializing')}</span>
+                  <span>{getTranslatedJobStatus(t, status)}</span>
                   <span>{progress}%</span>
                 </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-[#dfe8f6] dark:bg-white/10">
@@ -686,7 +696,6 @@ const RecentJobItem = ({
   const { t } = useI18n();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const progress = getJobProgress(job.status);
-  const isCompleted = job.status === 'COMPLETED' && Boolean(job.result?.report_id);
   const hasReport = Boolean(job.result?.report_id);
 
   const toggleMenu = (e: React.MouseEvent) => {
@@ -735,7 +744,7 @@ const RecentJobItem = ({
 
         <div className="flex shrink-0 items-center gap-1">
           <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black uppercase ${getJobStatusTone(job.status)}`}>
-            {isCompleted ? t('common.report') : job.status ? job.status : t('analysis.job')}
+            {job.status ? getTranslatedJobStatus(t, job.status) : t('analysis.job')}
           </span>
 
           <div className="relative">
@@ -880,11 +889,12 @@ const PipelineStep = ({
 );
 
 const StatusBadge = ({ status }: { status?: string }) => {
+  const { t } = useI18n();
   const isPending = status === 'QUEUED' || status === 'RUNNING' || !status;
   return (
     <div className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black uppercase ${status === 'COMPLETED' ? 'bg-[#dcfce7] text-[#15803d]' : status === 'FAILED' ? 'bg-[#fee2e2] text-[#b91c1c]' : 'bg-[#dbeafe] text-[#1d4ed8]'}`}>
       {isPending && <Loader2 size={14} className="animate-spin" />}
-      {status || 'Initializing'}
+      {getTranslatedJobStatus(t, status)}
     </div>
   );
 };
