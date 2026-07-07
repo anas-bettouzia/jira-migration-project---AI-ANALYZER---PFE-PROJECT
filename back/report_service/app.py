@@ -237,8 +237,110 @@ def translate_report(report_id):
         }
 
         if target == "en":
-            summary_val = report.get("ai_summary", report.get("summary", ""))
-            return jsonify({"ai_summary": summary_val}), 200
+            # If the report was generated in English, return the stored summary.
+            if report.get("language", "en") == "en":
+                summary_val = report.get("ai_summary", report.get("summary", ""))
+                return jsonify({"ai_summary": summary_val}), 200
+
+            # Try to return a cached English translation when available.
+            existing_en = report.get("ai_summary_en")
+            if existing_en:
+                return jsonify({"ai_summary": existing_en}), 200
+
+            # If the report was generated in French, translate the French summary back to English.
+            summary_val = report.get("ai_summary_fr") or report.get("ai_summary", "")
+            recommendation_val = (
+                report.get("migration_recommendation_fr")
+                or report.get("migration_recommendation", "")
+            )
+            insights_val = report.get("ai_insights_fr") or report.get("ai_insights", "")
+            error_val = report.get("ai_error_fr") or report.get("ai_error", "")
+            details_val = report.get("details_fr") or report.get("details", "")
+            sections_val = (
+                (report.get("translations", {}) or {}).get("fr", {}).get("sections")
+                or report.get("sections", {})
+            )
+
+            source_payload = {
+                "ai_summary": summary_val,
+                "migration_recommendation": recommendation_val,
+                "ai_insights": insights_val,
+                "ai_error": error_val,
+                "details": details_val,
+                "sections": sections_val,
+            }
+
+            prompt = (
+                "Translate the following structured report fields into English. "
+                "Preserve component names, API identifiers, code snippets, and technical terms "
+                "in English. Keep a professional consulting tone. Return exactly one valid "
+                "JSON object with the same structure and no extra text.\n\n"
+                "Input JSON:\n"
+                f"{json.dumps(source_payload, ensure_ascii=False, indent=2)}"
+            )
+
+            result = generate_report_json(
+                prompt,
+                fallback_json=source_payload,
+            )
+            translated_data = result.get("data", {})
+            translated_ai_summary = translated_data.get(
+                "ai_summary",
+                source_payload["ai_summary"],
+            )
+            translated_recommendation = translated_data.get(
+                "migration_recommendation",
+                source_payload["migration_recommendation"],
+            )
+            translated_ai_insights = translated_data.get(
+                "ai_insights",
+                source_payload["ai_insights"],
+            )
+            translated_ai_error = translated_data.get(
+                "ai_error",
+                source_payload["ai_error"],
+            )
+            translated_details = translated_data.get(
+                "details",
+                source_payload["details"],
+            )
+            translated_sections = translated_data.get(
+                "sections",
+                source_payload["sections"],
+            )
+
+            response_body = {
+                "ai_summary": translated_ai_summary,
+                "migration_recommendation": translated_recommendation,
+                "ai_insights": translated_ai_insights,
+                "ai_error": translated_ai_error,
+                "details": translated_details,
+                "translations": {"en": translated_data},
+                "used_ai": result.get("used_ai", False),
+                "error": result.get("error", ""),
+            }
+
+            should_cache = bool(result.get("used_ai"))
+            if not should_cache:
+                try:
+                    should_cache = translated_data != source_payload
+                except TypeError:
+                    should_cache = False
+
+            if should_cache:
+                updates = {
+                    "ai_summary_en": translated_ai_summary,
+                    "translations.en.ai_summary": translated_ai_summary,
+                "translations.en.migration_recommendation": translated_recommendation,
+                "translations.en.ai_insights": translated_ai_insights,
+                "translations.en.ai_error": translated_ai_error,
+                "translations.en.details": translated_details,
+                "translations.en.sections": translated_sections,
+                }
+                report_repo.update_report(report_id, updates)
+                logger.info("Cached English translation for report_id=%s", report_id)
+
+            return jsonify(response_body), 200
 
         # If a French translation already exists and is not identical
         # to the English source, return it.

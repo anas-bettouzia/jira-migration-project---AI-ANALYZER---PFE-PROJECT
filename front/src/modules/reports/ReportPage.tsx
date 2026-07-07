@@ -22,7 +22,7 @@ import {
 
 import { MainSidebar } from '../../shared/components/MainSidebar';
 import { LocaleSwitcher } from '../../shared/components/LocaleSwitcher';
-import { useI18n } from '../../i18n';
+import { useI18n, type Language } from '../../i18n';
 import { analysisService } from '../../services/analysisService';
 import {
   reportService,
@@ -50,13 +50,13 @@ const getTranslatedComponentField = (
   component: ReportComponent,
   field: 'reasoning_summary' | 'recommended_action',
   report: ReportData | null,
-  language?: string,
+  language?: Language,
 ) => {
-  if (language !== 'fr' || !report?.translations?.fr?.sections?.components) {
+  if (!language || !report?.translations?.[language]?.sections?.components) {
     return component[field] ?? '';
   }
 
-  const translation = report.translations.fr.sections?.components?.find(
+  const translation = report.translations[language].sections?.components?.find(
     (translated) => translated.component_id && translated.component_id === component.component_id,
   );
 
@@ -67,13 +67,13 @@ const getTranslatedRecommendationField = (
   recommendation: ReportRecommendation,
   field: 'action' | 'reason',
   report: ReportData | null,
-  language?: string,
+  language?: Language,
 ) => {
-  if (language !== 'fr' || !report?.translations?.fr?.sections?.recommendations) {
+  if (!language || !report?.translations?.[language]?.sections?.recommendations) {
     return recommendation[field] ?? '';
   }
 
-  const translation = report.translations.fr.sections?.recommendations?.find(
+  const translation = report.translations[language].sections?.recommendations?.find(
     (translated) => translated.component_id && translated.component_id === recommendation.component_id,
   );
 
@@ -83,9 +83,9 @@ const getTranslatedRecommendationField = (
 const getTranslatedText = (
   value: string | undefined,
   translated: string | undefined,
-  language?: string,
+  language?: Language,
 ) => {
-  if (language !== 'fr') return value ?? '';
+  if (!language) return value ?? '';
   return translated ?? value ?? '';
 };
 
@@ -114,16 +114,6 @@ export const ReportPage: React.FC = () => {
   }, [isLight]);
 
   const originalAiSummaryRef = useRef<string | null>(null);
-
-  const getCachedTranslation = (reportData: ReportData | null) => {
-    if (!reportData) return null;
-
-    const cached = reportData.ai_summary_fr ?? (reportData.translations?.fr?.ai_summary as string | undefined) ?? null;
-    if (!cached) return null;
-
-    const original = reportData.ai_summary ?? '';
-    return cached === original ? null : cached;
-  };
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -162,52 +152,34 @@ export const ReportPage: React.FC = () => {
 
     const applyTranslation = async () => {
       try {
-        if (language === 'fr') {
-          const cached = getCachedTranslation(report);
-          if (cached) {
-            setReport((r) => {
-              if (!r) return r;
-              if (r.ai_summary === String(cached)) return r;
-              return { ...r, ai_summary: String(cached) };
-            });
-            return;
-          }
+        const shouldTranslate = report.language && language !== report.language;
 
-          const res = await reportService.translateReport(reportId, 'fr');
-          const translated = res?.ai_summary_fr || res?.ai_summary || '';
-          const translatedSectionData = res?.translations?.fr ?? {};
+        if (shouldTranslate) {
+          const res = await reportService.translateReport(reportId, language);
+          const translated = res?.ai_summary || res?.ai_summary_fr || '';
+          const translatedSectionData = res?.translations?.[language] ?? {};
 
           if (translated) {
             setReport((r) => {
               if (!r) return r;
               const nextTranslations = {
                 ...r.translations,
-                fr: {
-                  ...((r.translations?.fr as Record<string, unknown>) || {}),
+                [language]: {
+                  ...((r.translations?.[language] as Record<string, unknown>) || {}),
                   ...translatedSectionData,
                   ai_summary: translated,
                 },
               };
 
-              if (r.ai_summary === String(translated) && r.ai_summary_fr === String(translated)) {
-                return { ...r, translations: nextTranslations };
-              }
-
               return {
                 ...r,
                 ai_summary: String(translated),
-                ai_summary_fr: String(translated),
                 translations: nextTranslations,
               };
             });
           }
-        } else {
-          setReport((r) => {
-            if (!r) return r;
-            const original = originalAiSummaryRef.current ?? (r.ai_summary as string);
-            if (r.ai_summary === original) return r;
-            return { ...r, ai_summary: original };
-          });
+        } else if (language === report.language) {
+          setReport((r) => r ? { ...r, ai_summary: report.ai_summary } : r);
         }
       } catch (err) {
         console.error('Erreur traduction du rapport:', err);
@@ -218,9 +190,9 @@ export const ReportPage: React.FC = () => {
   }, [language, reportId, report]);
 
   const getTranslatedMigrationRecommendation = useCallback(() => {
-    if (language !== 'fr') return report?.migration_recommendation;
-    return report?.translations?.fr?.migration_recommendation ?? report?.migration_recommendation;
-  }, [language, report?.migration_recommendation, report?.translations?.fr?.migration_recommendation]);
+    const activeTranslation = language ? report?.translations?.[language] : undefined;
+    return activeTranslation?.migration_recommendation ?? report?.migration_recommendation;
+  }, [language, report?.migration_recommendation, report?.translations]);
 
   const metrics = useMemo(() => {
     const statistics = report?.statistics;
@@ -259,26 +231,26 @@ export const ReportPage: React.FC = () => {
     };
   }, [metrics.blockers, metrics.incompatible, metrics.major, t]);
 
-  const detailEntries = useMemo(
-    () => normalizeDetails(language === 'fr' ? report?.translations?.fr?.details ?? report?.details : report?.details),
-    [report?.details, report?.translations?.fr?.details, language],
-  );
+  const detailEntries = useMemo(() => {
+    const activeTranslation = language ? report?.translations?.[language] : undefined;
+    return normalizeDetails(activeTranslation?.details ?? report?.details);
+  }, [report?.details, report?.translations, language]);
   const componentFindings = useMemo(() => report?.sections?.components ?? [], [report?.sections?.components]);
   const prioritizedRecommendations = useMemo(
     () => report?.sections?.recommendations ?? [],
     [report?.sections?.recommendations],
   );
-  const sanitizedAiSummary = useMemo(
-    () => sanitizeReportText(getTranslatedText(report?.ai_summary, report?.translations?.fr?.ai_summary, language), report),
-    [report, language],
-  );
+  const sanitizedAiSummary = useMemo(() => sanitizeReportText(
+    getTranslatedText(report?.ai_summary, language ? report?.translations?.[language]?.ai_summary : undefined, language),
+    report,
+  ), [report, language]);
   const translatedAiInsights = useMemo(
-    () => getTranslatedText(report?.ai_insights, report?.translations?.fr?.ai_insights, language),
-    [report?.ai_insights, report?.translations?.fr?.ai_insights, language],
+    () => getTranslatedText(report?.ai_insights, language ? report?.translations?.[language]?.ai_insights : undefined, language),
+    [report?.ai_insights, report?.translations, language],
   );
   const translatedAiError = useMemo(
-    () => getTranslatedText(report?.ai_error, report?.translations?.fr?.ai_error, language),
-    [report?.ai_error, report?.translations?.fr?.ai_error, language],
+    () => getTranslatedText(report?.ai_error, language ? report?.translations?.[language]?.ai_error : undefined, language),
+    [report?.ai_error, report?.translations, language],
   );
 
   const reportDetails = useMemo(() => {

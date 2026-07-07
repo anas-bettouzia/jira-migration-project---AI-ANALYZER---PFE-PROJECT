@@ -1,4 +1,5 @@
 import { api } from '../core/api';
+import { type Language } from '../i18n';
 
 export interface ReportData {
   report_id: string;
@@ -31,32 +32,30 @@ export interface ReportData {
   ai_used?: boolean;
   ai_error?: string;
   ai_model?: string;
-  translations?: {
-    fr?: {
-      ai_summary?: string;
-      migration_recommendation?: string;
-      ai_insights?: string;
-      ai_error?: string;
-      details?: unknown;
-      sections?: {
-        components?: Array<{
-          component_id?: string;
-          reasoning_summary?: string;
-          recommended_action?: string;
-        }>;
-        blockers?: Array<{
-          component_id?: string;
-          reasoning_summary?: string;
-          recommended_action?: string;
-        }>;
-        recommendations?: Array<{
-          component_id?: string;
-          action?: string;
-          reason?: string;
-        }>;
-      };
+  translations?: Partial<Record<Language, {
+    ai_summary?: string;
+    migration_recommendation?: string;
+    ai_insights?: string;
+    ai_error?: string;
+    details?: unknown;
+    sections?: {
+      components?: Array<{
+        component_id?: string;
+        reasoning_summary?: string;
+        recommended_action?: string;
+      }>;
+      blockers?: Array<{
+        component_id?: string;
+        reasoning_summary?: string;
+        recommended_action?: string;
+      }>;
+      recommendations?: Array<{
+        component_id?: string;
+        action?: string;
+        reason?: string;
+      }>;
     };
-  };
+  }>>;
   analysis_id?: string;
   matrix_id?: string;
   [key: string]: unknown; // Accepter d'autres champs
