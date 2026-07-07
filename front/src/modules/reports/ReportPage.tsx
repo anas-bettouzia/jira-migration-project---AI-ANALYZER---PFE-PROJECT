@@ -198,7 +198,12 @@ export const ReportPage: React.FC = () => {
             });
           }
         } else if (language === report.language) {
-          setReport((r) => r ? { ...r, ai_summary: report.ai_summary } : r);
+          setReport((r) => {
+            if (!r) return r;
+            // Only update if ai_summary actually changed to avoid infinite re-render loops
+            if (r.ai_summary === report.ai_summary) return r;
+            return { ...r, ai_summary: report.ai_summary };
+          });
         }
       } catch (err) {
         console.error('Erreur traduction du rapport:', err);
