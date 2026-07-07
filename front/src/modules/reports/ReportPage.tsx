@@ -159,7 +159,10 @@ export const ReportPage: React.FC = () => {
           const translated = res?.ai_summary || res?.ai_summary_fr || '';
           const translatedSectionData = res?.translations?.[language] ?? {};
 
-          if (translated) {
+          // Update state if either the summary or sections were translated
+          const hasTranslation = Boolean(translated || Object.keys(translatedSectionData).length > 0);
+
+          if (hasTranslation) {
             setReport((r) => {
               if (!r) return r;
               const nextTranslations = {
@@ -167,13 +170,13 @@ export const ReportPage: React.FC = () => {
                 [language]: {
                   ...((r.translations?.[language] as Record<string, unknown>) || {}),
                   ...translatedSectionData,
-                  ai_summary: translated,
+                  ...(translated && { ai_summary: translated }),
                 },
               };
 
               return {
                 ...r,
-                ai_summary: String(translated),
+                ...(translated && { ai_summary: String(translated) }),
                 translations: nextTranslations,
               };
             });
