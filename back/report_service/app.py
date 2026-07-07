@@ -271,10 +271,12 @@ def translate_report(report_id):
             }
 
             prompt = (
-                "Translate the following structured report fields into English. "
-                "Preserve component names, API identifiers, code snippets, and technical terms "
-                "in English. Keep a professional consulting tone. Return exactly one valid "
-                "JSON object with the same structure and no extra text.\n\n"
+                "Translate ALL the following structured report fields into English. "
+                "Translate reasoning_summary, recommended_action, action, reason, and other "
+                "text fields to English. Keep component names, API identifiers, code snippets, "
+                "and technical terms in English. Keep a professional consulting tone. "
+                "Ensure the JSON structure is identical with translated values. "
+                "Return ONLY a valid JSON object with no extra text.\n\n"
                 "Input JSON:\n"
                 f"{json.dumps(source_payload, ensure_ascii=False, indent=2)}"
             )
@@ -398,10 +400,12 @@ def translate_report(report_id):
 
         # Build a prompt that asks Gemini to translate the structured content.
         prompt = (
-            "Translate the following structured report fields into French. "
-            "Preserve component names, API identifiers, code snippets and technical terms "
-            "in English. Keep a professional consulting tone. "
-            "Return exactly one valid JSON object with the same structure and no extra text.\n\n"
+            "Translate ALL the following structured report fields into French. "
+            "Translate reasoning_summary, recommended_action, action, reason, and other "
+            "text fields to French. Keep component names, API identifiers, code snippets, "
+            "and technical terms in English. Keep a professional consulting tone. "
+            "Ensure the JSON structure is identical with translated values. "
+            "Return ONLY a valid JSON object with no extra text.\n\n"
             "Input JSON:\n"
             f"{json.dumps(source_payload, ensure_ascii=False, indent=2)}"
         )

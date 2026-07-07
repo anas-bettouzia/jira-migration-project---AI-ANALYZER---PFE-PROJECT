@@ -152,7 +152,10 @@ export const ReportPage: React.FC = () => {
 
     const applyTranslation = async () => {
       try {
-        const shouldTranslate = report.language && language !== report.language;
+        // Translate if report language differs from UI language
+        // Default to 'en' if report.language is not set
+        const reportLang = report.language || 'en';
+        const shouldTranslate = language !== reportLang;
 
         if (shouldTranslate) {
           const res = await reportService.translateReport(reportId, language);
@@ -807,15 +810,35 @@ const AISummaryRenderer = ({ content }: { content: string }) => {
     const line = lines[i];
     const trimmedLine = line.trim();
 
-    if (trimmedLine.startsWith('###')) {
-      elements.push(
-        <h3 key={`h3-${i}`} className="mt-5 text-lg font-black text-[#111b3f] dark:text-white">
-          {trimmedLine.replace(/^#+\s/, '')}
-        </h3>,
-      );
+    // Handle markdown headings: #, ##, ###, ####, etc.
+    if (trimmedLine.startsWith('#')) {
+      const headingMatch = trimmedLine.match(/^(#+)\s(.*)$/);
+      if (headingMatch) {
+        const level = Math.min(headingMatch[1].length, 6); // Support h1-h6
+        const text = headingMatch[2];
+        const headingClass = {
+          1: 'text-2xl font-black', // h1
+          2: 'text-xl font-black',  // h2 - "##"
+          3: 'text-lg font-black',  // h3 - "###"
+          4: 'text-base font-black', // h4
+          5: 'text-sm font-black',   // h5
+          6: 'text-xs font-black',   // h6
+        }[level] || 'text-lg font-black';
+
+        elements.push(
+          React.createElement(
+            `h${level}` as any,
+            {
+              key: `h${level}-${i}`,
+              className: `mt-5 ${headingClass} text-[#111b3f] dark:text-white`,
+            },
+            text,
+          ),
+        );
+      }
     } else if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**')) {
       elements.push(
-        <h2 key={`h2-${i}`} className="text-xl font-black text-[#111b3f] dark:text-white">
+        <h2 key={`h2-bold-${i}`} className="mt-5 text-xl font-black text-[#111b3f] dark:text-white">
           {trimmedLine.replace(/\*\*/g, '')}
         </h2>,
       );
