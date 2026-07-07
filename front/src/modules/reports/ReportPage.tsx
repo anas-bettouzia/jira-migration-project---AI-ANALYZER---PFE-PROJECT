@@ -860,7 +860,7 @@ const AISummaryRenderer = ({ content }: { content: string }) => {
       while (i < lines.length && lines[i].trim().startsWith('*')) {
         listItems.push(
           <li key={`li-${i}`} className="ml-4 text-sm leading-7 text-[#64708d] dark:text-white/68">
-            {lines[i].replace(/^\*\s/, '').replace(/\*\*/g, '')}
+            {lines[i].replace(/^(\*\s)+/, '').replace(/\*\*/g, '')}
           </li>,
         );
         i++;
