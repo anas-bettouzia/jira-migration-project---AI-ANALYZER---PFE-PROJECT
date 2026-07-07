@@ -114,6 +114,7 @@ export const ReportPage: React.FC = () => {
   }, [isLight]);
 
   const originalAiSummaryRef = useRef<string | null>(null);
+  const translationAttemptedRef = useRef<Partial<Record<Language, boolean>>>({});
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -152,17 +153,29 @@ export const ReportPage: React.FC = () => {
 
     const applyTranslation = async () => {
       try {
-        // Translate if report language differs from UI language
-        // Default to 'en' if report.language is not set
         const reportLang = report.language || 'en';
-        const shouldTranslate = language !== reportLang;
+        const activeTranslation = language ? report.translations?.[language] : undefined;
+        const hasTranslationSections = Boolean(
+          activeTranslation?.sections?.components?.length ||
+          activeTranslation?.sections?.recommendations?.length ||
+          activeTranslation?.sections?.blockers?.length,
+        );
+        const hasStructuredSections = Boolean(
+          report.sections?.components?.length ||
+          report.sections?.recommendations?.length ||
+          report.sections?.blockers?.length,
+        );
 
-        if (shouldTranslate) {
+        const shouldTranslate =
+          language !== reportLang ||
+          (language === reportLang && hasStructuredSections && !hasTranslationSections);
+
+        if (shouldTranslate && !translationAttemptedRef.current[language]) {
+          translationAttemptedRef.current[language] = true;
           const res = await reportService.translateReport(reportId, language);
           const translated = res?.ai_summary || res?.ai_summary_fr || '';
           const translatedSectionData = res?.translations?.[language] ?? {};
 
-          // Update state if either the summary or sections were translated
           const hasTranslation = Boolean(translated || Object.keys(translatedSectionData).length > 0);
 
           if (hasTranslation) {

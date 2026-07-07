@@ -270,12 +270,35 @@ def translate_report(report_id):
                 "sections": sections_val,
             }
 
+            def _preserve_component_ids(source_sections: dict, translated_sections: dict) -> dict:
+                if not isinstance(translated_sections, dict):
+                    return source_sections
+                result_sections = {}
+                for section_name in ("components", "blockers", "recommendations"):
+                    source_items = source_sections.get(section_name, [])
+                    translated_items = translated_sections.get(section_name, [])
+                    merged_items = []
+                    for index, item in enumerate(translated_items or []):
+                        if not isinstance(item, dict):
+                            merged_items.append(item)
+                            continue
+                        source_item = source_items[index] if index < len(source_items) else {}
+                        merged_items.append({
+                            **item,
+                            "component_id": (
+                                source_item.get("component_id", item.get("component_id", ""))
+                            ),
+                        })
+                    result_sections[section_name] = merged_items
+                return result_sections
+
             prompt = (
                 "Translate ALL the following structured report fields into English. "
                 "Translate reasoning_summary, recommended_action, action, reason, and other "
                 "text fields to English. Keep component names, API identifiers, code snippets, "
                 "and technical terms in English. Keep a professional consulting tone. "
-                "Ensure the JSON structure is identical with translated values. "
+                "Ensure the JSON structure is identical with translated values, and preserve "
+                "component_id values exactly. "
                 "Return ONLY a valid JSON object with no extra text.\n\n"
                 "Input JSON:\n"
                 f"{json.dumps(source_payload, ensure_ascii=False, indent=2)}"
@@ -306,9 +329,9 @@ def translate_report(report_id):
                 "details",
                 source_payload["details"],
             )
-            translated_sections = translated_data.get(
-                "sections",
+            translated_sections = _preserve_component_ids(
                 source_payload["sections"],
+                translated_data.get("sections", source_payload["sections"]),
             )
 
             response_body = {
@@ -317,7 +340,7 @@ def translate_report(report_id):
                 "ai_insights": translated_ai_insights,
                 "ai_error": translated_ai_error,
                 "details": translated_details,
-                "translations": {"en": translated_data},
+                "translations": {"en": {**translated_data, "sections": translated_sections}},
                 "used_ai": result.get("used_ai", False),
                 "error": result.get("error", ""),
             }
@@ -398,6 +421,28 @@ def translate_report(report_id):
                 report_id,
             )
 
+        def _preserve_component_ids(source_sections: dict, translated_sections: dict) -> dict:
+            if not isinstance(translated_sections, dict):
+                return source_sections
+            result_sections = {}
+            for section_name in ("components", "blockers", "recommendations"):
+                source_items = source_sections.get(section_name, [])
+                translated_items = translated_sections.get(section_name, [])
+                merged_items = []
+                for index, item in enumerate(translated_items or []):
+                    if not isinstance(item, dict):
+                        merged_items.append(item)
+                        continue
+                    source_item = source_items[index] if index < len(source_items) else {}
+                    merged_items.append({
+                        **item,
+                        "component_id": (
+                            source_item.get("component_id", item.get("component_id", ""))
+                        ),
+                    })
+                result_sections[section_name] = merged_items
+            return result_sections
+
         # Build a prompt that asks Gemini to translate the structured content.
         prompt = (
             "Translate ALL the following structured report fields into French. "
@@ -405,6 +450,7 @@ def translate_report(report_id):
             "text fields to French. Keep component names, API identifiers, code snippets, "
             "and technical terms in English. Keep a professional consulting tone. "
             "Ensure the JSON structure is identical with translated values. "
+            "Preserve component_id values exactly. "
             "Return ONLY a valid JSON object with no extra text.\n\n"
             "Input JSON:\n"
             f"{json.dumps(source_payload, ensure_ascii=False, indent=2)}"
@@ -429,7 +475,10 @@ def translate_report(report_id):
         translated_ai_insights = translated_data.get("ai_insights", source_payload["ai_insights"])
         translated_ai_error = translated_data.get("ai_error", source_payload["ai_error"])
         translated_details = translated_data.get("details", source_payload["details"])
-        translated_sections = translated_data.get("sections", source_payload["sections"])
+        translated_sections = _preserve_component_ids(
+            source_payload["sections"],
+            translated_data.get("sections", source_payload["sections"]),
+        )
 
         response_body = {
             "ai_summary_fr": translated_ai_summary,
@@ -437,7 +486,7 @@ def translate_report(report_id):
             "ai_insights_fr": translated_ai_insights,
             "ai_error_fr": translated_ai_error,
             "details_fr": translated_details,
-            "translations": {"fr": translated_data},
+            "translations": {"fr": {**translated_data, "sections": translated_sections}},
             "used_ai": result.get("used_ai", False),
             "error": result.get("error", ""),
         }
