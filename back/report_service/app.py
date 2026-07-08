@@ -176,6 +176,9 @@ def export_pdf(report_id):
         return jsonify({"error": f"Report '{report_id}' not found."}), 404
 
     report.pop("_id", None)
+    requested_language = request.args.get("language")
+    if requested_language in ("en", "fr"):
+        report["language"] = requested_language
     file_path = export_report_to_pdf(report)
     return send_file(file_path, as_attachment=True)
 

@@ -4,18 +4,21 @@ PDF export utilities for Report Service.
 Generates a branded PDF migration report from a structured report dict.
 """
 
+# pylint: disable=too-many-lines
+
 import re
 from datetime import datetime
 from pathlib import Path
 
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import (
     Image,
     KeepTogether,
+    LongTable,
     Paragraph,
     SimpleDocTemplate,
     Spacer,
@@ -39,6 +42,119 @@ SOFT_BLUE = colors.HexColor("#EEF5FF")
 SOFT_GREEN = colors.HexColor("#EAF8F1")
 SOFT_RED = colors.HexColor("#FFF0F0")
 SOFT_ORANGE = colors.HexColor("#FFF7E6")
+SOFT_SLATE = colors.HexColor("#F3F6FB")
+
+PRIORITY_ORDER = {
+    "BLOCKER": 0,
+    "CRITICAL": 0,
+    "MAJOR": 1,
+    "MINOR": 2,
+    "INFO": 3,
+}
+
+PDF_TEXT = {
+    "en": {
+        "generated": "Generated",
+        "source": "Source",
+        "migration_package": "Migration package",
+        "title": "Cloud readiness report",
+        "migration_score": "Migration score",
+        "critical_blockers": "Critical blockers",
+        "components": "Components",
+        "compatible": "Compatible",
+        "incompatible": "Incompatible",
+        "top_priorities": "Top priorities",
+        "decision_blockers": "Migration is not recommended until these blockers are resolved.",
+        "priority": "Priority",
+        "component": "Component",
+        "status": "Status",
+        "short_action": "Short action",
+        "executive_summary": "Executive summary",
+        "risk_overview": "Risk overview",
+        "risk_category": "Risk category",
+        "count": "Count",
+        "interpretation": "Interpretation",
+        "blockers": "Blockers",
+        "major": "Major",
+        "minor": "Minor",
+        "info": "Info",
+        "partial": "Partial",
+        "blockers_interpretation": "Must be resolved before migration",
+        "major_interpretation": "Requires technical review",
+        "minor_interpretation": "Low impact improvement",
+        "info_interpretation": "Informational finding",
+        "compatible_interpretation": "Ready or low risk",
+        "partial_interpretation": "Needs adaptation",
+        "incompatible_interpretation": "Not directly Cloud ready",
+        "no_blockers": "No critical blockers detected.",
+        "plugin": "Plugin",
+        "risk": "Risk",
+        "recommended_action": "Recommended action",
+        "component_assessment": "Component assessment",
+        "type": "Type",
+        "prioritized_recommendations": "Prioritized recommendations",
+        "no_recommendations": "No prioritized recommendations were generated.",
+        "continued_text": (
+            "Report text continues in the detailed analysis "
+            "available in JSON export."
+        ),
+        "footer_source": "Source",
+        "footer_report": "Report",
+        "page": "Page",
+    },
+    "fr": {
+        "generated": "Généré le",
+        "source": "Source",
+        "migration_package": "Package de migration",
+        "title": "Rapport de préparation Cloud",
+        "migration_score": "Score de migration",
+        "critical_blockers": "Blocages critiques",
+        "components": "Composants",
+        "compatible": "Compatibles",
+        "incompatible": "Incompatibles",
+        "top_priorities": "Priorités principales",
+        "decision_blockers": (
+            "La migration n'est pas recommandée tant que ces blocages "
+            "ne sont pas résolus."
+        ),
+        "priority": "Priorité",
+        "component": "Composant",
+        "status": "Statut",
+        "short_action": "Action courte",
+        "executive_summary": "Résumé exécutif",
+        "risk_overview": "Vue d'ensemble des risques",
+        "risk_category": "Catégorie de risque",
+        "count": "Nombre",
+        "interpretation": "Interprétation",
+        "blockers": "Blocages",
+        "major": "Majeurs",
+        "minor": "Mineurs",
+        "info": "Info",
+        "partial": "Partiels",
+        "blockers_interpretation": "À résoudre avant la migration",
+        "major_interpretation": "Nécessite une revue technique",
+        "minor_interpretation": "Amélioration à faible impact",
+        "info_interpretation": "Constat informatif",
+        "compatible_interpretation": "Prêt ou faible risque",
+        "partial_interpretation": "Nécessite une adaptation",
+        "incompatible_interpretation": "Pas directement prêt pour le Cloud",
+        "no_blockers": "Aucun blocage critique détecté.",
+        "plugin": "Plugin",
+        "risk": "Risque",
+        "recommended_action": "Action recommandée",
+        "component_assessment": "Évaluation des composants",
+        "type": "Type",
+        "prioritized_recommendations": "Recommandations prioritaires",
+        "no_recommendations": "Aucune recommandation prioritaire n'a été générée.",
+        "continued_text": (
+            "Le texte du rapport continue dans l'analyse détaillée "
+            "disponible dans l'export JSON."
+        ),
+        "footer_source": "Source",
+        "footer_report": "Rapport",
+        "page": "Page",
+    },
+}
 
 
 def export_report_to_pdf(
@@ -60,17 +176,22 @@ def export_report_to_pdf(
         topMargin=18 * mm,
         bottomMargin=18 * mm,
     )
+    language = _pdf_language(report)
+    doc.report_id = report_id
+    doc.source_filename = report.get("source_filename") or _pdf_text(language, "migration_package")
+    doc.language = language
 
     styles = _build_styles()
     story = []
 
-    _add_cover_header(story, report, styles)
-    _add_summary_cards(story, report, styles)
-    _add_executive_summary(story, report, styles)
-    _add_risk_overview(story, report, styles)
-    _add_blockers(story, report, styles)
-    _add_components(story, report, styles)
-    _add_recommendations(story, report, styles)
+    _add_cover_header(story, report, styles, language)
+    _add_summary_cards(story, report, styles, language)
+    _add_top_priorities(story, report, styles, language)
+    _add_executive_summary(story, report, styles, language)
+    _add_risk_overview(story, report, styles, language)
+    _add_blockers(story, report, styles, language)
+    _add_components(story, report, styles, language)
+    _add_recommendations(story, report, styles, language)
 
     doc.build(story, onFirstPage=_draw_page_frame, onLaterPages=_draw_page_frame)
     return str(file_path)
@@ -103,7 +224,8 @@ def _build_styles():
         parent=styles["BodyText"],
         textColor=TEXT_MUTED,
         fontSize=10,
-        leading=15,
+        leading=16,
+        spaceBefore=4,
     ))
     styles.add(ParagraphStyle(
         name="SectionTitle",
@@ -141,6 +263,44 @@ def _build_styles():
         leading=10,
         alignment=TA_RIGHT,
     ))
+    styles.add(ParagraphStyle(
+        name="TableHeader",
+        parent=styles["BodyText"],
+        textColor=colors.white,
+        fontName="Helvetica-Bold",
+        fontSize=6.8,
+        leading=8.2,
+        alignment=TA_LEFT,
+        wordWrap="CJK",
+        splitLongWords=True,
+    ))
+    styles.add(ParagraphStyle(
+        name="TableCell",
+        parent=styles["BodyText"],
+        textColor=colors.HexColor("#17233F"),
+        fontName="Helvetica",
+        fontSize=6.6,
+        leading=8.4,
+        alignment=TA_LEFT,
+        wordWrap="CJK",
+        splitLongWords=True,
+    ))
+    styles.add(ParagraphStyle(
+        name="TableCellStrong",
+        parent=styles["TableCell"],
+        fontName="Helvetica-Bold",
+    ))
+    styles.add(ParagraphStyle(
+        name="PriorityBadge",
+        parent=styles["BodyText"],
+        textColor=colors.white,
+        fontName="Helvetica-Bold",
+        fontSize=6.8,
+        leading=8.4,
+        alignment=TA_CENTER,
+        wordWrap="CJK",
+        splitLongWords=True,
+    ))
     styles["BodyText"].fontSize = 9
     styles["BodyText"].leading = 13
     styles["BodyText"].textColor = colors.HexColor("#26324D")
@@ -149,14 +309,15 @@ def _build_styles():
     return styles
 
 
-def _add_cover_header(story: list, report: dict, styles) -> None:
+def _add_cover_header(story: list, report: dict, styles, language: str) -> None:
     """Add branded report heading with logo and metadata."""
     logo = _logo_flowable(width=44 * mm)
     generated_at = _format_date(report.get("generated_at", ""))
-    source_filename = report.get("source_filename") or "Migration package"
+    source_filename = report.get("source_filename") or _pdf_text(language, "migration_package")
 
     meta = Paragraph(
-        f"<b>Generated:</b> {generated_at}<br/><b>Source:</b> {_clean_inline(source_filename)}",
+        f"<b>{_pdf_text(language, 'generated')}:</b> {generated_at}<br/>"
+        f"<b>{_pdf_text(language, 'source')}:</b> {_clean_inline(source_filename)}",
         styles["SmallRight"],
     )
     header_cells = [[logo if logo else Paragraph("Spectrum Groupe", styles["Eyebrow"]), meta]]
@@ -168,14 +329,13 @@ def _add_cover_header(story: list, report: dict, styles) -> None:
     story.append(header)
 
     story.append(_accent_bar())
-    story.append(Spacer(1, 12))
-    story.append(Paragraph("AI-generated migration assessment", styles["Eyebrow"]))
-    story.append(Paragraph("Cloud readiness report", styles["ReportTitle"]))
-    story.append(Paragraph(_clean_inline(report.get("summary", "")), styles["Subtitle"]))
+    story.append(Spacer(1, 8))
+    story.append(Paragraph(_pdf_text(language, "title"), styles["ReportTitle"]))
+    story.append(Paragraph(_clean_inline(_cover_summary(report, language)), styles["Subtitle"]))
     story.append(Spacer(1, 14))
 
 
-def _add_summary_cards(story: list, report: dict, styles) -> None:
+def _add_summary_cards(story: list, report: dict, styles, language: str) -> None:
     """Add score and status cards."""
     risk = report.get("sections", {}).get("risk_overview", {})
     score = report.get("migration_score", 0)
@@ -185,11 +345,36 @@ def _add_summary_cards(story: list, report: dict, styles) -> None:
     incompatible = risk.get("incompatible", 0)
 
     rows = [[
-        _metric_card("Migration score", f"{score}/100", styles, SOFT_BLUE),
-        _metric_card("Critical blockers", str(blockers), styles, SOFT_RED if blockers else SOFT_GREEN),
-        _metric_card("Components", str(components), styles, SOFT_BLUE),
-        _metric_card("Compatible", str(compatible), styles, SOFT_GREEN),
-        _metric_card("Incompatible", str(incompatible), styles, SOFT_ORANGE if incompatible else SOFT_GREEN),
+        _metric_card(
+            _pdf_text(language, "migration_score"),
+            f"{score}/100",
+            styles,
+            SOFT_BLUE,
+        ),
+        _metric_card(
+            _pdf_text(language, "critical_blockers"),
+            str(blockers),
+            styles,
+            SOFT_RED if blockers else SOFT_GREEN,
+        ),
+        _metric_card(
+            _pdf_text(language, "components"),
+            str(components),
+            styles,
+            SOFT_BLUE,
+        ),
+        _metric_card(
+            _pdf_text(language, "compatible"),
+            str(compatible),
+            styles,
+            SOFT_GREEN,
+        ),
+        _metric_card(
+            _pdf_text(language, "incompatible"),
+            str(incompatible),
+            styles,
+            SOFT_ORANGE if incompatible else SOFT_GREEN,
+        ),
     ]]
     table = Table(rows, colWidths=[32 * mm] * 5)
     table.setStyle(TableStyle([
@@ -201,27 +386,125 @@ def _add_summary_cards(story: list, report: dict, styles) -> None:
     story.append(Spacer(1, 14))
 
 
-def _add_executive_summary(story: list, report: dict, styles) -> None:
+def _add_top_priorities(story: list, report: dict, styles, language: str) -> None:
+    """Add the most important migration decisions before detailed tables."""
+    blockers = _top_blockers(report, limit=5)
+    if not blockers:
+        return
+
+    story.append(Paragraph(_pdf_text(language, "top_priorities"), styles["SectionTitle"]))
+    story.append(_notice_box(
+        _pdf_text(language, "decision_blockers"),
+        styles,
+        SOFT_RED,
+        BRAND_RED,
+    ))
+    story.append(Spacer(1, 6))
+
+    rows = [_table_row([
+        _pdf_text(language, "priority"),
+        _pdf_text(language, "component"),
+        _pdf_text(language, "status"),
+        _pdf_text(language, "short_action"),
+    ], styles, header=True)]
+    for blocker in blockers:
+        priority = _component_priority(blocker)
+        rows.append([
+            _priority_badge(
+                _display_finding_value(priority, language),
+                styles,
+            ),
+            _table_cell(_component_label(blocker), styles, strong=True),
+            _table_cell(
+                _display_finding_value(
+                    _component_status(blocker),
+                    language,
+                ),
+                styles,
+                strong=True,
+            ),
+            _table_cell(
+                _short_text(
+                    _component_action(blocker, report, "blockers"),
+                    120,
+                ),
+                styles,
+            ),
+        ])
+
+    table = Table(rows, colWidths=[22 * mm, 42 * mm, 30 * mm, 66 * mm], repeatRows=1)
+    style_commands = _table_style(header_color=BRAND_RED).getCommands()
+    for row_index, blocker in enumerate(blockers, start=1):
+        style_commands.extend([
+            (
+                "BACKGROUND",
+                (0, row_index),
+                (0, row_index),
+                _priority_color(_component_priority(blocker)),
+            ),
+            ("VALIGN", (0, row_index), (0, row_index), "MIDDLE"),
+        ])
+    table.setStyle(TableStyle(style_commands))
+    story.append(table)
+    story.append(Spacer(1, 10))
+
+
+def _add_executive_summary(story: list, report: dict, styles, language: str) -> None:
     """Add executive summary generated by AI or deterministic fallback."""
-    story.append(Paragraph("Executive summary", styles["SectionTitle"]))
-    summary_text = report.get("ai_summary") or report.get("summary", "")
-    _add_markdown_text(story, summary_text, styles)
+    story.append(Paragraph(_pdf_text(language, "executive_summary"), styles["SectionTitle"]))
+    summary_text = (
+        _translated_report_field(report, "ai_summary", language)
+        or report.get("summary", "")
+    )
+    _add_markdown_text(story, summary_text, styles, language)
     story.append(Spacer(1, 8))
 
 
-def _add_risk_overview(story: list, report: dict, styles) -> None:
+def _add_risk_overview(story: list, report: dict, styles, language: str) -> None:
     """Add risk overview table."""
-    story.append(Paragraph("Risk overview", styles["SectionTitle"]))
+    story.append(Paragraph(_pdf_text(language, "risk_overview"), styles["SectionTitle"]))
     risk = report.get("sections", {}).get("risk_overview", {})
     rows = [
-        ["Risk category", "Count", "Interpretation"],
-        ["Blockers", risk.get("blockers", 0), "Must be resolved before migration"],
-        ["Major", risk.get("major", 0), "Requires technical review"],
-        ["Minor", risk.get("minor", 0), "Low impact improvement"],
-        ["Info", risk.get("info", 0), "Informational finding"],
-        ["Compatible", risk.get("compatible", 0), "Ready or low risk"],
-        ["Partial", risk.get("partial", 0), "Needs adaptation"],
-        ["Incompatible", risk.get("incompatible", 0), "Not directly Cloud ready"],
+        [
+            _pdf_text(language, "risk_category"),
+            _pdf_text(language, "count"),
+            _pdf_text(language, "interpretation"),
+        ],
+        [
+            _pdf_text(language, "blockers"),
+            risk.get("blockers", 0),
+            _pdf_text(language, "blockers_interpretation"),
+        ],
+        [
+            _pdf_text(language, "major"),
+            risk.get("major", 0),
+            _pdf_text(language, "major_interpretation"),
+        ],
+        [
+            _pdf_text(language, "minor"),
+            risk.get("minor", 0),
+            _pdf_text(language, "minor_interpretation"),
+        ],
+        [
+            _pdf_text(language, "info"),
+            risk.get("info", 0),
+            _pdf_text(language, "info_interpretation"),
+        ],
+        [
+            _pdf_text(language, "compatible"),
+            risk.get("compatible", 0),
+            _pdf_text(language, "compatible_interpretation"),
+        ],
+        [
+            _pdf_text(language, "partial"),
+            risk.get("partial", 0),
+            _pdf_text(language, "partial_interpretation"),
+        ],
+        [
+            _pdf_text(language, "incompatible"),
+            risk.get("incompatible", 0),
+            _pdf_text(language, "incompatible_interpretation"),
+        ],
     ]
     table = Table(rows, colWidths=[44 * mm, 22 * mm, 94 * mm], repeatRows=1)
     table.setStyle(_table_style(header_color=BRAND_NAVY))
@@ -229,81 +512,163 @@ def _add_risk_overview(story: list, report: dict, styles) -> None:
     story.append(Spacer(1, 10))
 
 
-def _add_blockers(story: list, report: dict, styles) -> None:
+def _add_blockers(story: list, report: dict, styles, language: str) -> None:
     """Add blocker details."""
     blockers = report.get("sections", {}).get("blockers", [])
-    story.append(Paragraph("Critical blockers", styles["SectionTitle"]))
+    story.append(Paragraph(_pdf_text(language, "critical_blockers"), styles["SectionTitle"]))
 
     if not blockers:
-        story.append(_notice_box("No critical blockers detected.", styles, SOFT_GREEN, BRAND_GREEN))
+        story.append(
+            _notice_box(
+                _pdf_text(language, "no_blockers"),
+                styles,
+                SOFT_GREEN,
+                BRAND_GREEN,
+            )
+        )
         story.append(Spacer(1, 8))
         return
 
-    rows = [["Component", "Plugin", "Risk", "Status", "Recommended action"]]
-    for blocker in blockers[:12]:
+    rows = [_table_row([
+        _pdf_text(language, "component"),
+        _pdf_text(language, "plugin"),
+        _pdf_text(language, "risk"),
+        _pdf_text(language, "status"),
+        _pdf_text(language, "recommended_action"),
+    ], styles, header=True)]
+    for blocker in blockers:
         rows.append([
-            _clean_inline(_component_label(blocker)),
-            _clean_inline(blocker.get("plugin", "-")),
-            _clean_inline(blocker.get("risk_level", "-")),
-            _clean_inline(blocker.get("overall_status", "-")),
-            _clean_inline(blocker.get("recommended_action", "")),
+            _table_cell(_component_label(blocker), styles),
+            _table_cell(blocker.get("plugin", "-"), styles),
+            _table_cell(
+                _display_finding_value(_component_priority(blocker), language),
+                styles,
+                strong=True,
+            ),
+            _table_cell(
+                _display_finding_value(_component_status(blocker), language),
+                styles,
+                strong=True,
+            ),
+            _table_cell(
+                _short_text(
+                    _component_action(blocker, report, "blockers"),
+                    95,
+                ),
+                styles,
+            ),
         ])
 
-    table = Table(rows, colWidths=[34 * mm, 28 * mm, 22 * mm, 28 * mm, 48 * mm], repeatRows=1)
+    table = LongTable(rows, colWidths=[34 * mm, 20 * mm, 18 * mm, 27 * mm, 71 * mm], repeatRows=1)
     table.setStyle(_table_style(header_color=BRAND_RED))
     story.append(table)
-    if len(blockers) > 12:
-        story.append(Paragraph(f"Only the first 12 blockers are shown out of {len(blockers)}.", styles["Subtitle"]))
     story.append(Spacer(1, 10))
 
 
 
-def _add_components(story: list, report: dict, styles) -> None:
+def _add_components(story: list, report: dict, styles, language: str) -> None:
     """Add a compact component assessment section."""
     components = report.get("sections", {}).get("components", [])
     if not components:
         return
 
-    story.append(Paragraph("Component assessment", styles["SectionTitle"]))
-    rows = [["Component", "Type", "Status", "Risk", "Recommended action"]]
-    for component in components[:20]:
+    story.append(Paragraph(_pdf_text(language, "component_assessment"), styles["SectionTitle"]))
+    rows = [_table_row([
+        _pdf_text(language, "component"),
+        _pdf_text(language, "type"),
+        _pdf_text(language, "status"),
+        _pdf_text(language, "risk"),
+        _pdf_text(language, "recommended_action"),
+    ], styles, header=True)]
+    for component in components:
         rows.append([
-            _clean_inline(_component_label(component)),
-            _clean_inline(component.get("component_type", "-")),
-            _clean_inline(component.get("final_status", "-")),
-            _clean_inline(component.get("final_risk", "-")),
-            _clean_inline(component.get("recommended_action", "")),
+            _table_cell(_component_label(component), styles),
+            _table_cell(component.get("component_type", "-"), styles),
+            _table_cell(
+                _display_finding_value(_component_status(component), language),
+                styles,
+                strong=True,
+            ),
+            _table_cell(
+                _display_finding_value(_component_priority(component), language),
+                styles,
+                strong=True,
+            ),
+            _table_cell(
+                _short_text(
+                    _component_action(component, report, "components"),
+                    95,
+                ),
+                styles,
+            ),
         ])
 
-    table = Table(rows, colWidths=[38 * mm, 24 * mm, 26 * mm, 20 * mm, 52 * mm], repeatRows=1)
+    table = LongTable(rows, colWidths=[34 * mm, 22 * mm, 28 * mm, 18 * mm, 68 * mm], repeatRows=1)
     table.setStyle(_table_style(header_color=BRAND_BLUE))
     story.append(table)
-    if len(components) > 20:
-        story.append(Paragraph(f"Only the first 20 components are shown out of {len(components)}.", styles["Subtitle"]))
     story.append(Spacer(1, 10))
-def _add_recommendations(story: list, report: dict, styles) -> None:
+
+
+def _add_recommendations(story: list, report: dict, styles, language: str) -> None:
     """Add prioritized recommendations."""
     recommendations = report.get("sections", {}).get("recommendations", [])
-    story.append(Paragraph("Prioritized recommendations", styles["SectionTitle"]))
+    story.append(
+        Paragraph(
+            _pdf_text(language, "prioritized_recommendations"),
+            styles["SectionTitle"],
+        )
+    )
 
     if not recommendations:
-        story.append(_notice_box("No prioritized recommendations were generated.", styles, SOFT_BLUE, BRAND_BLUE))
+        story.append(
+            _notice_box(
+                _pdf_text(language, "no_recommendations"),
+                styles,
+                SOFT_BLUE,
+                BRAND_BLUE,
+            )
+        )
         return
 
     for recommendation in recommendations[:10]:
-        priority = _clean_inline(recommendation.get("priority", "Review"))
+        priority = _component_priority(recommendation)
         component = _clean_inline(_component_label(recommendation))
-        action = _clean_inline(recommendation.get("action", ""))
-        reason = _clean_inline(recommendation.get("reason", ""))
-        bg = SOFT_RED if priority.upper() == "BLOCKER" else SOFT_ORANGE
-        item = Table([
-            [Paragraph(f"<b>{priority}</b>", styles["BodyText"]), Paragraph(f"<b>{component}</b><br/>{action}", styles["BodyText"])],
-            ["", Paragraph(reason, styles["Subtitle"])],
-        ], colWidths=[25 * mm, 135 * mm])
+        action = _clean_inline(
+            _component_action(recommendation, report, "recommendations")
+        )
+        reason = _clean_inline(
+            _component_reason(recommendation, report, "recommendations")
+        )
+        bg = (
+            SOFT_RED
+            if priority.upper() == "BLOCKER"
+            else SOFT_ORANGE
+            if priority.upper() == "MAJOR"
+            else SOFT_SLATE
+        )
+        priority_color = _priority_color(priority)
+        item = Table(
+            [
+                [
+                    _priority_badge(
+                        _display_finding_value(priority, language),
+                        styles,
+                    ),
+                    Paragraph(
+                        f"<b>{component}</b><br/>{action}",
+                        styles["BodyText"],
+                    ),
+                ],
+                ["", Paragraph(reason, styles["Subtitle"])],
+            ],
+            colWidths=[25 * mm, 135 * mm],
+        )
         item.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, -1), bg),
+            ("BACKGROUND", (0, 0), (0, 0), priority_color),
             ("BOX", (0, 0), (-1, -1), 0.5, BORDER),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("VALIGN", (0, 0), (0, 0), "MIDDLE"),
             ("LEFTPADDING", (0, 0), (-1, -1), 8),
             ("RIGHTPADDING", (0, 0), (-1, -1), 8),
             ("TOPPADDING", (0, 0), (-1, -1), 7),
@@ -312,14 +677,20 @@ def _add_recommendations(story: list, report: dict, styles) -> None:
         story.append(KeepTogether([item, Spacer(1, 6)]))
 
 
-def _add_markdown_text(story: list, text: str, styles, max_lines: int | None = None) -> None:
+def _add_markdown_text(
+    story: list,
+    text: str,
+    styles,
+    language: str,
+    max_lines: int | None = None,
+) -> None:
     """Convert simple Markdown text into ReportLab paragraphs."""
     lines = text.splitlines()
     rendered = 0
 
     for line in lines:
         if max_lines is not None and rendered >= max_lines:
-            story.append(Paragraph("Report text continues in the detailed analysis available in JSON export.", styles["Subtitle"]))
+            story.append(Paragraph(_pdf_text(language, "continued_text"), styles["Subtitle"]))
             return
 
         line = line.strip()
@@ -357,8 +728,17 @@ def _draw_page_frame(canvas, doc) -> None:
     canvas.line(doc.leftMargin, 12 * mm, width - doc.rightMargin, 12 * mm)
     canvas.setFont("Helvetica", 7)
     canvas.setFillColor(TEXT_MUTED)
-    canvas.drawString(doc.leftMargin, 8 * mm, "Spectrum Groupe - Jira DC to Cloud Migration Assessment")
-    canvas.drawRightString(width - doc.rightMargin, 8 * mm, f"Page {doc.page}")
+    footer_left = _footer_text(
+        getattr(doc, "source_filename", ""),
+        getattr(doc, "report_id", ""),
+        getattr(doc, "language", "en"),
+    )
+    canvas.drawString(doc.leftMargin, 8 * mm, footer_left)
+    canvas.drawRightString(
+        width - doc.rightMargin,
+        8 * mm,
+        f"{_pdf_text(getattr(doc, 'language', 'en'), 'page')} {doc.page}",
+    )
     canvas.restoreState()
 
 
@@ -375,7 +755,11 @@ def _logo_flowable(width: float):
 
 def _accent_bar() -> Table:
     """Return Spectrum-colored accent bar."""
-    table = Table([["", "", "", ""]], colWidths=[40 * mm, 40 * mm, 40 * mm, 40 * mm], rowHeights=[3])
+    table = Table(
+        [["", "", "", ""]],
+        colWidths=[40 * mm, 40 * mm, 40 * mm, 40 * mm],
+        rowHeights=[3],
+    )
     table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (0, 0), colors.HexColor("#6BCB2D")),
         ("BACKGROUND", (1, 0), (1, 0), colors.HexColor("#2F80ED")),
@@ -417,6 +801,221 @@ def _notice_box(text: str, styles, background, border_color) -> Table:
     return table
 
 
+def _table_row(values: list[str], styles, header: bool = False) -> list[Paragraph]:
+    """Build a table row whose cells wrap inside their columns."""
+    return [_table_cell(value, styles, header=header) for value in values]
+
+
+def _table_cell(value, styles, header: bool = False, strong: bool = False) -> Paragraph:
+    """Build a ReportLab paragraph suitable for compact table cells."""
+    style_name = "TableHeader" if header else "TableCellStrong" if strong else "TableCell"
+    return Paragraph(_clean_inline(value), styles[style_name])
+
+
+def _priority_badge(priority: str, styles) -> Paragraph:
+    """Build a compact priority badge."""
+    return Paragraph(_clean_inline(priority), styles["PriorityBadge"])
+
+
+def _top_blockers(report: dict, limit: int = 5) -> list[dict]:
+    """Return the highest priority blockers for the decision summary."""
+    sections = report.get("sections", {})
+    blockers = list(sections.get("blockers") or [])
+    if not blockers:
+        components = sections.get("components") or []
+        blockers = [
+            component for component in components
+            if _component_priority(component).upper() == "BLOCKER"
+        ]
+
+    return sorted(blockers, key=_priority_sort_key)[:limit]
+
+
+def _priority_sort_key(component: dict) -> tuple[int, int, str]:
+    """Sort migration findings from most urgent to least urgent."""
+    priority = _component_priority(component).upper()
+    status = _component_status(component).upper()
+    status_rank = 0 if status == "INCOMPATIBLE" else 1 if status == "NEEDS_RECREATION" else 2
+    return (PRIORITY_ORDER.get(priority, 4), status_rank, _component_label(component).lower())
+
+
+def _component_priority(component: dict) -> str:
+    """Return a normalized priority label for a component-like dict."""
+    return str(
+        component.get("priority")
+        or component.get("final_risk")
+        or component.get("risk_level")
+        or "REVIEW"
+    ).upper()
+
+
+def _component_status(component: dict) -> str:
+    """Return a normalized migration status for a component-like dict."""
+    return str(
+        component.get("status")
+        or component.get("final_status")
+        or component.get("overall_status")
+        or "-"
+    ).upper()
+
+
+def _component_action(
+    component: dict,
+    report: dict | None = None,
+    section: str | None = None,
+) -> str:
+    """Return the best action text available for a component-like dict."""
+    translated = _translated_section_field(report, section, component, "action")
+    if translated:
+        return translated
+    translated = _translated_section_field(report, section, component, "recommended_action")
+    if translated:
+        return translated
+    return str(component.get("action") or component.get("recommended_action") or "")
+
+
+def _component_reason(
+    component: dict,
+    report: dict | None = None,
+    section: str | None = None,
+) -> str:
+    """Return the best reason text available for a component-like dict."""
+    translated = _translated_section_field(report, section, component, "reason")
+    if translated:
+        return translated
+    translated = _translated_section_field(report, section, component, "reasoning_summary")
+    if translated:
+        return translated
+    return str(component.get("reason") or component.get("reasoning_summary") or "")
+
+
+def _priority_color(priority: str):
+    """Return a brand color for a priority label."""
+    normalized = priority.upper()
+    if normalized in {"BLOCKER", "CRITICAL"}:
+        return BRAND_RED
+    if normalized == "MAJOR":
+        return BRAND_ORANGE
+    if normalized == "MINOR":
+        return BRAND_BLUE
+    return TEXT_MUTED
+
+
+def _display_finding_value(value: str, language: str) -> str:
+    """Return a reader-friendly PDF label for selected technical values."""
+    normalized = str(value or "").upper()
+    if _pdf_language({"language": language}) != "fr":
+        return normalized or str(value or "")
+
+    french_labels = {
+        "BLOCKER": "Blocage",
+        "INCOMPATIBLE": "Incompatible",
+        "NEEDS_RECREATION": "À recréer",
+    }
+    return french_labels.get(normalized, normalized or str(value or ""))
+
+
+def _short_text(text: str, max_chars: int) -> str:
+    """Shorten dense table copy while preserving the detailed recommendation text."""
+    normalized = re.sub(r"\s+", " ", str(text or "")).strip()
+    if len(normalized) <= max_chars:
+        return normalized
+    truncated = normalized[:max_chars].rsplit(" ", 1)[0].rstrip(".,;:")
+    return f"{truncated}..."
+
+
+def _footer_text(source_filename: str, report_id: str, language: str) -> str:
+    """Build the footer context line."""
+    source = _plain_text(source_filename or _pdf_text(language, "migration_package"), max_chars=58)
+    short_report_id = _plain_text(report_id or "unknown", max_chars=12)
+    return (
+        f"Spectrum Groupe - {_pdf_text(language, 'footer_source')}: {source} - "
+        f"{_pdf_text(language, 'footer_report')}: {short_report_id}"
+    )
+
+
+def _pdf_language(report: dict | None) -> str:
+    """Return the supported PDF locale."""
+    language = str((report or {}).get("language") or "en").strip().lower()
+    return "fr" if language.startswith("fr") else "en"
+
+
+def _pdf_text(language: str, key: str) -> str:
+    """Return a static PDF label for the selected locale."""
+    locale = "fr" if str(language or "").lower().startswith("fr") else "en"
+    return PDF_TEXT.get(locale, PDF_TEXT["en"]).get(key, PDF_TEXT["en"].get(key, key))
+
+
+def _translated_report_field(report: dict, field: str, language: str) -> str:
+    """Return translated top-level report text when available."""
+    if not str(language or "").lower().startswith("fr"):
+        return str(report.get(field, "") or "")
+
+    translations = report.get("translations", {}) or {}
+    french = translations.get("fr", {}) or {}
+    translated = report.get(f"{field}_fr") or french.get(field)
+    return str(translated or report.get(field, "") or "")
+
+
+def _cover_summary(report: dict, language: str) -> str:
+    """Return the short cover summary in the requested PDF language."""
+    if _pdf_language({"language": language}) != "fr":
+        return str(report.get("summary", "") or "")
+
+    stats = report.get("statistics", {}) or {}
+    total = stats.get("total_components", report.get("total_components", 0)) or 0
+    risk = report.get("sections", {}).get("risk_overview", {}) or {}
+    blockers = (
+        stats.get("blocker_count")
+        if stats.get("blocker_count") is not None
+        else risk.get("blockers", report.get("blocker_count", 0))
+    ) or 0
+    score = report.get("migration_score", stats.get("migration_score", 0)) or 0
+
+    if total == 0:
+        return "Aucun composant pertinent pour la migration n'a été détecté dans cette analyse."
+
+    if blockers:
+        return (
+            f"L'analyse a identifié {total} composant(s) pertinent(s) pour la migration, "
+            f"dont {blockers} blocage(s). Le score actuel de préparation à la migration "
+            f"est de {score}/100. La migration ne doit pas avancer avant la résolution "
+            "des blocages."
+        )
+
+    return (
+        f"L'analyse a identifié {total} composant(s) pertinent(s) pour la migration. "
+        f"Le score actuel de préparation à la migration est de {score}/100. "
+        "Aucun blocage critique n'a été détecté, mais les risques majeurs et mineurs "
+        "doivent être examinés."
+    )
+
+
+def _translated_section_field(
+    report: dict | None,
+    section: str | None,
+    component: dict,
+    field: str,
+) -> str:
+    """Return a translated section field matching by component_id when available."""
+    if not report or _pdf_language(report) != "fr" or not section:
+        return ""
+
+    component_id = component.get("component_id")
+    if not component_id:
+        return ""
+
+    translations = report.get("translations", {}) or {}
+    french = translations.get("fr", {}) or {}
+    translated_items = ((french.get("sections") or {}).get(section) or [])
+
+    for translated in translated_items:
+        if translated.get("component_id") == component_id:
+            return str(translated.get(field) or "")
+
+    return ""
+
+
 def _table_style(header_color=BRAND_NAVY) -> TableStyle:
     """Return branded table style."""
     return TableStyle([
@@ -427,10 +1026,10 @@ def _table_style(header_color=BRAND_NAVY) -> TableStyle:
         ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FAFE")]),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 6),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
     ])
 
 
@@ -439,7 +1038,11 @@ def _format_date(value: str) -> str:
     if not value:
         return datetime.utcnow().strftime("%Y-%m-%d")
     try:
-        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M UTC")
+        return (
+            datetime.fromisoformat(
+                str(value).replace("Z", "+00:00")
+            ).strftime("%Y-%m-%d %H:%M UTC")
+        )
     except ValueError:
         return str(value)
 
@@ -451,6 +1054,14 @@ def _clean_inline(text: str) -> str:
     text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", text)
     text = re.sub(r"`(.*?)`", r"<font name='Courier'>\1</font>", text)
     return text
+
+
+def _plain_text(text: str, max_chars: int | None = None) -> str:
+    """Return compact plain text for canvas-only PDF areas."""
+    value = re.sub(r"\s+", " ", str(text or "")).strip()
+    if max_chars is not None and len(value) > max_chars:
+        return f"{value[:max_chars].rsplit(' ', 1)[0].rstrip()}..."
+    return value
 
 
 def _component_label(component: dict) -> str:

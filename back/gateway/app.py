@@ -105,6 +105,54 @@ def _password_reset_link(email: str, token: str) -> str:
     return f"{frontend_url}/reset-password?{query}"
 
 
+def _sanitize_filename_segment(value: str, max_length: int = 120) -> str:
+    """Normalize a source filename into a safe attachment basename."""
+    segment = value.strip()
+    segment = segment.replace("\\", "/").split("/")[-1]
+    segment = re.sub(r"\.[^.]+$", "", segment)
+    segment = re.sub(
+        r"[^\w\-]+",
+        "_",
+        segment,
+        flags=re.UNICODE,
+    )
+    segment = re.sub(r"_+", "_", segment)
+    segment = segment.strip("_")
+    return segment[:max_length] or "report"
+
+
+def _build_report_filename(
+    report_id: str,
+    source_filename: str | None,
+    language: str | None,
+    extension: str,
+) -> str:
+    """Build a professional attachment filename for report exports."""
+    if source_filename:
+        base = _sanitize_filename_segment(source_filename)
+        if base:
+            prefix = (
+                "rapport_du_"
+                if (language or "").lower().startswith("fr")
+                else "report_of_"
+            )
+            return f"{prefix}{base}.{extension}"
+
+    return f"report_{report_id}.{extension}"
+
+
+def _fetch_report_metadata(report_id: str, params: dict) -> dict | None:
+    """Fetch report metadata from the report service to build a nicer filename."""
+    url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports/{report_id}"
+    try:
+        response = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
+        if response.status_code == 200:
+            return response.json()
+    except requests.exceptions.RequestException as error:
+        logger.warning("Unable to fetch report metadata for filename generation: %s", error)
+    return None
+
+
 def _password_reset_message(reset_link: str) -> str:
     """Return the password reset email body (plain text)."""
     return (
@@ -1441,20 +1489,31 @@ def create_app():
         """Export report as JSON file."""
         try:
             _, user_context = _current_user_context(user_repo)
+            requested_language = request.args.get("language")
+            params = {**user_context}
+            if requested_language:
+                params["language"] = requested_language
+
+            metadata = _fetch_report_metadata(report_id, user_context)
+            source_filename = metadata.get("source_filename") if metadata else None
             url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports/{report_id}/json"
-            response = requests.get(url, params=user_context, timeout=REQUEST_TIMEOUT)
+            response = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
 
             # If error (e.g. 404), return json error message
             if response.status_code != 200:
                 return jsonify(response.json()), response.status_code
 
-            # Pass the file content and headers back to the client
-            filename = f'report_{report_id}.json'
+            filename = _build_report_filename(
+                report_id,
+                source_filename,
+                requested_language,
+                "json",
+            )
             headers = {
-                'Content-Disposition': response.headers.get(
-                    'Content-Disposition', f'attachment; filename={filename}'
+                'Content-Disposition': f'attachment; filename={filename}',
+                'Content-Type': response.headers.get(
+                    'Content-Type', 'application/json'
                 ),
-                'Content-Type': response.headers.get('Content-Type', 'application/json')
             }
             return response.content, 200, headers
 
@@ -1468,8 +1527,15 @@ def create_app():
         """Export report as PDF file."""
         try:
             _, user_context = _current_user_context(user_repo)
+            requested_language = request.args.get("language")
+            params = {**user_context}
+            if requested_language:
+                params["language"] = requested_language
+
+            metadata = _fetch_report_metadata(report_id, user_context)
+            source_filename = metadata.get("source_filename") if metadata else None
             url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports/{report_id}/pdf"
-            response = requests.get(url, params=user_context, timeout=REQUEST_TIMEOUT)
+            response = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
 
             # If error (e.g. 404), return json error message
             if response.status_code != 200:
@@ -1478,12 +1544,9 @@ def create_app():
                 except ValueError:
                     return jsonify({"error": "Failed to retrieve PDF"}), response.status_code
 
-            # Pass the PDF file content and headers back to the client
-            filename = f'report_{report_id}.pdf'
+            filename = _build_report_filename(report_id, source_filename, requested_language, "pdf")
             headers = {
-                'Content-Disposition': response.headers.get(
-                    'Content-Disposition', f'attachment; filename={filename}'
-                ),
+                'Content-Disposition': f'attachment; filename={filename}',
                 'Content-Type': response.headers.get('Content-Type', 'application/pdf')
             }
             return response.content, 200, headers

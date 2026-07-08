@@ -298,7 +298,7 @@ export const ReportPage: React.FC = () => {
 
   const handleDownload = async (type: 'pdf' | 'json') => {
     if (!reportId) return;
-    await reportService.downloadReport(reportId, type);
+    await reportService.downloadReport(reportId, type, language);
   };
 
   if (loading) {

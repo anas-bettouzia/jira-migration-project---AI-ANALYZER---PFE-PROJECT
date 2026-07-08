@@ -92,6 +92,50 @@ export interface ReportSections {
   recommendations?: ReportRecommendation[];
 }
 
+const CONTENT_DISPOSITION_FILENAME_RE = /filename\*?=(?:UTF-8''?)?"?([^";]+)"?/i;
+
+function extractFilenameFromContentDisposition(header?: string): string | null {
+  if (!header) {
+    return null;
+  }
+
+  const match = CONTENT_DISPOSITION_FILENAME_RE.exec(header);
+  if (!match || !match[1]) {
+    return null;
+  }
+
+  return decodeURIComponent(match[1].trim());
+}
+
+function sanitizeExportBasename(value: string, maxLength = 120): string {
+  const filename = value.trim().replace(/\\/g, '/').split('/').pop() ?? value;
+  const stem = filename.replace(/\.[^.]+$/, '');
+  return stem
+    .replace(/[^\w-]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, maxLength) || 'report';
+}
+
+function buildExportFilename(
+  reportId: string,
+  extension: 'pdf' | 'json',
+  sourceFilename?: string,
+  language?: string,
+): string {
+  if (sourceFilename) {
+    const base = sanitizeExportBasename(sourceFilename);
+    if (base) {
+      const prefix = (language || localStorage.getItem('jira-migration-language') || 'en').startsWith('fr')
+        ? 'rapport_du_'
+        : 'report_of_';
+      return `${prefix}${base}.${extension}`;
+    }
+  }
+
+  return `report_${reportId}.${extension}`;
+}
+
 export const reportService = {
   /**
    * Récupère les détails d'un rapport par son ID
@@ -121,35 +165,31 @@ export const reportService = {
   /**
    * Télécharge le rapport au format spécifié (pdf ou json)
    */
-  async downloadReport(reportId: string, type: 'pdf' | 'json') {
-    // Try to fetch report metadata to create a nicer filename
-    let niceBase = `report_${reportId}`;
-    try {
-      const meta = await this.getReport(reportId);
-      const raw = typeof meta?.source_filename === 'string' ? meta.source_filename : undefined;
-      if (raw) {
-        // take last path segment and strip extension
-        const last = raw.split(/\\|\//).pop() ?? raw;
-        const stem = last.replace(/\.[^.]+$/, '');
-        // sanitize: replace spaces and non-word chars with underscore
-        const sanitized = stem.replace(/[^\w\-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '').slice(0, 120);
-        // detect current UI language (default to en)
-        const uiLang = (localStorage.getItem('jira-migration-language') as string) || 'en';
-        niceBase = uiLang === 'fr' ? `rapport_du_${sanitized}` : `report_of_${sanitized}`;
-      }
-    } catch (err) {
-      // ignore metadata errors and fallback to id-based name
-      // console.debug('Unable to fetch report metadata for filename', err);
-    }
-
+  async downloadReport(reportId: string, type: 'pdf' | 'json', language?: string) {
     const response = await api.get(`/reports/${reportId}/${type}`, {
+      params: language ? { language } : undefined,
       responseType: 'blob',
     });
+
+    const headerFilename = extractFilenameFromContentDisposition(
+      response.headers?.['content-disposition'] || response.headers?.['Content-Disposition'],
+    );
+
+    let filename = headerFilename || `report_${reportId}.${type}`;
+    if (!headerFilename) {
+      try {
+        const meta = await this.getReport(reportId);
+        const raw = typeof meta?.source_filename === 'string' ? meta.source_filename : undefined;
+        filename = buildExportFilename(reportId, type, raw, language);
+      } catch (err) {
+        // ignore metadata errors and fallback to id-based name
+      }
+    }
 
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `${niceBase}.${type}`);
+    link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
 

@@ -33,6 +33,7 @@ import { MainSidebar } from '../../shared/components/MainSidebar';
 import { useI18n } from '../../i18n';
 import { useJobStatus } from '../../hooks/useJobStatus';
 import { analysisService, type AnalysisJob } from '../../services/analysisService';
+import { reportService } from '../../services/reportService';
 import { api } from '../../core/api';
 import logoSpectrumDark from '../../assets/img/logo-spectrum-groupe-darkmode.png';
 import logoSpectrum from '../../assets/img/logo-spectrum-groupe.png';
@@ -57,7 +58,7 @@ export const AnalysisPage: React.FC = () => {
   const jobStatus = useJobStatus(jobId);
   const analysisNameRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
 
   const result = jobStatus?.result;
   const summary = result?.summary;
@@ -197,14 +198,7 @@ export const AnalysisPage: React.FC = () => {
   const downloadFile = async (type: 'json' | 'pdf') => {
     if (!reportId) return;
     try {
-      const response = await api.get(`/reports/${reportId}/${type}`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `report_${reportId}.${type}`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      await reportService.downloadReport(reportId, type, language);
     } catch (error) {
       console.error(`Erreur telechargement ${type}:`, error);
     }
