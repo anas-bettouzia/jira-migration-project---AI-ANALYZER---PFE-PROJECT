@@ -3,7 +3,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY shared/ ./shared/
-COPY scripts/ ./scripts/
 ENV PYTHONPATH=/app
 
 FROM base AS gateway
