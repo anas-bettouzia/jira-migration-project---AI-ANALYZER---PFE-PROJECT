@@ -33,8 +33,9 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-# pylint: disable=wrong-import-position
+# pylint: disable=wrong-import-position, import-error
 from shared.db.mongo_client import get_mongo_db
+from shared.repositories.user_repository import UserRepository
 
 OWNER_FIELDS = ("user_email", "user_id")
 COLLECTIONS = (
@@ -47,18 +48,54 @@ COLLECTIONS = (
 
 
 def parse_args() -> argparse.Namespace:
+    """Create command-line argument parser and return parsed args."""
     parser = argparse.ArgumentParser(description="Backfill user ownership fields in MongoDB.")
-    parser.add_argument("--apply", action="store_true", help="Write updates to MongoDB.")
-    parser.add_argument("--dry-run", action="store_true", help="Preview updates without writing. Default behavior.")
-    parser.add_argument("--default-user-email", help="Fallback owner email for orphan documents.")
-    parser.add_argument("--default-user-id", help="Fallback owner id for orphan documents.")
-    parser.add_argument("--mapping-file", help="JSON mapping file for explicit ownership by id.")
-    parser.add_argument("--overwrite", action="store_true", help="Overwrite existing owner fields.")
-    parser.add_argument("--limit", type=int, default=0, help="Limit documents scanned per collection, for testing.")
+    parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Write updates to MongoDB.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview updates without writing. Default behavior.",
+    )
+    parser.add_argument(
+        "--default-user-email",
+        help="Fallback owner email for orphan documents.",
+    )
+    parser.add_argument(
+        "--default-user-id",
+        help="Fallback owner id for orphan documents.",
+    )
+    parser.add_argument(
+        "--mapping-file",
+        help="JSON mapping file for explicit ownership by id.",
+    )
+    parser.add_argument(
+        "--fill-user-ids",
+        action="store_true",
+        help=(
+            "Populate missing user_id values for documents that already have "
+            "user_email using existing users from the users collection.",
+        ),
+    )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite existing owner fields.",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help="Limit documents scanned per collection, for testing.",
+    )
     return parser.parse_args()
 
 
 def load_mapping(path: str | None) -> dict[str, Any]:
+    """Load explicit ownership mapping from JSON file, or return empty map."""
     if not path:
         return {}
     with open(path, "r", encoding="utf-8") as file:
@@ -66,6 +103,7 @@ def load_mapping(path: str | None) -> dict[str, Any]:
 
 
 def clean_owner(owner: dict[str, Any] | None) -> dict[str, str]:
+    """Normalize owner values to strings and remove empty fields."""
     if not owner:
         return {}
     cleaned = {}
@@ -76,13 +114,28 @@ def clean_owner(owner: dict[str, Any] | None) -> dict[str, str]:
     return cleaned
 
 
-def missing_owner(document: dict[str, Any], overwrite: bool) -> bool:
+def missing_owner(document: dict[str, Any], overwrite: bool, fill_user_ids: bool = False) -> bool:
+    """Return True when the document needs ownership migration or user_id filling."""
     if overwrite:
         return True
-    return not document.get("user_email")
+    if not document.get("user_email"):
+        return True
+    if fill_user_ids and not document.get("user_id"):
+        return True
+    return False
+
+
+def resolve_user_id_from_email(user_repo: UserRepository, owner: dict[str, str]) -> dict[str, str]:
+    """Try to resolve the missing user_id from a user email address."""
+    if owner.get("user_email") and not owner.get("user_id"):
+        user = user_repo.get_user_by_email(owner["user_email"])
+        if user and user.get("_id") is not None:
+            owner["user_id"] = str(user["_id"])
+    return owner
 
 
 def merge_owner(*owners: dict[str, Any] | None) -> dict[str, str]:
+    """Merge ownership fields from multiple sources, keeping the first non-empty value."""
     merged: dict[str, str] = {}
     for owner in owners:
         cleaned = clean_owner(owner)
@@ -93,6 +146,7 @@ def merge_owner(*owners: dict[str, Any] | None) -> dict[str, str]:
 
 
 def id_value(document: dict[str, Any], *fields: str) -> str | None:
+    """Return the first non-empty field value from a document."""
     for field in fields:
         value = document.get(field)
         if value:
@@ -100,7 +154,13 @@ def id_value(document: dict[str, Any], *fields: str) -> str | None:
     return None
 
 
-def build_indexes(db, limit: int, explicit: dict[str, Any], fallback_owner: dict[str, str]) -> dict[str, dict[str, str]]:
+def build_indexes(
+    db,
+    limit: int,
+    explicit: dict[str, Any],
+    fallback_owner: dict[str, str],
+) -> dict[str, dict[str, str]]:
+    """Build ownership lookup indexes from legacy documents and explicit mappings."""
     indexes = {
         "by_job_id": {},
         "by_analysis_id": {},
@@ -176,7 +236,13 @@ def build_indexes(db, limit: int, explicit: dict[str, Any], fallback_owner: dict
     return indexes
 
 
-def owner_for_document(document: dict[str, Any], collection_name: str, indexes: dict[str, dict[str, str]], fallback_owner: dict[str, str]) -> dict[str, str]:
+def owner_for_document(
+    document: dict[str, Any],
+    collection_name: str,
+    indexes: dict[str, dict[str, str]],
+    fallback_owner: dict[str, str],
+) -> dict[str, str]:
+    """Resolve ownership for a single document by collection type."""
     if collection_name == "jobs":
         result = document.get("result", {}) if isinstance(document.get("result"), dict) else {}
         return merge_owner(
@@ -189,7 +255,11 @@ def owner_for_document(document: dict[str, Any], collection_name: str, indexes: 
         )
 
     if collection_name == "analyses":
-        return merge_owner(document, indexes["by_analysis_id"].get(str(document.get("analysis_id"))), fallback_owner)
+        return merge_owner(
+            document,
+            indexes["by_analysis_id"].get(str(document.get("analysis_id"))),
+            fallback_owner,
+        )
 
     if collection_name == "compatibility_matrices":
         return merge_owner(
@@ -208,7 +278,15 @@ def owner_for_document(document: dict[str, Any], collection_name: str, indexes: 
     )
 
 
-def migrate_collection(db, collection_name: str, indexes: dict[str, dict[str, str]], args: argparse.Namespace, fallback_owner: dict[str, str]) -> dict[str, int]:
+def migrate_collection(
+    db,
+    collection_name: str,
+    indexes: dict[str, dict[str, str]],
+    args: argparse.Namespace,
+    fallback_owner: dict[str, str],
+    user_repo: UserRepository | None = None,
+) -> dict[str, int]:
+    """Migrate ownership fields for a full collection of legacy documents."""
     stats = {"scanned": 0, "updated": 0, "skipped": 0, "unresolved": 0}
     cursor = db[collection_name].find({})
     if args.limit:
@@ -216,7 +294,7 @@ def migrate_collection(db, collection_name: str, indexes: dict[str, dict[str, st
 
     for document in cursor:
         stats["scanned"] += 1
-        if not missing_owner(document, args.overwrite):
+        if not missing_owner(document, args.overwrite, args.fill_user_ids):
             stats["skipped"] += 1
             continue
 
@@ -225,12 +303,18 @@ def migrate_collection(db, collection_name: str, indexes: dict[str, dict[str, st
             stats["unresolved"] += 1
             continue
 
+        if args.fill_user_ids and user_repo is not None:
+            owner = resolve_user_id_from_email(user_repo, owner)
+
         updates = {
             **owner,
             "ownership_migrated_at": datetime.utcnow().isoformat(),
         }
 
-        display_id = id_value(document, "report_id", "analysis_id", "matrix_id", "job_id") or str(document.get("_id"))
+        display_id = (
+            id_value(document, "report_id", "analysis_id", "matrix_id", "job_id")
+            or str(document.get("_id"))
+        )
         print(f"[{collection_name}] {display_id} -> {owner.get('user_email')}")
 
         if args.apply:
@@ -241,6 +325,7 @@ def migrate_collection(db, collection_name: str, indexes: dict[str, dict[str, st
 
 
 def main() -> int:
+    """Run ownership migration script end to end."""
     load_dotenv()
     args = parse_args()
     fallback_owner = clean_owner({
@@ -259,8 +344,19 @@ def main() -> int:
     indexes = build_indexes(db, args.limit, explicit, fallback_owner)
     total = {"scanned": 0, "updated": 0, "skipped": 0, "unresolved": 0}
 
+    user_repo = None
+    if args.fill_user_ids:
+        user_repo = UserRepository()
+
     for collection_name in COLLECTIONS:
-        stats = migrate_collection(db, collection_name, indexes, args, fallback_owner)
+        stats = migrate_collection(
+            db,
+            collection_name,
+            indexes,
+            args,
+            fallback_owner,
+            user_repo=user_repo,
+        )
         for key, value in stats.items():
             total[key] += value
         print(f"Summary {collection_name}: {stats}")
