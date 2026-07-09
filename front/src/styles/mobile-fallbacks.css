@@ -1,11 +1,6 @@
 @media (max-width: 640px) {
-  /* Conservative mobile-only overrides to avoid GPU/compositing artifacts */
-  section,
-  article,
-  div,
-  header,
-  main,
-  footer {
+  .report-page,
+  .report-page * {
     -webkit-backface-visibility: hidden !important;
     backface-visibility: hidden !important;
     -webkit-transform: none !important;
@@ -16,23 +11,34 @@
     will-change: auto !important;
   }
 
-  /* Specifically remove backdrop blur and heavy shadows that often cause artifacts */
-  .backdrop-blur, .shadow-sm, .shadow-xl, .shadow-lg, .shadow, [class*="shadow-"] {
+  .report-page .backdrop-blur,
+  .report-page .shadow-sm,
+  .report-page .shadow-xl,
+  .report-page .shadow-lg,
+  .report-page .shadow,
+  .report-page [class*="shadow-"] {
     box-shadow: none !important;
     filter: none !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }
 
-  /* Disable transforms on common rounded cards */
-  .rounded-2xl, [class*="rounded-[22px]"], [class*="rounded-[18px]"], [class*="rounded-[28px]"] {
+  .report-page .rounded-2xl,
+  .report-page [class*="rounded-[22px]"],
+  .report-page [class*="rounded-[18px]"],
+  .report-page [class*="rounded-[28px]"] {
     -webkit-transform: none !important;
     transform: none !important;
   }
 
-  /* Prevent fixed/sticky headers from triggering composition issues */
-  header, nav, footer {
+  .report-page header,
+  .report-page nav,
+  .report-page footer,
+  .report-page main,
+  .report-page section,
+  .report-page article {
     -webkit-transform: none !important;
     transform: none !important;
+    z-index: 0 !important;
   }
 }

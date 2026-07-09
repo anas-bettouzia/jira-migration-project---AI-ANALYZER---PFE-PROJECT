@@ -337,7 +337,7 @@ export const ReportPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#eef2fb] text-[#111b3f] transition-colors duration-300 dark:bg-[#071126] dark:text-white">
+    <div className="report-page min-h-screen bg-[#eef2fb] text-[#111b3f] transition-colors duration-300 dark:bg-[#071126] dark:text-white">
       <MainSidebar activePage="reports" />
 
       <div className="min-h-screen pb-20 md:pb-0 md:pl-[72px]">
