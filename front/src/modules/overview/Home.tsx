@@ -285,7 +285,7 @@ const Home = () => {
             </div>
           </section>
 
-          <section id="pipeline" className="mx-auto mt-16 max-w-7xl overflow-hidden rounded-[22px] bg-[#111b3f] p-5 text-white shadow-xl shadow-[#111b3f]/10 sm:mt-24 sm:p-8 lg:p-10">
+          <section id="pipeline" className="mx-auto mt-16 max-w-7xl overflow-hidden rounded-[22px] bg-[#111b3f] p-5 text-white shadow-none sm:shadow-xl sm:shadow-[#111b3f]/10 transform-none sm:mt-24 sm:p-8 lg:p-10">
             <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center min-w-0">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.25em] text-[#8bbdff]">{t('home.pipeline.eyebrow')}</p>
