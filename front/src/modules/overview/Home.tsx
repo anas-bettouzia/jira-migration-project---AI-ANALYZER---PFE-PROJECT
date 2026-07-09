@@ -718,7 +718,7 @@ const PipelineCard = ({
 );
 
 const ReportArtifact = ({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) => (
-  <article className="rounded-2xl border border-[#edf1f8] bg-[#f8faff] p-4 dark:border-white/10 dark:bg-white/5">
+  <article className="rounded-2xl border border-[#edf1f8] bg-[#f8faff] p-4 dark:border-white/10 dark:bg-[#0b1f3b]">
     <div className="flex items-start gap-3">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#2f80ed] shadow-sm dark:bg-[#10264d] dark:text-[#8bbdff]">
         {icon}
