@@ -1,0 +1,38 @@
+@media (max-width: 640px) {
+  /* Conservative mobile-only overrides to avoid GPU/compositing artifacts */
+  section,
+  article,
+  div,
+  header,
+  main,
+  footer {
+    -webkit-backface-visibility: hidden !important;
+    backface-visibility: hidden !important;
+    -webkit-transform: none !important;
+    transform: none !important;
+    -webkit-filter: none !important;
+    filter: none !important;
+    box-shadow: none !important;
+    will-change: auto !important;
+  }
+
+  /* Specifically remove backdrop blur and heavy shadows that often cause artifacts */
+  .backdrop-blur, .shadow-sm, .shadow-xl, .shadow-lg, .shadow, [class*="shadow-"] {
+    box-shadow: none !important;
+    filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  /* Disable transforms on common rounded cards */
+  .rounded-2xl, [class*="rounded-[22px]"], [class*="rounded-[18px]"], [class*="rounded-[28px]"] {
+    -webkit-transform: none !important;
+    transform: none !important;
+  }
+
+  /* Prevent fixed/sticky headers from triggering composition issues */
+  header, nav, footer {
+    -webkit-transform: none !important;
+    transform: none !important;
+  }
+}

@@ -2,6 +2,9 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Mobile fallbacks to avoid compositing artifacts (imported last) */
+@import './styles/mobile-fallbacks.css';
+
 :root {
   --spectrum-blue: #004a99;
   --spectrum-orange: #f39200;
