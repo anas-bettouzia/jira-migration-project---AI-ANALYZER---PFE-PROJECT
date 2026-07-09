@@ -301,7 +301,7 @@ const Home = () => {
                 </div>
               </div>
 
-              <div className="grid gap-3">
+              <div className="grid gap-3 overflow-hidden">
                 <PipelineCard step="01" icon={<Database size={22} />} title={t('home.pipeline.prepare.title')} desc={t('home.pipeline.prepare.text')} active firstStageLabel={t('home.pipeline.firstStage')} />
                 <PipelineCard step="02" icon={<GitBranch size={22} />} title={t('home.pipeline.rules.title')} desc={t('home.pipeline.rules.text')} />
                 <PipelineCard step="03" icon={<FileText size={22} />} title={t('home.pipeline.report.title')} desc={t('home.pipeline.report.text')} />
@@ -623,7 +623,7 @@ const PipelineCard = ({
   active?: boolean;
   firstStageLabel?: string;
 }) => (
-  <div className={`w-full min-w-0 rounded-2xl border p-5 transition ${active ? 'border-[#2f80ed]/45 bg-[#2f80ed]/14' : 'border-white/10 bg-white/7'}`}>
+  <div className={`w-full min-w-0 rounded-2xl border p-5 relative z-0 transform-none transition ${active ? 'border-[#2f80ed]/45 bg-[#2f80ed]/14' : 'border-white/10 bg-white/7'}`}>
     <div className="flex items-start gap-4">
       <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${active ? 'bg-[#2f80ed] text-white' : 'bg-white/8 text-[#8bbdff]'}`}>
         {icon}
