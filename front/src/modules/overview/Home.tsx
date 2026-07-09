@@ -286,7 +286,7 @@ const Home = () => {
           </section>
 
           <section id="pipeline" className="mx-auto mt-16 max-w-7xl overflow-hidden rounded-[22px] bg-[#111b3f] p-5 text-white shadow-xl shadow-[#111b3f]/10 sm:mt-24 sm:p-8 lg:p-10">
-            <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+            <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center min-w-0">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.25em] text-[#8bbdff]">{t('home.pipeline.eyebrow')}</p>
                 <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{t('home.pipeline.title')}</h2>
@@ -442,12 +442,12 @@ const SpectrumPresenceMap = ({ t, badgeLogo }: { t: (key: string) => string; bad
         <img
           src={worldMapSpectrum}
           alt={t('home.about.mapAria')}
-          className="w-full min-w-[520px] select-none object-contain opacity-100 filter contrast-110 dark:brightness-95 dark:contrast-125 sm:min-w-0"
+          className="w-full select-none object-contain opacity-100 filter contrast-110 dark:brightness-95 dark:contrast-125"
           draggable={false}
         />
-        <div className="absolute inset-0 min-w-[520px] sm:min-w-0">
-          {locations.map((location) => (
-            <PresencePoint key={location.key} city={location.city} country={location.country} left={location.left} top={location.top} />
+        <div className="absolute inset-0">
+          {locations.map(({ key, ...location }) => (
+            <PresencePoint key={key} {...location} />
           ))}
         </div>
       </div>
@@ -623,7 +623,7 @@ const PipelineCard = ({
   active?: boolean;
   firstStageLabel?: string;
 }) => (
-  <div className={`rounded-2xl border p-5 transition ${active ? 'border-[#2f80ed]/45 bg-[#2f80ed]/14' : 'border-white/10 bg-white/7'}`}>
+  <div className={`w-full min-w-0 rounded-2xl border p-5 transition ${active ? 'border-[#2f80ed]/45 bg-[#2f80ed]/14' : 'border-white/10 bg-white/7'}`}>
     <div className="flex items-start gap-4">
       <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${active ? 'bg-[#2f80ed] text-white' : 'bg-white/8 text-[#8bbdff]'}`}>
         {icon}
@@ -637,8 +637,8 @@ const PipelineCard = ({
             </span>
           )}
         </div>
-        <h3 className="mt-1 text-sm font-black">{title}</h3>
-        <p className="mt-2 text-xs leading-5 text-white/55">{desc}</p>
+        <h3 className="mt-1 break-words text-sm font-black">{title}</h3>
+        <p className="mt-2 break-words text-xs leading-5 text-white/55">{desc}</p>
       </div>
     </div>
   </div>
