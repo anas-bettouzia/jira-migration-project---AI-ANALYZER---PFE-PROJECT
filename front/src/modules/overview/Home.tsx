@@ -43,6 +43,7 @@ const Home = () => {
     return !window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
   const [scrolled, setScrolled] = useState(false);
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
 
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -54,6 +55,18 @@ const Home = () => {
     const handleScroll = () => setScrolled(window.scrollY > 18);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const update = () => setIsSmallScreen(mq.matches);
+    update();
+    mq.addEventListener?.('change', update);
+    window.addEventListener('resize', update);
+    return () => {
+      mq.removeEventListener?.('change', update);
+      window.removeEventListener('resize', update);
+    };
   }, []);
 
   useEffect(() => {
@@ -267,7 +280,7 @@ const Home = () => {
               </div>
             </motion.div>
 
-            <HeroProductPreview t={t} />
+            <HeroProductPreview t={t} noMotion={isSmallScreen} />
           </section>
 
           <section className="mx-auto mt-8 grid max-w-7xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -506,14 +519,63 @@ const ProductHighlight = ({ icon, label, text }: { icon: React.ReactNode; label:
   </article>
 );
 
-const HeroProductPreview = ({ t }: { t: (key: string) => string }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 22 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.45, delay: 0.08 }}
-    className="min-w-0 rounded-[22px] bg-white p-3 shadow-xl shadow-[#1d2b5b]/8 ring-1 ring-[#dbe4f2] dark:bg-[#101d3a] dark:ring-white/10 sm:p-4"
-  >
-    <div className="overflow-hidden rounded-[18px] border border-[#dbe4f2] dark:border-white/10">
+const HeroProductPreview = ({ t, noMotion }: { t: (key: string) => string; noMotion?: boolean }) => {
+  if (noMotion) {
+    return (
+      <div className="min-w-0 rounded-[22px] bg-white p-3 ring-1 ring-[#dbe4f2] dark:bg-[#101d3a] dark:ring-white/10 sm:p-4">
+        <div className="overflow-hidden rounded-[18px] border border-[#dbe4f2] dark:border-white/10">
+          <div className="flex items-start justify-between gap-3 bg-[#f8faff] px-4 py-4 dark:bg-white/5 sm:items-center sm:px-5">
+            <div>
+              <p className="text-xs font-black uppercase text-[#8a96b3] dark:text-white/45">{t('home.preview.live')}</p>
+              <h2 className="mt-1 break-words text-base font-black sm:text-lg">Spectrum-Prod-DC</h2>
+            </div>
+            <span className="rounded-full bg-[#e9fbf4] px-3 py-1.5 text-[10px] font-black uppercase text-[#159866] dark:bg-[#23d18b]/12 dark:text-[#67e8b9]">{t('home.preview.ready')}</span>
+          </div>
+
+          <div className="grid gap-4 p-4 sm:p-5 md:grid-cols-[160px_1fr]">
+            <div className="rounded-2xl bg-[#eaf3ff] p-5 text-center text-[#2f80ed] dark:bg-[#2f80ed]/12 dark:text-[#8bbdff]">
+              <p className="text-[10px] font-black uppercase opacity-70">{t('home.preview.score')}</p>
+              <p className="mt-3 text-5xl font-black">84</p>
+              <p className="text-xs font-black opacity-60">{t('home.preview.readiness')}</p>
+            </div>
+
+            <div className="space-y-3">
+              <PreviewRow label={t('home.preview.dataPreparation')} value={t('home.preview.complete')} tone="green" progress={100} />
+              <PreviewRow label={t('home.preview.compatibility')} value={t('home.preview.blockers')} tone="red" progress={72} />
+              <PreviewRow label={t('home.preview.reportGeneration')} value={t('home.preview.ready')} tone="blue" progress={100} />
+            </div>
+          </div>
+
+          <div className="grid gap-3 px-4 pb-4 sm:grid-cols-2 sm:px-5 sm:pb-5">
+            <PreviewFinding title={t('home.preview.scriptRunner')} text={t('home.preview.scriptRunnerText')} tone="warning" />
+            <PreviewFinding title={t('home.preview.marketplace')} text={t('home.preview.marketplaceText')} tone="success" />
+          </div>
+
+          <div className="m-4 mt-0 rounded-2xl bg-[#111b3f] p-4 text-white dark:bg-[#071126] sm:m-5 sm:mt-0">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#2f80ed]"><Brain size={20} /></span>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase text-[#8bbdff]">{t('home.preview.recommendation')}</p>
+                  <p className="truncate text-xs text-white/75">{t('home.preview.recommendationText')}</p>
+                </div>
+              </div>
+              <span className="rounded-lg bg-white/8 px-3 py-2 text-[10px] font-black uppercase text-white/70">{t('common.report')}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 22 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay: 0.08 }}
+      className="min-w-0 rounded-[22px] bg-white p-3 shadow-xl shadow-[#1d2b5b]/8 ring-1 ring-[#dbe4f2] dark:bg-[#101d3a] dark:ring-white/10 sm:p-4"
+    >
+      <div className="overflow-hidden rounded-[18px] border border-[#dbe4f2] dark:border-white/10">
       <div className="flex items-start justify-between gap-3 bg-[#f8faff] px-4 py-4 dark:bg-white/5 sm:items-center sm:px-5">
         <div>
           <p className="text-xs font-black uppercase text-[#8a96b3] dark:text-white/45">{t('home.preview.live')}</p>
@@ -559,7 +621,9 @@ const HeroProductPreview = ({ t }: { t: (key: string) => string }) => (
       </div>
     </div>
   </motion.div>
-);
+
+  );
+};
 
 const PreviewRow = ({ label, value, tone, progress }: { label: string; value: string; tone: 'green' | 'red' | 'blue'; progress: number }) => {
   const color = tone === 'green' ? 'bg-[#23d18b]' : tone === 'red' ? 'bg-[#e54848]' : 'bg-[#2f80ed]';
