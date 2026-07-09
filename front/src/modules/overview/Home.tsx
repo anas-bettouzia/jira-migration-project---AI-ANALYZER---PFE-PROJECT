@@ -298,7 +298,11 @@ const Home = () => {
             </div>
           </section>
 
-          <section id="pipeline" className="mx-auto mt-16 max-w-7xl overflow-hidden rounded-[22px] bg-[#111b3f] p-5 text-white shadow-none sm:shadow-xl sm:shadow-[#111b3f]/10 transform-none sm:mt-24 sm:p-8 lg:p-10">
+          <section
+            id="pipeline"
+            className="mx-auto mt-16 max-w-7xl overflow-hidden rounded-[22px] bg-[#111b3f] p-5 text-white shadow-none sm:shadow-xl sm:shadow-[#111b3f]/10 transform-none sm:mt-24 sm:p-8 lg:p-10"
+            style={{ WebkitBackfaceVisibility: 'hidden', backfaceVisibility: 'hidden', transform: 'none' }}
+          >
             <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center min-w-0">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.25em] text-[#8bbdff]">{t('home.pipeline.eyebrow')}</p>
@@ -687,7 +691,12 @@ const PipelineCard = ({
   active?: boolean;
   firstStageLabel?: string;
 }) => (
-  <div className={`w-full min-w-0 rounded-2xl border p-5 relative z-0 transform-none transition ${active ? 'border-[#2f80ed]/45 bg-[#2f80ed]/14' : 'border-white/10 bg-white/7'}`}>
+  <div
+    className={`w-full min-w-0 rounded-2xl border p-5 relative z-0 transform-none transition ${
+      active ? 'border-[#2f80ed]/45 bg-[#2f80ed]/14' : 'border-white/10 bg-white/7'
+    }`}
+    style={{ WebkitBackfaceVisibility: 'hidden', backfaceVisibility: 'hidden', transform: 'none' }}
+  >
     <div className="flex items-start gap-4">
       <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${active ? 'bg-[#2f80ed] text-white' : 'bg-white/8 text-[#8bbdff]'}`}>
         {icon}
