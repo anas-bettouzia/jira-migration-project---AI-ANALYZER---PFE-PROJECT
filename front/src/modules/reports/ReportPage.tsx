@@ -273,12 +273,10 @@ export const ReportPage: React.FC = () => {
   }, [report, getTranslatedMigrationRecommendation]);
 
   const securityStatus = useMemo<SecurityStatus>(() => {
-    const hasIncompatible = metrics.incompatible > 0;
-    const multipleBlockers = metrics.blockers > 1;
     const score = metrics.score;
 
-    // Score-based primary decision
-    if (score < 50 || hasIncompatible || multipleBlockers) {
+    // Score ONLY determines status (no blocker/incompatible override)
+    if (score < 50) {
       return {
         label: t('reports.critical'),
         tone: 'red',
@@ -286,7 +284,7 @@ export const ReportPage: React.FC = () => {
       };
     }
 
-    if (score < 75 || metrics.major > 0) {
+    if (score < 75) {
       return {
         label: t('reports.review'),
         tone: 'yellow',
@@ -299,7 +297,7 @@ export const ReportPage: React.FC = () => {
       tone: 'green',
       description: t('reports.healthyText'),
     };
-  }, [metrics.blockers, metrics.incompatible, metrics.major, metrics.score, t]);
+  }, [metrics.score, t]);
 
   const detailEntries = useMemo(() => {
     const activeTranslation = language ? report?.translations?.[language] : undefined;
@@ -634,13 +632,11 @@ const DecisionSummary = ({
   };
 }) => {
   const { t } = useI18n();
-  const hasIncompatible = metrics.incompatible > 0;
-  const hasMultipleBlockers = metrics.blockers > 1;
   const score = metrics.score;
 
-  // Score-based primary decision logic
-  const isBlocked = score < 50 || hasIncompatible || hasMultipleBlockers;
-  const needsReview = !isBlocked && (score < 75 || metrics.major > 0);
+  // Score ONLY determines decision (no blocker/incompatible override)
+  const isBlocked = score < 50;
+  const needsReview = !isBlocked && score < 75;
 
   const decisionLabel = isBlocked
     ? t('reports.decisionBlocked')
