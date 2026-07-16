@@ -10,7 +10,7 @@ Workflow validators, conditions, and post-functions often contain custom logic t
 
 ## Cloud Limitation
 - Cloud workflow extensibility is different from Data Center.
-- Some marketplace apps provide Cloud equivalents, but feature parity is not guaranteed.
+-- Some app vendors provide Cloud equivalents, but feature parity is not guaranteed.
 - Complex Groovy scripts usually need rewriting or recreation.
 
 ## Compatibility Assessment

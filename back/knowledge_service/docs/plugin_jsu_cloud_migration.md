@@ -32,4 +32,4 @@ JSU Data Center workflow customizations often need recreation in Cloud using JSU
 - `issue_transition`
 
 ## Source Notes
-- Atlassian app assessment should be used to validate whether a Marketplace app has a Cloud migration path.
+-- Atlassian app assessment should be used to validate whether an app has a Cloud migration path.

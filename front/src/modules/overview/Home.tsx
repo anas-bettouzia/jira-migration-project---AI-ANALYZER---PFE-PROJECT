@@ -1053,7 +1053,7 @@ const ReportDecisionPreview = ({ t }: { t: (key: string) => string }) => (
       </div>
       <div className="grid gap-3">
         <ReportPriorityRow label="ScriptRunner" value={t('home.reportPreview.blocker')} tone="red" />
-        <ReportPriorityRow label="Marketplace apps" value={t('home.reportPreview.major')} tone="amber" />
+        <ReportPriorityRow label={t('home.preview.marketplace')} value={t('home.reportPreview.major')} tone="amber" />
         <ReportPriorityRow label="Cloud readiness" value={t('home.reportPreview.action')} tone="blue" />
       </div>
     </div>

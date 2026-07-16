@@ -9,7 +9,7 @@ Event listeners react to Jira issue or system events and often perform automatio
 - Some listeners run synchronously and may affect user workflows.
 
 ## Cloud Limitation
-- Cloud listener models are different and may depend on marketplace app capabilities, webhooks, Jira Automation, Forge triggers, or external integration workers.
+-- Cloud listener models are different and may depend on app capabilities, webhooks, Jira Automation, Forge triggers, or external integration workers.
 - Event payloads and identity fields differ from Data Center.
 
 ## Compatibility Assessment

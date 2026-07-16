@@ -92,10 +92,9 @@ const getTranslatedText = (
 const normalizeRecommendationText = (value: string | undefined) => {
   if (!value) return '';
   return value
-    .replace(/Marketplace replacements are validated/gi, 'incompatible components are reviewed')
-    .replace(/Marketplace replacements and app owners/gi, 'incompatible components and owners')
-    .replace(/remplacements Marketplace ne sont pas validés/gi, 'composants incompatibles ne sont pas revus')
-    .replace(/remplacements Marketplace et les responsables applicatifs/gi, 'composants incompatibles et les responsables projet');
+    .replace(/Marketplace replacements and app owners/gi, 'Marketplace replacements and application teams')
+    .replace(/app owners/gi, 'application teams')
+    .replace(/remplacements Marketplace et les responsables applicatifs/gi, 'remplacements Marketplace et les équipes applicatives');
 };
 
 const getReportDisplayName = (report: ReportData | null) => {
@@ -274,11 +273,24 @@ export const ReportPage: React.FC = () => {
   }, [report, getTranslatedMigrationRecommendation]);
 
   const securityStatus = useMemo<SecurityStatus>(() => {
-    if (metrics.incompatible > 0 || metrics.blockers > 0) {
+    const hasIncompatible = metrics.incompatible > 0;
+    const multipleBlockers = metrics.blockers > 1;
+    const singleBlocker = metrics.blockers === 1;
+    const safeScore = metrics.score >= 70;
+
+    if (hasIncompatible || multipleBlockers) {
       return {
         label: t('reports.critical'),
         tone: 'red',
         description: t('reports.criticalText'),
+      };
+    }
+
+    if (singleBlocker && safeScore) {
+      return {
+        label: t('reports.review'),
+        tone: 'yellow',
+        description: t('reports.reviewText'),
       };
     }
 
@@ -295,7 +307,7 @@ export const ReportPage: React.FC = () => {
       tone: 'green',
       description: t('reports.healthyText'),
     };
-  }, [metrics.blockers, metrics.incompatible, metrics.major, t]);
+  }, [metrics.blockers, metrics.incompatible, metrics.major, metrics.score, t]);
 
   const detailEntries = useMemo(() => {
     const activeTranslation = language ? report?.translations?.[language] : undefined;
@@ -623,14 +635,18 @@ const DecisionSummary = ({
   metrics,
 }: {
   metrics: {
+    score: number;
     blockers: number;
     incompatible: number;
     major: number;
   };
 }) => {
   const { t } = useI18n();
-  const isBlocked = metrics.blockers > 0 || metrics.incompatible > 0;
-  const needsReview = !isBlocked && metrics.major > 0;
+  const hasIncompatible = metrics.incompatible > 0;
+  const hasMultipleBlockers = metrics.blockers > 1;
+  const hasSingleBlocker = metrics.blockers === 1;
+  const isBlocked = hasIncompatible || hasMultipleBlockers;
+  const needsReview = !isBlocked && (metrics.major > 0 || (hasSingleBlocker && metrics.score >= 70));
 
   const decisionLabel = isBlocked
     ? t('reports.decisionBlocked')

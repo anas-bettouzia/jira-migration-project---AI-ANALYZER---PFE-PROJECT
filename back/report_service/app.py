@@ -7,10 +7,11 @@ Generates structured migration reports from compatibility matrices.
 import json
 import logging
 import os
+import re
 import sys
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request, send_file
+from flask import Flask, jsonify, make_response, request, send_file
 from flask_cors import CORS
 
 load_dotenv()
@@ -164,7 +165,13 @@ def export_json(report_id):
 
     report.pop("_id", None)
     file_path = export_report_to_json(report)
-    return send_file(file_path, as_attachment=True)
+    response = make_response(send_file(file_path, as_attachment=True))
+    filename = _sanitize_download_filename(
+        report.get("analysis_name") or report.get("source_filename") or report_id,
+        "json",
+    )
+    response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
 
 @app.route("/reports/<report_id>/pdf", methods=["GET"])
 def export_pdf(report_id):
@@ -181,7 +188,19 @@ def export_pdf(report_id):
     if requested_language in ("en", "fr"):
         report["language"] = requested_language
     file_path = export_report_to_pdf(report)
-    return send_file(file_path, as_attachment=True)
+    response = make_response(send_file(file_path, as_attachment=True))
+    filename = _sanitize_download_filename(
+        report.get("analysis_name") or report.get("source_filename") or report_id,
+        "pdf",
+    )
+    response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+def _sanitize_download_filename(value: str | None, extension: str) -> str:
+    safe_base = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(value or "report").strip())
+    safe_base = safe_base.strip("._-")[:120] or "report"
+    return f"{safe_base}.{extension}"
 
 @app.route("/reports/<report_id>/translate", methods=["POST"])
 def translate_report(report_id):

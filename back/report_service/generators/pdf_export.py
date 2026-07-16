@@ -95,11 +95,25 @@ PDF_TEXT = {
         "prioritized_recommendations": "Prioritized recommendations",
         "no_recommendations": "No prioritized recommendations were generated.",
         "continued_text": (
-            "Report text continues in the detailed analysis "
-            "available in JSON export."
+            "Report text continues in the "
+            "detailed analysis available in "
+            "JSON export."
         ),
         "footer_source": "Source",
         "footer_report": "Report",
+        "decision_status": "Migration decision status",
+        "decision_status_blocked": "Migration not recommended",
+        "decision_status_detail_blocked": (
+            "{count} blocker(s) must be resolved before "
+            "Cloud migration."
+        ),
+        "decision_status_review": "Migration requires review",
+        "decision_status_detail_review": (
+            "Major findings need stakeholder alignment "
+            "before go/no-go."
+        ),
+        "decision_status_ready": "Ready for migration review",
+        "decision_status_detail_ready": "No critical blocker detected.",
         "page": "Page",
     },
     "fr": {
@@ -147,11 +161,22 @@ PDF_TEXT = {
         "prioritized_recommendations": "Recommandations prioritaires",
         "no_recommendations": "Aucune recommandation prioritaire n'a été générée.",
         "continued_text": (
-            "Le texte du rapport continue dans l'analyse détaillée "
-            "disponible dans l'export JSON."
+            "Le texte du rapport continue dans "
+            "l'analyse détaillée disponible dans "
+            "l'export JSON."
         ),
         "footer_source": "Source",
         "footer_report": "Rapport",
+        "decision_status": "État de décision",
+        "decision_status_blocked": "Migration non recommandée",
+        "decision_status_detail_blocked": "{count} blocage(s) à résoudre avant la migration Cloud.",
+        "decision_status_review": "Migration à revoir",
+        "decision_status_detail_review": (
+            "Les constats majeurs doivent être alignés "
+            "avant la décision."
+        ),
+        "decision_status_ready": "Prêt pour revue migration",
+        "decision_status_detail_ready": "Aucun blocage critique détecté.",
         "page": "Page",
     },
 }
@@ -178,7 +203,7 @@ def export_report_to_pdf(
     )
     language = _pdf_language(report)
     doc.report_id = report_id
-    doc.source_filename = report.get("source_filename") or _pdf_text(language, "migration_package")
+    doc.source_filename = _report_source_name(report, language)
     doc.language = language
 
     styles = _build_styles()
@@ -309,11 +334,52 @@ def _build_styles():
     return styles
 
 
+def _report_source_name(report: dict, language: str) -> str:
+    """Return the best visible source name for the PDF report."""
+    return str(
+        report.get("analysis_name")
+        or report.get("source_filename")
+        or _pdf_text(language, "migration_package")
+    )
+
+
+def _pdf_decision_status(report: dict) -> dict:
+    """Return the report decision state used in PDF export."""
+    stats = report.get("statistics", {}) or {}
+    score = stats.get("migration_score", report.get("migration_score", 0)) or 0
+    blockers = stats.get("blocker_count", report.get("blocker_count", 0)) or 0
+    incompatible = stats.get("incompatible_count", 0) or 0
+    major = stats.get("major_count", 0) or 0
+    safe_score = score >= 70
+    is_blocked = incompatible > 0 or blockers > 1
+    needs_review = not is_blocked and (major > 0 or (blockers == 1 and safe_score))
+
+    if is_blocked:
+        return {
+            "label": "decision_status_blocked",
+            "detail": "decision_status_detail_blocked",
+            "count": blockers,
+        }
+
+    if needs_review:
+        return {
+            "label": "decision_status_review",
+            "detail": "decision_status_detail_review",
+            "count": blockers,
+        }
+
+    return {
+        "label": "decision_status_ready",
+        "detail": "decision_status_detail_ready",
+        "count": blockers,
+    }
+
+
 def _add_cover_header(story: list, report: dict, styles, language: str) -> None:
     """Add branded report heading with logo and metadata."""
     logo = _logo_flowable(width=44 * mm)
     generated_at = _format_date(report.get("generated_at", ""))
-    source_filename = report.get("source_filename") or _pdf_text(language, "migration_package")
+    source_filename = _report_source_name(report, language)
 
     meta = Paragraph(
         f"<b>{_pdf_text(language, 'generated')}:</b> {generated_at}<br/>"
@@ -383,6 +449,8 @@ def _add_summary_cards(story: list, report: dict, styles, language: str) -> None
         ("RIGHTPADDING", (0, 0), (-1, -1), 3),
     ]))
     story.append(table)
+    story.append(Spacer(1, 8))
+    _add_decision_status(story, report, styles, language)
     story.append(Spacer(1, 14))
 
 
@@ -457,6 +525,31 @@ def _add_executive_summary(story: list, report: dict, styles, language: str) -> 
         or report.get("summary", "")
     )
     _add_markdown_text(story, summary_text, styles, language)
+    story.append(Spacer(1, 8))
+
+
+def _add_decision_status(story: list, report: dict, styles, language: str) -> None:
+    """Add the top migration decision status summary to the PDF."""
+    status = _pdf_decision_status(report)
+    label = _pdf_text(language, status["label"])
+    detail = _pdf_text(language, status["detail"]).format(count=status["count"])
+    if status["label"] == "decision_status_blocked":
+        color = BRAND_RED
+        background = SOFT_RED
+    elif status["label"] == "decision_status_review":
+        color = BRAND_ORANGE
+        background = SOFT_ORANGE
+    else:
+        color = BRAND_GREEN
+        background = SOFT_GREEN
+
+    story.append(Paragraph(_pdf_text(language, "decision_status"), styles["SectionTitle"]))
+    story.append(_notice_box(
+        f"{label}: {detail}",
+        styles,
+        background,
+        color,
+    ))
     story.append(Spacer(1, 8))
 
 
