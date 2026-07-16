@@ -42,6 +42,7 @@ type Translate = (key: string, values?: Record<string, string | number>) => stri
 export const AnalysisPage: React.FC = () => {
   const [jobId, setJobId] = useState<string | null>(null);
   const [analysisName, setAnalysisName] = useState('');
+  const [selectedFilename, setSelectedFilename] = useState('');
   const [analysisDraftKey, setAnalysisDraftKey] = useState(0);
   const [recentJobs, setRecentJobs] = useState<AnalysisJob[]>([]);
   const [recentJobsHasMore, setRecentJobsHasMore] = useState(false);
@@ -136,15 +137,36 @@ export const AnalysisPage: React.FC = () => {
   const startNewAnalysis = () => {
     setJobId(null);
     setAnalysisName('');
+    setSelectedFilename('');
     setHasSelectedPackage(false);
     setAnalysisDraftKey((key) => key + 1);
     window.setTimeout(() => analysisNameRef.current?.focus(), 0);
   };
 
   const handleUploadSuccess = (id: string) => {
+    if (!analysisName.trim() && selectedFilename) {
+      setAnalysisName(selectedFilename.replace(/\.[^/.]+$/, '').trim());
+    }
     setJobId(id);
     setHasSelectedPackage(false);
   };
+
+  useEffect(() => {
+    if (!jobStatus?.payload) return;
+
+    const incomingName = jobStatus.payload.analysis_name;
+    if (typeof incomingName === 'string' && incomingName.trim()) {
+      setAnalysisName(incomingName.trim());
+      return;
+    }
+
+    if (!analysisName.trim()) {
+      const filename = jobStatus.payload.filename;
+      if (typeof filename === 'string' && filename.trim()) {
+        setAnalysisName(filename.replace(/\.[^/.]+$/, '').trim());
+      }
+    }
+  }, [jobStatus?.payload, analysisName]);
 
   const handleRecentJobClick = (job: AnalysisJob) => {
     const reportIdFromJob = job.result?.report_id;
@@ -333,7 +355,10 @@ export const AnalysisPage: React.FC = () => {
                             <FileUploader
                               key={analysisDraftKey}
                               analysisName={analysisName}
-                              onFileSelectionChange={setHasSelectedPackage}
+                              onFileSelectionChange={(hasFile, fileName) => {
+                                setHasSelectedPackage(hasFile);
+                                setSelectedFilename(fileName ?? '');
+                              }}
                               onUploadSuccess={handleUploadSuccess}
                             />
                           </div>
@@ -367,7 +392,7 @@ export const AnalysisPage: React.FC = () => {
                               <p className="mt-1 max-w-xl text-sm text-[#64708d] dark:text-white/60">
                                 {jobStatus?.status === 'COMPLETED'
                                   ? t('analysis.auditCompletedText')
-                                  : t('analysis.pipelineProgressText', { name: analysisName || t('analysis.migrationPackage') })}
+                                  : t('analysis.pipelineProgressText', { name: analysisName || selectedFilename.replace(/\.[^/.]+$/, '') || t('analysis.migrationPackage') })}
                               </p>
                             </div>
                             <StatusBadge status={jobStatus?.status} />

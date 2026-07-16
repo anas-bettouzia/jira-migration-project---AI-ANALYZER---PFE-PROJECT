@@ -15,6 +15,7 @@ def build_report(
     matrix: dict,
     language: str = "en",
     source_filename: str = "",
+    analysis_name: str = "",
     user_email: str = "",
     user_id: str = "",
 ) -> dict:
@@ -39,6 +40,7 @@ def build_report(
         "analysis_id": matrix.get("analysis_id", ""),
         "generated_at": datetime.utcnow().isoformat(),
         "title": "Jira Data Center to Cloud Migration Compatibility Report",
+        "analysis_name": analysis_name,
         "source_filename": source_filename,
         "user_email": user_email,
         "user_id": user_id,

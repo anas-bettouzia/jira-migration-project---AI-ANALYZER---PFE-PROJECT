@@ -68,6 +68,7 @@ def generate_report():
             matrix,
             language=language,
             source_filename=data.get("source_filename", ""),
+            analysis_name=data.get("analysis_name", ""),
             user_email=data.get("user_email", matrix.get("user_email", "")),
             user_id=data.get("user_id", matrix.get("user_id", "")),
         )

@@ -1308,6 +1308,10 @@ def create_app():
             if language:
                 user_context = {**user_context, 'language': language}
 
+            analysis_name = request.form.get('analysis_name')
+            if analysis_name:
+                user_context['analysis_name'] = analysis_name.strip()
+
             response = requests.post(
                 url,
                 files=files,

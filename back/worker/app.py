@@ -64,13 +64,18 @@ def run_job():
     user_email = request.form.get("user_email") or request.headers.get("X-User-Email")
     user_id = request.form.get("user_id") or request.headers.get("X-User-Id")
     language = request.form.get("language") or request.headers.get("X-Language")
+    analysis_name = request.form.get("analysis_name") or request.headers.get("X-Analysis-Name")
 
     # On cree le job en base de donnees tout de suite avec son proprietaire.
+    payload = {
+        "filename": uploaded_file.filename,
+    }
+    if analysis_name:
+        payload["analysis_name"] = analysis_name.strip()
+
     job = create_job(
         job_type="FULL_ANALYSIS",
-        payload={
-            "filename": uploaded_file.filename,
-        },
+        payload=payload,
         user_email=user_email,
         user_id=user_id,
         language=language,

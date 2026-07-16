@@ -80,7 +80,13 @@ def run_full_analysis_job(job_id: str, file_path: str) -> dict:
             "Compatibility analysis complete. Generating report.",
         )
         source_filename = _get_source_filename(job_id)
-        report_result = _call_report_service(matrix_id, source_filename, user_context=user_context)
+        analysis_name = _get_analysis_name(job_id)
+        report_result = _call_report_service(
+            matrix_id,
+            source_filename,
+            analysis_name=analysis_name,
+            user_context=user_context,
+        )
         report_id = report_result.get("report_id")
 
         if not report_id:
@@ -99,6 +105,7 @@ def run_full_analysis_job(job_id: str, file_path: str) -> dict:
                 "ai_model": report_result.get("ai_model", ""),
                 "title": report_result.get("title", ""),
                 "summary": report_result.get("summary", ""),
+                "analysis_name": report_result.get("analysis_name", analysis_name),
                 "source_filename": report_result.get("source_filename", source_filename),
             },
         }
@@ -173,6 +180,14 @@ def _get_source_filename(job_id: str) -> str:
     return str(filename or "")
 
 
+def _get_analysis_name(job_id: str) -> str:
+    """Return the custom analysis name stored on the worker job, if any."""
+    job = get_job(job_id) or {}
+    payload = job.get("payload", {}) if isinstance(job, dict) else {}
+    analysis_name = payload.get("analysis_name", "") if isinstance(payload, dict) else ""
+    return str(analysis_name or "")
+
+
 def _get_user_context(job_id: str) -> dict:
     """Return the user ownership context stored on the worker job."""
     job = get_job(job_id) or {}
@@ -197,6 +212,7 @@ def _get_user_context(job_id: str) -> dict:
 def _call_report_service(
     matrix_id: str,
     source_filename: str = "",
+    analysis_name: str = "",
     user_context: dict | None = None,
 ) -> dict:
     """Call Report Service /reports/generate endpoint."""
@@ -204,10 +220,10 @@ def _call_report_service(
 
     logger.info("Calling Report Service for matrix_id=%s", matrix_id)
 
-    # Build payload and forward language preference when present.
     payload = {
         "matrix_id": matrix_id,
         "source_filename": source_filename,
+        "analysis_name": analysis_name,
         **(user_context or {}),
     }
 

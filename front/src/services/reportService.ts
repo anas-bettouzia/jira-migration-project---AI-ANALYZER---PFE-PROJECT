@@ -180,7 +180,11 @@ export const reportService = {
     if (!headerFilename) {
       try {
         const meta = await this.getReport(reportId);
-        const raw = typeof meta?.source_filename === 'string' ? meta.source_filename : undefined;
+        const raw = typeof meta?.analysis_name === 'string' && meta.analysis_name.trim()
+          ? meta.analysis_name
+          : typeof meta?.source_filename === 'string'
+            ? meta.source_filename
+            : undefined;
         filename = buildExportFilename(reportId, type, raw, language);
       } catch {
         // ignore metadata errors and fallback to id-based name

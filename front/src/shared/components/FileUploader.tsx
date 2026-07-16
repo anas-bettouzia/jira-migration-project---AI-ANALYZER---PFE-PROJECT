@@ -5,7 +5,7 @@ import { useI18n } from '../../i18n';
 
 interface FileUploaderProps {
   analysisName?: string;
-  onFileSelectionChange?: (hasFile: boolean) => void;
+  onFileSelectionChange?: (hasFile: boolean, fileName?: string) => void;
   onUploadSuccess: (jobId: string) => void;
 }
 
@@ -22,7 +22,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ analysisName, onFile
     if (!nextFile) return;
     setFile(nextFile);
     setValidationPulseKey((key) => key + 1);
-    onFileSelectionChange?.(true);
+    onFileSelectionChange?.(true, nextFile.name);
   };
 
   const clearFile = () => {
@@ -35,7 +35,8 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ analysisName, onFile
     if (!file) return;
     setLoading(true);
     try {
-      const result = await analysisService.uploadFile(file, language, analysisName);
+      const filenameBase = file.name.replace(/\.[^/.]+$/, '');
+      const result = await analysisService.uploadFile(file, language, analysisName?.trim() || filenameBase);
       onUploadSuccess(result.job_id);
     } catch {
       alert(t('uploader.uploadError'));
