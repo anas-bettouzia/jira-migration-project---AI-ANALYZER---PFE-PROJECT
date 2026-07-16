@@ -274,9 +274,9 @@ export const ReportPage: React.FC = () => {
 
   const securityStatus = useMemo<SecurityStatus>(() => {
     const score = metrics.score;
+    const hasBlockers = metrics.blockers > 0 || metrics.incompatible > 0;
 
-    // Score ONLY determines status (no blocker/incompatible override)
-    if (score < 50) {
+    if (hasBlockers) {
       return {
         label: t('reports.critical'),
         tone: 'red',
@@ -297,7 +297,7 @@ export const ReportPage: React.FC = () => {
       tone: 'green',
       description: t('reports.healthyText'),
     };
-  }, [metrics.score, t]);
+  }, [metrics.score, metrics.blockers, metrics.incompatible, t]);
 
   const detailEntries = useMemo(() => {
     const activeTranslation = language ? report?.translations?.[language] : undefined;
