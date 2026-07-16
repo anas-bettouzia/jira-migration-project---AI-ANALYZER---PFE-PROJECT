@@ -638,6 +638,9 @@ const DecisionSummary = ({
   const isBlocked = score < 50;
   const needsReview = !isBlocked && score < 75;
 
+  const hasBlockers = metrics.blockers > 0;
+  const readyWithBlockers = !isBlocked && !needsReview && hasBlockers;
+
   const decisionLabel = isBlocked
     ? t('reports.decisionBlocked')
     : needsReview
@@ -647,12 +650,22 @@ const DecisionSummary = ({
     ? t('reports.decisionBlockedText', { count: metrics.blockers })
     : needsReview
       ? t('reports.decisionReviewText')
-      : t('reports.decisionReadyText');
+      : readyWithBlockers
+        ? t('reports.decisionReadyWithBlockersText', { count: metrics.blockers })
+        : t('reports.decisionReadyText');
   const focusText = isBlocked
     ? t('reports.decisionFocusBlocked')
     : needsReview
       ? t('reports.decisionFocusReview')
       : t('reports.decisionFocusReady');
+
+  const decisionDetail = isBlocked
+    ? t('reports.decisionBlockedDetail', { count: metrics.blockers })
+    : needsReview
+      ? t('reports.decisionReviewDetail')
+      : readyWithBlockers
+        ? t('reports.decisionReadyWithBlockersDetail', { count: metrics.blockers })
+        : t('reports.decisionReadyDetail');
 
   return (
     <div className="mt-7 grid gap-3 rounded-2xl border border-[#dbe4f2] bg-[#f8faff] p-3 shadow-sm dark:border-white/10 dark:bg-white/5 lg:grid-cols-[0.95fr_1.35fr]">
@@ -669,11 +682,7 @@ const DecisionSummary = ({
           </div>
           <p className="mt-1 text-base font-black leading-6 text-[#111b3f] dark:text-white">{decisionLabel}</p>
           <p className="mt-1 text-xs font-semibold leading-5 text-[#64708d] dark:text-white/55">
-            {isBlocked
-              ? t('reports.decisionBlockedDetail', { count: metrics.blockers })
-              : needsReview
-                ? t('reports.decisionReviewDetail')
-                : t('reports.decisionReadyDetail')}
+            {decisionDetail}
           </p>
         </div>
       </div>
@@ -683,7 +692,7 @@ const DecisionSummary = ({
           icon={<AlertTriangle size={15} />}
           label={t('reports.decisionAction')}
           value={decisionText}
-          tone={isBlocked ? 'red' : 'blue'}
+          tone={isBlocked ? 'red' : needsReview ? 'yellow' : 'green'}
         />
         <DecisionActionRow
           icon={<Layers size={15} />}
