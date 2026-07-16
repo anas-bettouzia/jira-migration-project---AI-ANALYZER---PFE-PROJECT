@@ -275,10 +275,10 @@ export const ReportPage: React.FC = () => {
   const securityStatus = useMemo<SecurityStatus>(() => {
     const hasIncompatible = metrics.incompatible > 0;
     const multipleBlockers = metrics.blockers > 1;
-    const singleBlocker = metrics.blockers === 1;
-    const safeScore = metrics.score >= 70;
+    const score = metrics.score;
 
-    if (hasIncompatible || multipleBlockers) {
+    // Score-based primary decision
+    if (score < 50 || hasIncompatible || multipleBlockers) {
       return {
         label: t('reports.critical'),
         tone: 'red',
@@ -286,15 +286,7 @@ export const ReportPage: React.FC = () => {
       };
     }
 
-    if (singleBlocker && safeScore) {
-      return {
-        label: t('reports.review'),
-        tone: 'yellow',
-        description: t('reports.reviewText'),
-      };
-    }
-
-    if (metrics.major > 0) {
+    if (score < 75 || metrics.major > 0) {
       return {
         label: t('reports.review'),
         tone: 'yellow',
@@ -644,9 +636,11 @@ const DecisionSummary = ({
   const { t } = useI18n();
   const hasIncompatible = metrics.incompatible > 0;
   const hasMultipleBlockers = metrics.blockers > 1;
-  const hasSingleBlocker = metrics.blockers === 1;
-  const isBlocked = hasIncompatible || hasMultipleBlockers;
-  const needsReview = !isBlocked && (metrics.major > 0 || (hasSingleBlocker && metrics.score >= 70));
+  const score = metrics.score;
+
+  // Score-based primary decision logic
+  const isBlocked = score < 50 || hasIncompatible || hasMultipleBlockers;
+  const needsReview = !isBlocked && (score < 75 || metrics.major > 0);
 
   const decisionLabel = isBlocked
     ? t('reports.decisionBlocked')
