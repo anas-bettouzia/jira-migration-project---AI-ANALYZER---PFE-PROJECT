@@ -6,11 +6,17 @@ export interface AnalysisJob {
   job_type?: string;
   payload?: {
     filename?: string;
+    analysis_name?: string;
     [key: string]: unknown;
   };
   result?: {
     report_id?: string;
     analysis_id?: string;
+    summary?: {
+      migration_score?: number;
+      blocker_count?: number;
+      total_components?: number;
+    };
     [key: string]: unknown;
   };
   created_at?: string;
@@ -20,10 +26,13 @@ export interface AnalysisJob {
 }
 
 export const analysisService = {
-  async uploadFile(file: File, language?: string) {
+  async uploadFile(file: File, language?: string, analysisName?: string) {
+    const normalizedAnalysisName = analysisName?.trim();
+
     const formData = new FormData();
     formData.append('file', file);
     if (language) formData.append('language', language);
+    if (normalizedAnalysisName) formData.append('analysis_name', normalizedAnalysisName);
 
     const response = await api.post('/analyze', formData, {
       headers: {

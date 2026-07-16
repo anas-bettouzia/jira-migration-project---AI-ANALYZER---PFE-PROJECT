@@ -5,6 +5,7 @@ import { FlagIcon } from './FlagIcon';
 
 interface LocaleSwitcherProps {
   className?: string;
+  dropdownAlign?: 'left' | 'right';
 }
 
 const locales: Array<{ code: Language; labelKey: string }> = [
@@ -12,7 +13,7 @@ const locales: Array<{ code: Language; labelKey: string }> = [
   { code: 'fr', labelKey: 'common.french' },
 ];
 
-export const LocaleSwitcher = ({ className = '' }: LocaleSwitcherProps) => {
+export const LocaleSwitcher = ({ className = '', dropdownAlign = 'left' }: LocaleSwitcherProps) => {
   const { language, setLanguage, t } = useI18n();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
@@ -45,7 +46,11 @@ export const LocaleSwitcher = ({ className = '' }: LocaleSwitcherProps) => {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 rounded-lg border border-[#dbe4f2] bg-white shadow-lg dark:border-white/10 dark:bg-[#0a1628] p-1 whitespace-nowrap">
+        <div
+          className={`absolute top-full z-50 mt-1 rounded-lg border border-[#dbe4f2] bg-white p-1 shadow-lg dark:border-white/10 dark:bg-[#0a1628] whitespace-nowrap ${
+            dropdownAlign === 'right' ? 'right-0' : 'left-0'
+          }`}
+        >
           <button
             type="button"
             onClick={() => {

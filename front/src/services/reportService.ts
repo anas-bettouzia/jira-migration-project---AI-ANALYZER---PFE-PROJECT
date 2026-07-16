@@ -4,6 +4,7 @@ import { type Language } from '../i18n';
 export interface ReportData {
   report_id: string;
   source_filename?: string;
+  analysis_name?: string;
   summary?: string; // Résumé texte exécutif
   statistics?: {
     migration_score?: number;
@@ -157,7 +158,7 @@ export const reportService = {
   /**
    * Liste tous les rapports (version courte)
    */
-  async listReports() {
+  async listReports(): Promise<{ reports?: Array<{ report_id?: string }> }> {
     const response = await api.get('/reports');
     return response.data;
   },
@@ -181,7 +182,7 @@ export const reportService = {
         const meta = await this.getReport(reportId);
         const raw = typeof meta?.source_filename === 'string' ? meta.source_filename : undefined;
         filename = buildExportFilename(reportId, type, raw, language);
-      } catch (err) {
+      } catch {
         // ignore metadata errors and fallback to id-based name
       }
     }

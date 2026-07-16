@@ -89,7 +89,19 @@ const getTranslatedText = (
   return translated ?? value ?? '';
 };
 
-const getSourceFilename = (report: ReportData | null) => {
+const normalizeRecommendationText = (value: string | undefined) => {
+  if (!value) return '';
+  return value
+    .replace(/Marketplace replacements are validated/gi, 'incompatible components are reviewed')
+    .replace(/Marketplace replacements and app owners/gi, 'incompatible components and owners')
+    .replace(/remplacements Marketplace ne sont pas validés/gi, 'composants incompatibles ne sont pas revus')
+    .replace(/remplacements Marketplace et les responsables applicatifs/gi, 'composants incompatibles et les responsables projet');
+};
+
+const getReportDisplayName = (report: ReportData | null) => {
+  const analysisName = report?.analysis_name;
+  if (typeof analysisName === 'string' && analysisName.trim()) return analysisName.trim();
+
   const value = report?.source_filename;
   if (typeof value !== 'string') return '';
   return value.split(/[\\\\/]/).pop()?.trim() ?? '';
@@ -102,6 +114,7 @@ export const ReportPage: React.FC = () => {
   const [report, setReport] = useState<ReportData | null>(null);
   const [sourceFilename, setSourceFilename] = useState("");
   const [loading, setLoading] = useState(true);
+  const [showTranslationNotice, setShowTranslationNotice] = useState(false);
   const [isLight, setIsLight] = useState(() => {
     const savedTheme = localStorage.getItem(THEME_KEY);
     if (savedTheme) return savedTheme === 'light';
@@ -113,6 +126,28 @@ export const ReportPage: React.FC = () => {
     localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark');
   }, [isLight]);
 
+  useEffect(() => {
+    if (!report) return;
+
+    const isTranslatedView = language !== (report.language || 'en');
+    const showTimeout = window.setTimeout(() => {
+      setShowTranslationNotice(isTranslatedView);
+    }, 0);
+
+    if (!isTranslatedView) {
+      return () => window.clearTimeout(showTimeout);
+    }
+
+    const hideTimeout = window.setTimeout(() => {
+      setShowTranslationNotice(false);
+    }, 5000);
+
+    return () => {
+      window.clearTimeout(showTimeout);
+      window.clearTimeout(hideTimeout);
+    };
+  }, [language, report]);
+
   const originalAiSummaryRef = useRef<string | null>(null);
   const translationAttemptedRef = useRef<Partial<Record<Language, boolean>>>({});
 
@@ -122,15 +157,20 @@ export const ReportPage: React.FC = () => {
       try {
         const data = await reportService.getReport(reportId);
         setReport(data);
-        const reportFilename = getSourceFilename(data);
-        if (reportFilename) {
-          setSourceFilename(reportFilename);
+        const reportDisplayName = getReportDisplayName(data);
+        if (reportDisplayName) {
+          setSourceFilename(reportDisplayName);
         } else {
           try {
             const jobs = await analysisService.listJobs(50);
             const matchingJob = jobs.find((job) => job.result?.report_id === reportId);
-            const jobFilename = matchingJob?.payload?.filename;
-            setSourceFilename(typeof jobFilename === "string" ? jobFilename : "");
+            const jobAnalysisName = matchingJob?.payload?.analysis_name;
+            if (typeof jobAnalysisName === "string" && jobAnalysisName.trim()) {
+              setSourceFilename(jobAnalysisName.trim());
+            } else {
+              const jobFilename = matchingJob?.payload?.filename;
+              setSourceFilename(typeof jobFilename === "string" ? jobFilename : "");
+            }
           } catch (jobError) {
             console.warn("Unable to resolve report source filename:", jobError);
           }
@@ -227,7 +267,9 @@ export const ReportPage: React.FC = () => {
       compatible: statistics?.compatible_count ?? 0,
       incompatible: statistics?.incompatible_count ?? 0,
       major: statistics?.major_count ?? 0,
-      recommendation: getTranslatedMigrationRecommendation() ?? statistics?.migration_recommendation ?? report?.migration_recommendation,
+      recommendation: normalizeRecommendationText(
+        getTranslatedMigrationRecommendation() ?? statistics?.migration_recommendation ?? report?.migration_recommendation,
+      ),
     };
   }, [report, getTranslatedMigrationRecommendation]);
 
@@ -260,6 +302,20 @@ export const ReportPage: React.FC = () => {
     return normalizeDetails(activeTranslation?.details ?? report?.details);
   }, [report?.details, report?.translations, language]);
   const componentFindings = useMemo(() => report?.sections?.components ?? [], [report?.sections?.components]);
+  const topBlockers = useMemo(() => {
+    const explicitBlockers = report?.sections?.blockers ?? [];
+    const fallbackBlockers = componentFindings.filter((component) => {
+      const risk = component.final_risk ?? component.risk_level;
+      const status = component.final_status ?? component.overall_status;
+      return risk === 'BLOCKER' || status === 'INCOMPATIBLE';
+    });
+
+    const source = explicitBlockers.length > 0 ? explicitBlockers : fallbackBlockers;
+    return source
+      .slice()
+      .sort((a, b) => riskRank(b.final_risk ?? b.risk_level) - riskRank(a.final_risk ?? a.risk_level))
+      .slice(0, 5);
+  }, [componentFindings, report?.sections?.blockers]);
   const prioritizedRecommendations = useMemo(
     () => report?.sections?.recommendations ?? [],
     [report?.sections?.recommendations],
@@ -279,6 +335,19 @@ export const ReportPage: React.FC = () => {
 
   const reportDetails = useMemo(() => {
     const details: Array<{ label: string; value: unknown }> = [];
+    const displayName = sourceFilename || getReportDisplayName(report);
+
+    if (displayName) {
+      details.push({ label: t('reports.sourcePackage'), value: displayName });
+    }
+
+    const generatedOn = report?.updated_at ?? report?.created_at;
+    if (generatedOn) {
+      details.push({ label: t('reports.generatedOn'), value: formatReportDate(generatedOn, language) });
+    }
+
+    details.push({ label: t('reports.exportFormats'), value: 'PDF / JSON' });
+    details.push({ label: t('reports.displayLanguage'), value: language === 'fr' ? t('reports.languageFrench') : t('reports.languageEnglish') });
 
     if (report?.ai_model) {
       details.push({ label: t('reports.analysisEngine'), value: report.ai_model });
@@ -288,13 +357,8 @@ export const ReportPage: React.FC = () => {
       details.push({ label: t('reports.aiUsed'), value: report.ai_used ? t('common.yes') : t('common.no') });
     }
 
-    const generatedOn = report?.updated_at ?? report?.created_at;
-    if (generatedOn) {
-      details.push({ label: t('reports.generatedOn'), value: generatedOn });
-    }
-
     return details;
-  }, [report, t]);
+  }, [report, sourceFilename, language, t]);
 
   const handleDownload = async (type: 'pdf' | 'json') => {
     if (!reportId) return;
@@ -305,7 +369,7 @@ export const ReportPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#eef2fb] text-[#111b3f] transition-colors duration-300 dark:bg-[#071126] dark:text-white">
         <MainSidebar activePage="reports" />
-        <div className="flex min-h-screen items-center justify-center md:pl-[72px]">
+        <div className="flex min-h-screen items-center justify-center md:pl-[88px]">
           <div className="flex flex-col items-center">
             <Loader2 className="animate-spin text-[#2f80ed]" size={34} />
             <p className="mt-4 text-sm font-black text-[#64708d] dark:text-white/60">{t('reports.loading')}</p>
@@ -319,7 +383,7 @@ export const ReportPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#eef2fb] text-[#111b3f] transition-colors duration-300 dark:bg-[#071126] dark:text-white">
         <MainSidebar activePage="reports" />
-        <div className="flex min-h-screen items-center justify-center px-6 md:pl-[72px]">
+        <div className="flex min-h-screen items-center justify-center px-6 md:pl-[88px]">
           <div className="max-w-md rounded-2xl border border-[#dbe4f2] bg-white p-8 text-center shadow-sm dark:border-white/10 dark:bg-[#101d3a]">
             <XCircle className="mx-auto text-red-500" size={34} />
             <h1 className="mt-4 text-xl font-black">{t('reports.notFound')}</h1>
@@ -339,8 +403,31 @@ export const ReportPage: React.FC = () => {
   return (
     <div className="report-page min-h-screen bg-[#eef2fb] text-[#111b3f] transition-colors duration-300 dark:bg-[#071126] dark:text-white">
       <MainSidebar activePage="reports" />
+      {showTranslationNotice && (
+        <div
+          role="status"
+          className="fixed right-4 top-20 z-50 max-w-sm rounded-2xl border border-[#bdd5fa] bg-white p-4 shadow-xl shadow-[#2f80ed]/10 dark:border-[#2f80ed]/30 dark:bg-[#101d3a]"
+        >
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eaf3ff] text-[#2f80ed] dark:bg-[#10264d] dark:text-[#8bbdff]">
+              <Sparkles size={18} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-black text-[#111b3f] dark:text-white">{t('reports.translationNoticeTitle')}</p>
+              <p className="mt-1 text-xs leading-5 text-[#64708d] dark:text-white/65">{t('reports.translationNoticeText')}</p>
+            </div>
+            <button
+              onClick={() => setShowTranslationNotice(false)}
+              className="ml-1 rounded-lg px-2 py-1 text-xs font-black text-[#8a96b3] transition hover:bg-[#f3f6fb] hover:text-[#111b3f] dark:text-white/45 dark:hover:bg-white/8 dark:hover:text-white"
+              aria-label={t('common.close')}
+            >
+              x
+            </button>
+          </div>
+        </div>
+      )}
 
-      <div className="min-h-screen pb-20 md:pb-0 md:pl-[72px]">
+      <div className="min-h-screen pb-20 md:pb-0 md:pl-[88px]">
         <header className="sticky top-0 z-30 border-b border-[#dce4f4] bg-white/95 backdrop-blur transition-colors duration-300 dark:border-white/10 dark:bg-[#0c1730]/95">
           <div className="flex min-h-[62px] items-center justify-between gap-2 px-3 py-2 sm:gap-4 sm:px-6 sm:py-0 lg:px-8">
             <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
@@ -390,11 +477,11 @@ export const ReportPage: React.FC = () => {
 
         <main className="px-3 py-5 sm:px-6 lg:px-8">
           <section className="mx-auto max-w-7xl">
-            <div className="mb-6 grid gap-4 lg:grid-cols-[1fr_360px]">
+            <div className="mb-6">
               <div className="rounded-[22px] bg-white p-5 shadow-sm ring-1 ring-[#dbe4f2] dark:bg-[#101d3a] dark:ring-white/10 sm:p-8">
-                <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#bdd5fa] bg-[#f5f9ff] px-4 py-2 text-xs font-black text-[#2f80ed] dark:border-[#2f80ed]/35 dark:bg-[#10264d] dark:text-[#8bbdff]">
+                <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
+                  <div className="flex min-w-0 flex-col">
+                    <div className="mb-4 inline-flex self-start items-center gap-2 rounded-full border border-[#bdd5fa] bg-[#f5f9ff] px-4 py-2 text-xs font-black text-[#2f80ed] dark:border-[#2f80ed]/35 dark:bg-[#10264d] dark:text-[#8bbdff]">
                       <Sparkles size={14} />
                       {t('reports.aiAssessment')}
                     </div>
@@ -402,13 +489,15 @@ export const ReportPage: React.FC = () => {
                     <p className="mt-4 max-w-3xl text-sm leading-7 text-[#64708d] dark:text-white/60">
                       {metrics.recommendation || t('reports.noRecommendation')}
                     </p>
+                    <DecisionSummary metrics={metrics} />
                   </div>
 
-                  <ScoreRing score={metrics.score} />
+                  <div className="flex flex-col gap-3 lg:pt-1">
+                    <ScoreRing score={metrics.score} />
+                    <SecurityPanel status={securityStatus} />
+                  </div>
                 </div>
               </div>
-
-              <SecurityPanel status={securityStatus} />
             </div>
 
             <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -423,6 +512,21 @@ export const ReportPage: React.FC = () => {
                 {report.ai_summary && (
                   <ContentPanel title={t('reports.aiSummary')} icon={<Brain size={18} />}>
                     <AISummaryRenderer content={sanitizedAiSummary} />
+                  </ContentPanel>
+                )}
+
+                {topBlockers.length > 0 && (
+                  <ContentPanel title={t('reports.topBlockers')} icon={<AlertTriangle size={18} />}>
+                    <div className="space-y-3">
+                      {topBlockers.map((component, index) => (
+                        <TopBlockerCard
+                          key={`${component.component_id ?? componentDisplayName(component, index)}-${index}`}
+                          component={component}
+                          index={index}
+                          report={report}
+                        />
+                      ))}
+                    </div>
                   </ContentPanel>
                 )}
 
@@ -501,10 +605,137 @@ export const ReportPage: React.FC = () => {
 };
 
 
+const formatReportDate = (value: unknown, language: Language) => {
+  if (typeof value !== 'string' && typeof value !== 'number') return formatValue(value);
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return formatValue(value);
+
+  return new Intl.DateTimeFormat(language === 'fr' ? 'fr-FR' : 'en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+};
+
+const DecisionSummary = ({
+  metrics,
+}: {
+  metrics: {
+    blockers: number;
+    incompatible: number;
+    major: number;
+  };
+}) => {
+  const { t } = useI18n();
+  const isBlocked = metrics.blockers > 0 || metrics.incompatible > 0;
+  const needsReview = !isBlocked && metrics.major > 0;
+
+  const decisionLabel = isBlocked
+    ? t('reports.decisionBlocked')
+    : needsReview
+      ? t('reports.decisionReview')
+      : t('reports.decisionReady');
+  const decisionText = isBlocked
+    ? t('reports.decisionBlockedText', { count: metrics.blockers })
+    : needsReview
+      ? t('reports.decisionReviewText')
+      : t('reports.decisionReadyText');
+  const focusText = isBlocked
+    ? t('reports.decisionFocusBlocked')
+    : needsReview
+      ? t('reports.decisionFocusReview')
+      : t('reports.decisionFocusReady');
+
+  return (
+    <div className="mt-7 grid gap-3 rounded-2xl border border-[#dbe4f2] bg-[#f8faff] p-3 shadow-sm dark:border-white/10 dark:bg-white/5 lg:grid-cols-[0.95fr_1.35fr]">
+      <div className="flex min-w-0 items-center gap-3 rounded-xl bg-white p-4 ring-1 ring-[#e6edf7] dark:bg-[#0c1730]/70 dark:ring-white/10">
+        <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${toneClasses[isBlocked ? 'red' : needsReview ? 'yellow' : 'green']}`}>
+          {isBlocked ? <ShieldAlert size={18} /> : <ShieldCheck size={18} />}
+        </span>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/40">{t('reports.decisionStatus')}</p>
+            <span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-wide ${toneClasses[isBlocked ? 'red' : needsReview ? 'yellow' : 'green']}`}>
+              {isBlocked ? t('reports.noGo') : needsReview ? t('reports.reviewGate') : t('reports.readyGate')}
+            </span>
+          </div>
+          <p className="mt-1 text-base font-black leading-6 text-[#111b3f] dark:text-white">{decisionLabel}</p>
+          <p className="mt-1 text-xs font-semibold leading-5 text-[#64708d] dark:text-white/55">
+            {isBlocked
+              ? t('reports.decisionBlockedDetail', { count: metrics.blockers })
+              : needsReview
+                ? t('reports.decisionReviewDetail')
+                : t('reports.decisionReadyDetail')}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-2">
+        <DecisionActionRow
+          icon={<AlertTriangle size={15} />}
+          label={t('reports.decisionAction')}
+          value={decisionText}
+          tone={isBlocked ? 'red' : 'blue'}
+        />
+        <DecisionActionRow
+          icon={<Layers size={15} />}
+          label={t('reports.decisionFocus')}
+          value={focusText}
+          tone={isBlocked ? 'yellow' : 'blue'}
+        />
+      </div>
+    </div>
+  );
+};
+
+const toneClasses = {
+  red: 'bg-[#fff0f0] text-[#e54848] dark:bg-red-500/10 dark:text-red-300',
+  yellow: 'bg-[#fff7e7] text-[#b96500] dark:bg-[#f59e0b]/12 dark:text-[#ffbd55]',
+  green: 'bg-[#e9fbf4] text-[#159866] dark:bg-[#23d18b]/12 dark:text-[#67e8b9]',
+  blue: 'bg-[#eaf3ff] text-[#2f80ed] dark:bg-[#2f80ed]/12 dark:text-[#8bbdff]',
+};
+
+const DecisionActionRow = ({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  tone: 'red' | 'yellow' | 'green' | 'blue';
+}) => {
+  return (
+    <div className="flex min-w-0 items-center gap-3 rounded-xl bg-white px-4 py-3 ring-1 ring-[#e6edf7] dark:bg-[#0c1730]/70 dark:ring-white/10">
+      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${toneClasses[tone]}`}>
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/40">{label}</p>
+        <p className="mt-0.5 text-sm font-black leading-5 text-[#111b3f] dark:text-white">{value}</p>
+      </div>
+    </div>
+  );
+};
+
 const formatValue = (value: unknown) => {
   if (value === undefined || value === null || value === '') return '-';
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
   return JSON.stringify(value);
+};
+
+const riskRank = (risk?: string) => {
+  const ranks: Record<string, number> = {
+    BLOCKER: 4,
+    MAJOR: 3,
+    MINOR: 2,
+    INFO: 1,
+  };
+
+  return ranks[String(risk ?? 'INFO').toUpperCase()] ?? 0;
 };
 
 const locationLabel = (location?: Record<string, unknown>) => {
@@ -612,10 +843,10 @@ const scoreTone = (score: number) => {
 const ScoreRing = ({ score }: { score: number }) => {
   const { t } = useI18n();
   const safeScore = Math.min(Math.max(score, 0), 100);
-  const circumference = 364;
+  const circumference = 364.4;
 
   return (
-    <div className="flex shrink-0 flex-col items-center rounded-2xl border border-[#dbe4f2] bg-[#f8faff] p-5 dark:border-white/10 dark:bg-white/5">
+    <div className="flex w-full shrink-0 flex-col items-center rounded-2xl border border-[#dbe4f2] bg-[#f8faff] p-5 dark:border-white/10 dark:bg-white/5">
       <div className="relative">
         <svg className="h-32 w-32 -rotate-90">
           <circle className="text-[#e3ebf8] dark:text-white/10" strokeWidth="10" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64" />
@@ -665,15 +896,15 @@ const SecurityPanel = ({ status }: { status: SecurityStatus }) => {
   const tone = securityToneClasses[status.tone];
 
   return (
-    <div className={`rounded-[22px] p-6 shadow-sm ring-1 ${tone.bg} ${tone.text} ${tone.border}`}>
-      <div className="flex items-start gap-4">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/70 dark:bg-white/8">
+    <div className={`w-full rounded-2xl p-4 shadow-sm ring-1 ${tone.bg} ${tone.text} ${tone.border}`}>
+      <div className="flex items-start gap-2.5">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/70 dark:bg-white/8">
           {tone.icon}
         </span>
-        <div>
-          <p className="text-xs font-black uppercase tracking-wide opacity-70">{t('reports.securityStatus')}</p>
-          <h3 className="mt-1 text-3xl font-black">{status.label}</h3>
-          <p className="mt-3 text-sm leading-6 opacity-80">{status.description}</p>
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-wide opacity-70">{t('reports.securityStatus')}</p>
+          <h3 className="mt-0.5 text-base font-black leading-tight">{status.label}</h3>
+          <p className="mt-1 text-xs leading-5 opacity-80">{status.description}</p>
         </div>
       </div>
     </div>
@@ -704,6 +935,80 @@ const riskBadgeClasses: Record<string, string> = {
   MAJOR: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/25',
   MINOR: 'bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-500/25',
   INFO: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/25',
+};
+
+const technicalLabel = (value: string | undefined, language: Language) => {
+  const normalized = String(value ?? 'INFO').toUpperCase();
+  const labels: Record<Language, Record<string, string>> = {
+    en: {
+      BLOCKER: 'Blocker',
+      MAJOR: 'Major',
+      MINOR: 'Minor',
+      INFO: 'Info',
+      INCOMPATIBLE: 'Incompatible',
+      COMPATIBLE: 'Compatible',
+      NEEDS_REVIEW: 'Needs review',
+      RECREATE: 'Recreate',
+      TO_RECREATE: 'Recreate',
+    },
+    fr: {
+      BLOCKER: 'Blocage',
+      MAJOR: 'Majeur',
+      MINOR: 'Mineur',
+      INFO: 'Info',
+      INCOMPATIBLE: 'Incompatible',
+      COMPATIBLE: 'Compatible',
+      NEEDS_REVIEW: 'À recréer',
+      RECREATE: 'À recréer',
+      TO_RECREATE: 'À recréer',
+    },
+  };
+
+  return labels[language]?.[normalized] ?? normalized.replace(/_/g, ' ').toLowerCase().replace(/^\w/, (char) => char.toUpperCase());
+};
+
+const TopBlockerCard = ({
+  component,
+  index,
+  report,
+}: {
+  component: ReportComponent;
+  index: number;
+  report: ReportData;
+}) => {
+  const { t, language } = useI18n();
+  const risk = component.final_risk ?? component.risk_level ?? 'INFO';
+  const status = component.final_status ?? component.overall_status ?? 'NEEDS_REVIEW';
+  const actionText = sanitizeReportText(
+    getTranslatedComponentField(component, 'recommended_action', report, language) || t('reports.noAction'),
+    report,
+  );
+
+  return (
+    <article className="grid gap-3 rounded-2xl border border-[#edf1f8] bg-[#f8faff] p-4 dark:border-white/10 dark:bg-white/5 md:grid-cols-[1fr_auto_1.35fr] md:items-center">
+      <div className="min-w-0">
+        <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">{t('reports.component')}</p>
+        <h4 className="mt-1 truncate text-sm font-black text-[#111b3f] dark:text-white">
+          {componentDisplayName(component, index)}
+        </h4>
+        <p className="mt-1 truncate text-xs font-bold text-[#8a96b3] dark:text-white/45">
+          {[component.plugin, component.component_type].filter(Boolean).join(' / ') || t('reports.migrationComponent')}
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2 md:justify-center">
+        <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase ring-1 ${riskBadgeClasses[risk] ?? riskBadgeClasses.INFO}`}>
+          {technicalLabel(risk, language)}
+        </span>
+        <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black uppercase text-[#64708d] ring-1 ring-[#dbe4f2] dark:bg-white/8 dark:text-white/65 dark:ring-white/10">
+          {technicalLabel(status, language)}
+        </span>
+      </div>
+      <div className="min-w-0 rounded-xl bg-white px-3 py-2 ring-1 ring-[#e6edf7] dark:bg-[#0c1730]/70 dark:ring-white/10">
+        <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/40">{t('reports.shortAction')}</p>
+        <p className="mt-1 text-sm font-semibold leading-6 text-[#64708d] dark:text-white/68">{actionText}</p>
+      </div>
+    </article>
+  );
 };
 
 const ComponentFindingCard = ({
@@ -739,10 +1044,10 @@ const ComponentFindingCard = ({
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase ring-1 ${riskBadgeClasses[risk] ?? riskBadgeClasses.INFO}`}>
-            {risk}
+            {technicalLabel(risk, language)}
           </span>
           <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black uppercase text-[#64708d] ring-1 ring-[#dbe4f2] dark:bg-white/8 dark:text-white/65 dark:ring-white/10">
-            {status}
+            {technicalLabel(status, language)}
           </span>
         </div>
       </div>
@@ -777,7 +1082,7 @@ const RecommendationCard = ({
           </p>
         </div>
         <span className={`w-fit rounded-full px-3 py-1 text-[10px] font-black uppercase ring-1 ${riskBadgeClasses[priority] ?? riskBadgeClasses.INFO}`}>
-          {priority}
+          {technicalLabel(priority, language)}
         </span>
       </div>
       <p className="mt-3 text-sm leading-7 text-[#64708d] dark:text-white/68">
@@ -842,10 +1147,11 @@ const AISummaryRenderer = ({ content }: { content: string }) => {
           5: 'text-sm font-black',   // h5
           6: 'text-xs font-black',   // h6
         }[level] || 'text-lg font-black';
+        const HeadingTag = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
         elements.push(
           React.createElement(
-            `h${level}` as any,
+            HeadingTag,
             {
               key: `h${level}-${i}`,
               className: `mt-5 ${headingClass} text-[#111b3f] dark:text-white`,
