@@ -274,16 +274,13 @@ export const ReportPage: React.FC = () => {
 
   const securityStatus = useMemo<SecurityStatus>(() => {
     const score = metrics.score;
-    const hasBlockers = metrics.blockers > 0;
-    const blockerDescription = hasBlockers
-      ? t('reports.securityWithBlockersText', { count: metrics.blockers })
-      : undefined;
+    const hasBlockers = metrics.blockers > 0 || metrics.incompatible > 0;
 
-    if (score < 50) {
+    if (hasBlockers) {
       return {
         label: t('reports.critical'),
         tone: 'red',
-        description: blockerDescription ?? t('reports.criticalText'),
+        description: t('reports.criticalText'),
       };
     }
 
@@ -291,16 +288,16 @@ export const ReportPage: React.FC = () => {
       return {
         label: t('reports.review'),
         tone: 'yellow',
-        description: blockerDescription ?? t('reports.reviewText'),
+        description: t('reports.reviewText'),
       };
     }
 
     return {
       label: t('reports.healthy'),
       tone: 'green',
-      description: blockerDescription ?? t('reports.healthyText'),
+      description: t('reports.healthyText'),
     };
-  }, [metrics.score, metrics.blockers, t]);
+  }, [metrics.score, metrics.blockers, metrics.incompatible, t]);
 
   const detailEntries = useMemo(() => {
     const activeTranslation = language ? report?.translations?.[language] : undefined;
@@ -636,11 +633,13 @@ const DecisionSummary = ({
 }) => {
   const { t } = useI18n();
   const score = metrics.score;
-  const hasBlockers = metrics.blockers > 0;
-  const hasReviewFindings = metrics.incompatible > 0 || metrics.major > 0;
 
-  const isBlocked = hasBlockers;
-  const needsReview = !isBlocked && (hasReviewFindings || score < 75);
+  // Score ONLY determines decision (no blocker/incompatible override)
+  const isBlocked = score < 50;
+  const needsReview = !isBlocked && score < 75;
+
+  const hasBlockers = metrics.blockers > 0;
+  const readyWithBlockers = !isBlocked && !needsReview && hasBlockers;
 
   const decisionLabel = isBlocked
     ? t('reports.decisionBlocked')
@@ -650,11 +649,9 @@ const DecisionSummary = ({
   const decisionText = isBlocked
     ? t('reports.decisionBlockedText', { count: metrics.blockers })
     : needsReview
-      ? hasBlockers
-        ? t('reports.decisionReviewTextWithBlockers', { count: metrics.blockers })
-        : t('reports.decisionReviewText')
-      : hasBlockers
-        ? t('reports.decisionReadyTextWithBlockers', { count: metrics.blockers })
+      ? t('reports.decisionReviewText')
+      : readyWithBlockers
+        ? t('reports.decisionReadyWithBlockersText', { count: metrics.blockers })
         : t('reports.decisionReadyText');
   const focusText = isBlocked
     ? t('reports.decisionFocusBlocked')
@@ -665,11 +662,9 @@ const DecisionSummary = ({
   const decisionDetail = isBlocked
     ? t('reports.decisionBlockedDetail', { count: metrics.blockers })
     : needsReview
-      ? hasBlockers
-        ? t('reports.decisionReviewDetailWithBlockers', { count: metrics.blockers })
-        : t('reports.decisionReviewDetail')
-      : hasBlockers
-        ? t('reports.decisionReadyDetailWithBlockers', { count: metrics.blockers })
+      ? t('reports.decisionReviewDetail')
+      : readyWithBlockers
+        ? t('reports.decisionReadyWithBlockersDetail', { count: metrics.blockers })
         : t('reports.decisionReadyDetail');
 
   return (
