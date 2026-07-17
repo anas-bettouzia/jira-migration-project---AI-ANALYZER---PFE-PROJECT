@@ -274,6 +274,7 @@ export const ReportPage: React.FC = () => {
 
   const securityStatus = useMemo<SecurityStatus>(() => {
     const score = metrics.score;
+    const hasBlockers = metrics.blockers > 0;
 
     if (score < 60) {
       return {
@@ -294,9 +295,11 @@ export const ReportPage: React.FC = () => {
     return {
       label: t('reports.healthy'),
       tone: 'green',
-      description: t('reports.healthyText'),
+      description: hasBlockers
+        ? t('reports.securityWithBlockersText', { count: metrics.blockers })
+        : t('reports.healthyText'),
     };
-  }, [metrics.score, t]);
+  }, [metrics.score, metrics.blockers, t]);
 
   const detailEntries = useMemo(() => {
     const activeTranslation = language ? report?.translations?.[language] : undefined;
