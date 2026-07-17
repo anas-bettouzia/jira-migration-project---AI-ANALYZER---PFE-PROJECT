@@ -275,20 +275,15 @@ export const ReportPage: React.FC = () => {
   const securityStatus = useMemo<SecurityStatus>(() => {
     const score = metrics.score;
     const hasBlockers = metrics.blockers > 0;
-
-    if (hasBlockers) {
-      return {
-        label: t('reports.critical'),
-        tone: 'red',
-        description: t('reports.securityWithBlockersText', { count: metrics.blockers }),
-      };
-    }
+    const blockerDescription = hasBlockers
+      ? t('reports.securityWithBlockersText', { count: metrics.blockers })
+      : undefined;
 
     if (score < 50) {
       return {
         label: t('reports.critical'),
         tone: 'red',
-        description: t('reports.criticalText'),
+        description: blockerDescription ?? t('reports.criticalText'),
       };
     }
 
@@ -296,14 +291,14 @@ export const ReportPage: React.FC = () => {
       return {
         label: t('reports.review'),
         tone: 'yellow',
-        description: t('reports.reviewText'),
+        description: blockerDescription ?? t('reports.reviewText'),
       };
     }
 
     return {
       label: t('reports.healthy'),
       tone: 'green',
-      description: t('reports.healthyText'),
+      description: blockerDescription ?? t('reports.healthyText'),
     };
   }, [metrics.score, metrics.blockers, t]);
 
@@ -655,8 +650,12 @@ const DecisionSummary = ({
   const decisionText = isBlocked
     ? t('reports.decisionBlockedText', { count: metrics.blockers })
     : needsReview
-      ? t('reports.decisionReviewText')
-      : t('reports.decisionReadyText');
+      ? hasBlockers
+        ? t('reports.decisionReviewTextWithBlockers', { count: metrics.blockers })
+        : t('reports.decisionReviewText')
+      : hasBlockers
+        ? t('reports.decisionReadyTextWithBlockers', { count: metrics.blockers })
+        : t('reports.decisionReadyText');
   const focusText = isBlocked
     ? t('reports.decisionFocusBlocked')
     : needsReview
@@ -666,8 +665,12 @@ const DecisionSummary = ({
   const decisionDetail = isBlocked
     ? t('reports.decisionBlockedDetail', { count: metrics.blockers })
     : needsReview
-      ? t('reports.decisionReviewDetail')
-      : t('reports.decisionReadyDetail');
+      ? hasBlockers
+        ? t('reports.decisionReviewDetailWithBlockers', { count: metrics.blockers })
+        : t('reports.decisionReviewDetail')
+      : hasBlockers
+        ? t('reports.decisionReadyDetailWithBlockers', { count: metrics.blockers })
+        : t('reports.decisionReadyDetail');
 
   return (
     <div className="mt-7 grid gap-3 rounded-2xl border border-[#dbe4f2] bg-[#f8faff] p-3 shadow-sm dark:border-white/10 dark:bg-white/5 lg:grid-cols-[0.95fr_1.35fr]">
