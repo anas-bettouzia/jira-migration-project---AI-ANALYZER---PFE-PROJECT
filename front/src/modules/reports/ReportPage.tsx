@@ -275,15 +275,20 @@ export const ReportPage: React.FC = () => {
   const securityStatus = useMemo<SecurityStatus>(() => {
     const score = metrics.score;
     const hasBlockers = metrics.blockers > 0;
-    const blockerDescription = hasBlockers
-      ? t('reports.securityWithBlockersText', { count: metrics.blockers })
-      : undefined;
+
+    if (hasBlockers) {
+      return {
+        label: t('reports.critical'),
+        tone: 'red',
+        description: t('reports.securityWithBlockersText', { count: metrics.blockers }),
+      };
+    }
 
     if (score < 50) {
       return {
         label: t('reports.critical'),
         tone: 'red',
-        description: blockerDescription ?? t('reports.criticalText'),
+        description: t('reports.criticalText'),
       };
     }
 
@@ -291,14 +296,14 @@ export const ReportPage: React.FC = () => {
       return {
         label: t('reports.review'),
         tone: 'yellow',
-        description: blockerDescription ?? t('reports.reviewText'),
+        description: t('reports.reviewText'),
       };
     }
 
     return {
       label: t('reports.healthy'),
       tone: 'green',
-      description: blockerDescription ?? t('reports.healthyText'),
+      description: t('reports.healthyText'),
     };
   }, [metrics.score, metrics.blockers, t]);
 
