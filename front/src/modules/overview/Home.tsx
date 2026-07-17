@@ -529,7 +529,7 @@ const BrandLogoStrip = ({ t }: { t: (key: string) => string }) => (
     initial={{ opacity: 0, y: 14 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.45, delay: 0.16 }}
-    className="mt-6 flex flex-wrap items-center gap-3"
+    className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3 max-w-3xl"
   >
     <BrandPill icon={<JiraLogoMark />} label="Jira Data Center" caption={t('home.brand.jira')} />
     <BrandPill icon={<AtlassianLogoMark />} label="Atlassian Cloud" caption={t('home.brand.atlassian')} />
@@ -538,13 +538,16 @@ const BrandLogoStrip = ({ t }: { t: (key: string) => string }) => (
 );
 
 const BrandPill = ({ icon, label, caption }: { icon: React.ReactNode; label: string; caption: string }) => (
-  <div className="flex min-h-[52px] items-center gap-3 rounded-2xl border border-[#dbe4f2] bg-white/82 px-4 py-2.5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/7">
+  <div className="flex h-full items-center gap-3 rounded-2xl border border-[#dbe4f2] bg-white/82 px-4 py-2.5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/7">
     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#eaf3ff] text-[#2f80ed] dark:bg-[#2f80ed]/14 dark:text-[#8bbdff]">
       {icon}
     </span>
-    <div>
-      <p className="text-sm font-black leading-none">{label}</p>
-      <p className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#8a96b3] dark:text-white/42">{caption}</p>
+    <div className="min-w-0">
+      <p className="text-sm font-black leading-tight text-[#111b3f] dark:text-white">{label}</p>
+      {/* Modifié ici : retrait de 'truncate' et ajout de 'leading-normal' pour un meilleur rendu sur 2 lignes */}
+      <p className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#8a96b3] dark:text-white/42 leading-normal">
+        {caption}
+      </p>
     </div>
   </div>
 );
