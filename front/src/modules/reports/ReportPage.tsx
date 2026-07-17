@@ -274,13 +274,16 @@ export const ReportPage: React.FC = () => {
 
   const securityStatus = useMemo<SecurityStatus>(() => {
     const score = metrics.score;
-    const hasBlockers = metrics.blockers > 0 || metrics.incompatible > 0;
+    const hasBlockers = metrics.blockers > 0;
+    const blockerDescription = hasBlockers
+      ? t('reports.securityWithBlockersText', { count: metrics.blockers })
+      : undefined;
 
-    if (hasBlockers) {
+    if (score < 50) {
       return {
         label: t('reports.critical'),
         tone: 'red',
-        description: t('reports.criticalText'),
+        description: blockerDescription ?? t('reports.criticalText'),
       };
     }
 
@@ -288,16 +291,16 @@ export const ReportPage: React.FC = () => {
       return {
         label: t('reports.review'),
         tone: 'yellow',
-        description: t('reports.reviewText'),
+        description: blockerDescription ?? t('reports.reviewText'),
       };
     }
 
     return {
       label: t('reports.healthy'),
       tone: 'green',
-      description: t('reports.healthyText'),
+      description: blockerDescription ?? t('reports.healthyText'),
     };
-  }, [metrics.score, metrics.blockers, metrics.incompatible, t]);
+  }, [metrics.score, metrics.blockers, t]);
 
   const detailEntries = useMemo(() => {
     const activeTranslation = language ? report?.translations?.[language] : undefined;
@@ -633,13 +636,11 @@ const DecisionSummary = ({
 }) => {
   const { t } = useI18n();
   const score = metrics.score;
-
-  // Score ONLY determines decision (no blocker/incompatible override)
-  const isBlocked = score < 50;
-  const needsReview = !isBlocked && score < 75;
-
   const hasBlockers = metrics.blockers > 0;
-  const readyWithBlockers = !isBlocked && !needsReview && hasBlockers;
+  const hasReviewFindings = metrics.incompatible > 0 || metrics.major > 0;
+
+  const isBlocked = hasBlockers;
+  const needsReview = !isBlocked && (hasReviewFindings || score < 75);
 
   const decisionLabel = isBlocked
     ? t('reports.decisionBlocked')
@@ -650,9 +651,7 @@ const DecisionSummary = ({
     ? t('reports.decisionBlockedText', { count: metrics.blockers })
     : needsReview
       ? t('reports.decisionReviewText')
-      : readyWithBlockers
-        ? t('reports.decisionReadyWithBlockersText', { count: metrics.blockers })
-        : t('reports.decisionReadyText');
+      : t('reports.decisionReadyText');
   const focusText = isBlocked
     ? t('reports.decisionFocusBlocked')
     : needsReview
@@ -663,9 +662,7 @@ const DecisionSummary = ({
     ? t('reports.decisionBlockedDetail', { count: metrics.blockers })
     : needsReview
       ? t('reports.decisionReviewDetail')
-      : readyWithBlockers
-        ? t('reports.decisionReadyWithBlockersDetail', { count: metrics.blockers })
-        : t('reports.decisionReadyDetail');
+      : t('reports.decisionReadyDetail');
 
   return (
     <div className="mt-7 grid gap-3 rounded-2xl border border-[#dbe4f2] bg-[#f8faff] p-3 shadow-sm dark:border-white/10 dark:bg-white/5 lg:grid-cols-[0.95fr_1.35fr]">
