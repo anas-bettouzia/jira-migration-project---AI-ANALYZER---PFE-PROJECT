@@ -215,6 +215,15 @@ services:
       - OLLAMA_KEEP_ALIVE=-1 
     restart: unless-stopped
 
+  sonar_scanner:
+    image: sonarsource/sonar-scanner-cli:latest
+    container_name: sonar_scanner
+    volumes:
+      - .:/usr/src
+    command:
+      - "-Dsonar.host.url=http://docker.itspectrum.fr:9000"
+      - "-Dsonar.token=sqp_688a17f752aed786fd2859d44c94e05af1b51f39"
+
 volumes:
   mongo_data:
     external: false
