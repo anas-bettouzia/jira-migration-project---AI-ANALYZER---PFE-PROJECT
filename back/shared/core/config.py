@@ -10,10 +10,10 @@ load_dotenv()
 class Config:
     """Central configuration for shared services."""
 
-    MONGO_URI = os.getenv(
-        "MONGO_URI",
-        "mongodb://admin:AnasSuperMotDePasse123@mongodb:27017/jira_migration?authSource=admin",
-    )
+    MONGO_URI = os.getenv("MONGO_URI")
+    if not MONGO_URI:
+        raise RuntimeError("MONGO_URI must be set in environment variables")
+
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
     OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434")
