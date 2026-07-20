@@ -776,7 +776,7 @@ def _verify_google_id_token(credential: str) -> dict:
 def create_app():
     """Create and configure the API Gateway Flask application."""
     app = Flask(__name__)
-    CORS(app, resources={r"/api/*": {"origins": "*"}}) #, supports_credentials=True
+    CORS(app, resources={r"/api/*": {"origins": Config.CORS_ALLOWED_ORIGINS}}) #, supports_credentials=True
 
     app.config["MONGO_URI"] = Config.MONGO_URI
     app.config["JWT_SECRET_KEY"] = Config.JWT_SECRET_KEY
@@ -1579,4 +1579,4 @@ if __name__ == "__main__":
     gateway_app = create_app()
     port = int(os.environ.get("PORT", 5000))
     debug = os.getenv("DEBUG", "false").lower() in {"1", "true", "yes"}
-    gateway_app.run(host="0.0.0.0", port=port, debug=debug)
+    gateway_app.run(host=Config.FLASK_RUN_HOST, port=port, debug=debug)

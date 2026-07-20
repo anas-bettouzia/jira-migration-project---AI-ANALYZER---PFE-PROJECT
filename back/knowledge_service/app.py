@@ -13,6 +13,8 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from shared.core.config import Config
+
 # pylint: disable=wrong-import-position
 from knowledge_service.indexer.document_loader import (
     get_collection_stats,
@@ -26,7 +28,7 @@ from knowledge_service.retriever.search import search, search_for_component
 load_dotenv()
 app = Flask(__name__)
 app.config["TRUSTED_HOSTS"] = None
-CORS(app)
+CORS(app, resources={r"/*": {"origins": Config.CORS_ALLOWED_ORIGINS}})
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -144,4 +146,4 @@ if __name__ == "__main__":
 
     port = int(os.environ.get("PORT", 5003))
     debug = os.getenv("DEBUG", "false").lower() in {"1", "true", "yes"}
-    app.run(host="0.0.0.0", port=port, debug=debug)
+    app.run(host=Config.FLASK_RUN_HOST, port=port, debug=debug)

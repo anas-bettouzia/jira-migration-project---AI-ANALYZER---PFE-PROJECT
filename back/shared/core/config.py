@@ -38,4 +38,11 @@ class Config:
         "python",
     )
     GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    CORS_ALLOWED_ORIGINS = [
+        origin.strip()
+        for origin in os.getenv("CORS_ALLOWED_ORIGINS", FRONTEND_URL).split(",")
+        if origin.strip()
+    ]
+    FLASK_RUN_HOST = os.getenv("FLASK_RUN_HOST", "127.0.0.1")
     REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")

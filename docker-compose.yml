@@ -28,6 +28,7 @@ x-common-env: &common-env
   ANONYMIZED_TELEMETRY: ${ANONYMIZED_TELEMETRY}
   PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: ${PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION}
   FLASK_ENV: ${FLASK_ENV}
+  FLASK_RUN_HOST: ${FLASK_RUN_HOST:-0.0.0.0}
   GEMINI_MODEL: ${GEMINI_MODEL}
   TRUSTED_HOSTS: "docker.itspectrum.fr,docker.itspectrum.fr:5001,parsing-service,parsing-service:5001,compatibility-service,compatibility-service:5002,knowledge-service,knowledge-service:5003,report-service,report-service:5004,worker,worker:5005,localhost,localhost:5000,127.0.0.1,127.0.0.1:5000"
   DEBUG: ${DEBUG}

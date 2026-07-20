@@ -17,6 +17,8 @@ from flask_cors import CORS
 
 load_dotenv()
 
+from shared.core.config import Config
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # pylint: disable=wrong-import-position
@@ -24,7 +26,7 @@ from worker.tasks.analysis_task import run_full_analysis_job
 from worker.tasks.job_manager import create_job, get_job, list_jobs
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": Config.CORS_ALLOWED_ORIGINS}})
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -155,4 +157,4 @@ def get_jobs():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5005))
     debug = os.getenv("DEBUG", "false").lower() in {"1", "true", "yes"}
-    app.run(host="0.0.0.0", port=port, debug=debug)
+    app.run(host=Config.FLASK_RUN_HOST, port=port, debug=debug)
