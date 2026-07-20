@@ -215,7 +215,7 @@ services:
       - OLLAMA_KEEP_ALIVE=-1 
     restart: unless-stopped
 
-sonar_scanner:
+  sonar_scanner:
     build:
       context: .
       dockerfile: Dockerfile.sonar
