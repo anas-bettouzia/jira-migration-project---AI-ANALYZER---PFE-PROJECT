@@ -36,8 +36,12 @@ CORS(app, resources=cors_config)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-UPLOAD_DIR = Path(os.getenv("WORKER_UPLOAD_DIR", "/tmp/jira_migration_worker_uploads"))
+UPLOAD_DIR = Path(os.getenv("WORKER_UPLOAD_DIR", "/app/tmp_uploads"))
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    UPLOAD_DIR.chmod(0o700)
+except OSError:
+    pass
 
 
 @app.route("/health", methods=["GET"])

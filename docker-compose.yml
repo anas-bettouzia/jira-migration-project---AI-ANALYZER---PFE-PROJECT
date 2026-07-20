@@ -14,6 +14,7 @@ x-common-env: &common-env
   KNOWLEDGE_SERVICE_URL: "http://knowledge-service:5003"
   REPORT_SERVICE_URL: "http://report-service:5004"
   WORKER_URL: "http://worker:5005"
+  WORKER_UPLOAD_DIR: ${WORKER_UPLOAD_DIR:-/app/tmp_uploads}
   FRONTEND_URL: ${FRONTEND_URL}
   SMTP_HOST: ${SMTP_HOST}
   SMTP_PORT: ${SMTP_PORT}
@@ -143,6 +144,8 @@ services:
     environment:
       <<: *common-env
       PORT: 5005
+    volumes:
+      - worker_uploads:/app/tmp_uploads
     depends_on:
       - redis
       - mongodb
@@ -247,3 +250,6 @@ volumes:
   report_generated_files:
     external: false
     name: jira_migration_report_generated_files
+  worker_uploads:
+    external: false
+    name: jira_migration_worker_uploads

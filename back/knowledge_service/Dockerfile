@@ -6,7 +6,8 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY shared/ ./shared/
+COPY knowledge_service/ ./knowledge_service/
 
 ENV PYTHONPATH=/app
 ENV PORT=5003
