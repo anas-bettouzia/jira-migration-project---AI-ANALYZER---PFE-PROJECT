@@ -7,13 +7,12 @@ to the report_service for LLM-grounded report generation.
 import logging
 import os
 import sys
-
+from shared.core.config import Config
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from shared.core.config import Config
 
 # pylint: disable=wrong-import-position
 from knowledge_service.indexer.document_loader import (

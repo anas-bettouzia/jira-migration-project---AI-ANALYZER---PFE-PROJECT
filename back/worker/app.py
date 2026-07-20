@@ -14,10 +14,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from shared.core.config import Config
 
 load_dotenv()
 
-from shared.core.config import Config
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

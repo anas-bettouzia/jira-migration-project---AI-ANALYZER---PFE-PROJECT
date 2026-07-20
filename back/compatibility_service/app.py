@@ -13,7 +13,6 @@ from flask_cors import CORS
 
 load_dotenv()
 
-from shared.core.config import Config
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -23,6 +22,7 @@ from compatibility_service.engine.learned_knowledge_sync import (
     trigger_learned_knowledge_sync,
 )
 from compatibility_service.engine.matrix import build_matrix
+from shared.core.config import Config
 from shared.repositories.analysis_repository import AnalysisRepository
 from shared.repositories.component_analysis_cache_repository import (
     ComponentAnalysisCacheRepository,

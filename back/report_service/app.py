@@ -16,7 +16,6 @@ from flask_cors import CORS
 
 load_dotenv()
 
-from shared.core.config import Config
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -25,6 +24,7 @@ from report_service.generators.json_export import export_report_to_json
 from report_service.generators.pdf_export import export_report_to_pdf
 from report_service.generators.report_builder import build_report
 from report_service.llm.gemini_client import generate_report_json
+from shared.core.config import Config
 from shared.repositories.compatibility_repository import CompatibilityRepository
 from shared.repositories.report_repository import ReportRepository
 

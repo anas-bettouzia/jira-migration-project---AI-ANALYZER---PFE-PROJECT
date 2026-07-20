@@ -13,12 +13,11 @@ from werkzeug.utils import secure_filename
 
 load_dotenv()
 
-from shared.core.config import Config
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # pylint: disable=wrong-import-position
 from parsing_service.parsers import dump_parser, groovy_parser, xml_parser, zip_handler
+from shared.core.config import Config
 from shared.repositories.analysis_repository import AnalysisRepository
 from shared.schemas.parsed_data_schema import ParsedJiraData
 
