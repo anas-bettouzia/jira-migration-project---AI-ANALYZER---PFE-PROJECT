@@ -1,0 +1,5 @@
+FROM sonarsource/sonar-scanner-cli:latest
+
+# Copier tout le projet dans le répertoire de travail du scanner
+WORKDIR /usr/src
+COPY . /usr/src

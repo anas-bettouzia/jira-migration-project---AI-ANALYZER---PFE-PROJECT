@@ -216,10 +216,10 @@ services:
     restart: unless-stopped
 
   sonar_scanner:
-    image: sonarsource/sonar-scanner-cli:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.sonar
     container_name: sonar_scanner
-    volumes:
-      - .:/usr/src
     command:
       - "-Dsonar.host.url=http://docker.itspectrum.fr:9000"
       - "-Dsonar.token=sqp_688a17f752aed786fd2859d44c94e05af1b51f39"
