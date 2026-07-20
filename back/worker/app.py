@@ -26,7 +26,11 @@ from worker.tasks.analysis_task import run_full_analysis_job
 from worker.tasks.job_manager import create_job, get_job, list_jobs
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": Config.CORS_ALLOWED_ORIGINS}})
+cors_config = {
+    r"/worker/*": {"origins": Config.CORS_ALLOWED_ORIGINS},
+    r"/health": {"origins": Config.CORS_ALLOWED_ORIGINS},
+}
+CORS(app, resources=cors_config)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

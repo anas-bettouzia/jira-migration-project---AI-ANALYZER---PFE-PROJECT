@@ -29,7 +29,11 @@ from shared.repositories.compatibility_repository import CompatibilityRepository
 from shared.repositories.report_repository import ReportRepository
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": Config.CORS_ALLOWED_ORIGINS}})
+cors_config = {
+    r"/reports/*": {"origins": Config.CORS_ALLOWED_ORIGINS},
+    r"/health": {"origins": Config.CORS_ALLOWED_ORIGINS},
+}
+CORS(app, resources=cors_config)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

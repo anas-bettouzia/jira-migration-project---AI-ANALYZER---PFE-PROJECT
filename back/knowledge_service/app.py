@@ -27,7 +27,11 @@ from knowledge_service.retriever.search import search, search_for_component
 load_dotenv()
 app = Flask(__name__)
 app.config["TRUSTED_HOSTS"] = None
-CORS(app, resources={r"/*": {"origins": Config.CORS_ALLOWED_ORIGINS}})
+cors_config = {
+    r"/knowledge/*": {"origins": Config.CORS_ALLOWED_ORIGINS},
+    r"/health": {"origins": Config.CORS_ALLOWED_ORIGINS},
+}
+CORS(app, resources=cors_config)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
