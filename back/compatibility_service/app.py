@@ -35,6 +35,7 @@ cors_config = {
     r"/compatibility/*": {"origins": Config.CORS_ALLOWED_ORIGINS},
     r"/health": {"origins": Config.CORS_ALLOWED_ORIGINS},
 }
+# CSRF not needed: JWT Bearer tokens use Authorization headers, not cookies
 CORS(app, resources=cors_config)
 
 logging.basicConfig(level=logging.INFO)

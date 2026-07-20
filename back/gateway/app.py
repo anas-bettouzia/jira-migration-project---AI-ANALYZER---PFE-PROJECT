@@ -776,6 +776,7 @@ def _verify_google_id_token(credential: str) -> dict:
 def create_app():
     """Create and configure the API Gateway Flask application."""
     app = Flask(__name__)
+    # CSRF not needed: JWT Bearer tokens use Authorization headers, not cookies
     CORS(
         app,
         resources={r"/api/*": {"origins": Config.CORS_ALLOWED_ORIGINS}},
