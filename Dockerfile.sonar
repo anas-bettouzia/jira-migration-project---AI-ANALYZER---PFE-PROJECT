@@ -8,5 +8,6 @@ COPY back /usr/src/back
 COPY front /usr/src/front
 COPY sonar-project.properties /usr/src/sonar-project.properties
 
-# 2. Utiliser un utilisateur non-root (fourni par l'image officielle)
-USER scannercli
+# 2. L'image officielle `sonar-scanner-cli` ne définit pas toujours l'utilisateur `scannercli`.
+#    Exécuter avec l'utilisateur par défaut de l'image pour éviter l'erreur de build.
+# USER scannercli
