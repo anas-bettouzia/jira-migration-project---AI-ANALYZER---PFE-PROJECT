@@ -5,7 +5,7 @@ Aggregates individual component results into a summary matrix.
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ def build_matrix(analysis_id: str, component_results: list[dict]) -> dict:
     matrix = {
         "matrix_id": matrix_id,
         "analysis_id": analysis_id,
-        "analyzed_at": datetime.utcnow().isoformat(),
+        "analyzed_at": datetime.now(timezone.utc).isoformat(),
         "summary": {
             "total_components": total,
             "blocker_count": len(blockers),
@@ -243,7 +243,7 @@ def _empty_matrix(matrix_id: str, analysis_id: str) -> dict:
     return {
         "matrix_id": matrix_id,
         "analysis_id": analysis_id,
-        "analyzed_at": datetime.utcnow().isoformat(),
+        "analyzed_at": datetime.now(timezone.utc).isoformat(),
         "summary": {
             "total_components": 0,
             "blocker_count": 0,

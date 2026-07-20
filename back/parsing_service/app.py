@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
@@ -110,7 +110,7 @@ def parse_jira_export():
             "analysis_id": analysis_id,
             "source_environment": "Jira Data Center",
             "target_environment": "Jira Cloud",
-            "analysis_date": datetime.utcnow().strftime("%Y-%m-%d"),
+            "analysis_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
             "status": True,
             "user_email": user_email,
             "user_id": user_id,

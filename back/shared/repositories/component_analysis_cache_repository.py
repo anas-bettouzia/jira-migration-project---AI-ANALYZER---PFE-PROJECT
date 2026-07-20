@@ -1,6 +1,6 @@
 """Repository for cached component compatibility analysis results."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pymongo import ASCENDING
 
@@ -34,7 +34,7 @@ class ComponentAnalysisCacheRepository:
         if not signature:
             return
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         self.collection.update_one(
             {"signature": signature},
             {
@@ -63,7 +63,7 @@ class ComponentAnalysisCacheRepository:
             {"signature": signature},
             {
                 "$inc": {"usage_count": 1},
-                "$set": {"last_used_at": datetime.utcnow()},
+                "$set": {"last_used_at": datetime.now(timezone.utc)},
             },
         )
 

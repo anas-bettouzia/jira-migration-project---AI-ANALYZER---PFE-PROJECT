@@ -1,6 +1,6 @@
 """Repository implementation for user documents."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from shared.db.mongo_client import get_mongo_db
@@ -36,7 +36,7 @@ class UserRepository:
             "password_hash": password_hash,
             "role": role,
             "email_verified": email_verified,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
         }
         self.collection.insert_one(user)
         return user
@@ -62,8 +62,8 @@ class UserRepository:
             },
             "name": name,
             "picture": picture,
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         }
         self.collection.insert_one(user)
         return user
@@ -85,7 +85,7 @@ class UserRepository:
                     "auth_provider": provider,
                     "name": name,
                     "picture": picture,
-                    "updated_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
                 }
             },
         )
@@ -107,7 +107,7 @@ class UserRepository:
         """Update editable user profile fields."""
         update_fields = {
             "email": new_email,
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         }
         if picture is not None:
             update_fields["picture"] = picture
@@ -127,7 +127,7 @@ class UserRepository:
                 "$set": {
                     "password_hash": password_hash,
                     "auth_provider": "local",
-                    "updated_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
                 }
             },
         )
@@ -145,7 +145,7 @@ class UserRepository:
                 "$set": {
                     "reset_password_token_hash": token_hash,
                     "reset_password_expires_at": expires_at,
-                    "updated_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
                 }
             },
         )
@@ -171,7 +171,7 @@ class UserRepository:
                 "$set": {
                     "password_hash": password_hash,
                     "auth_provider": "local",
-                    "updated_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
                 },
                 "$unset": {
                     "reset_password_token_hash": "",
@@ -193,7 +193,7 @@ class UserRepository:
                 "$set": {
                     "email_verification_token_hash": token_hash,
                     "email_verification_expires_at": expires_at,
-                    "updated_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
                 }
             },
         )
@@ -218,7 +218,7 @@ class UserRepository:
             {
                 "$set": {
                     "email_verified": True,
-                    "updated_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
                 },
                 "$unset": {
                     "email_verification_token_hash": "",

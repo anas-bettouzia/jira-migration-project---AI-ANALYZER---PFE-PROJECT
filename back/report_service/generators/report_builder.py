@@ -5,7 +5,7 @@ Builds a structured migration report from a compatibility matrix.
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from report_service.llm.gemini_client import generate_report_text
 from report_service.llm.prompt_builder import build_report_prompt
@@ -38,7 +38,7 @@ def build_report(
         "report_id": report_id,
         "matrix_id": matrix.get("matrix_id", ""),
         "analysis_id": matrix.get("analysis_id", ""),
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "title": "Jira Data Center to Cloud Migration Compatibility Report",
         "analysis_name": analysis_name,
         "source_filename": source_filename,

@@ -7,7 +7,7 @@ Generates a branded PDF migration report from a structured report dict.
 # pylint: disable=too-many-lines
 
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from reportlab.lib import colors
@@ -1129,7 +1129,7 @@ def _table_style(header_color=BRAND_NAVY) -> TableStyle:
 def _format_date(value: str) -> str:
     """Format ISO date for the report header."""
     if not value:
-        return datetime.utcnow().strftime("%Y-%m-%d")
+        return datetime.now(timezone.utc).strftime("%Y-%m-%d")
     try:
         return (
             datetime.fromisoformat(

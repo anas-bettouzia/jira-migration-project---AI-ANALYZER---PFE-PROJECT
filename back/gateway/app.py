@@ -11,7 +11,7 @@ import re
 import hashlib
 import secrets
 import smtplib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from urllib.parse import urlencode
 
@@ -699,7 +699,7 @@ def _reset_token_is_expired(expires_at) -> bool:
             return True
     if not isinstance(expires_at, datetime):
         return True
-    return expires_at < datetime.utcnow()
+    return expires_at < datetime.now(timezone.utc)
 
 def _ensure_admin_user(user_repo: UserRepository) -> None:
     """Create default admin user from env variables if it does not exist."""
@@ -991,7 +991,7 @@ def create_app():
 
         # Generate and send verification email
         token = secrets.token_urlsafe(32)
-        expires_at = datetime.utcnow() + timedelta(minutes=PASSWORD_RESET_TOKEN_MINUTES)
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=PASSWORD_RESET_TOKEN_MINUTES)
         user_repo.save_email_verification_token(
             email,
             _hash_reset_token(token),
@@ -1043,7 +1043,7 @@ def create_app():
         logger.info("Password reset requested for %s. user_exists=%s", email, bool(user))
         if user:
             token = secrets.token_urlsafe(32)
-            expires_at = datetime.utcnow() + timedelta(
+            expires_at = datetime.now(timezone.utc) + timedelta(
                 minutes=PASSWORD_RESET_TOKEN_MINUTES,
             )
             user_repo.save_password_reset_token(

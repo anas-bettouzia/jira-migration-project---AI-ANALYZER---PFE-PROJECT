@@ -5,7 +5,7 @@ Builds structured prompts for Gemini to generate
 human-readable migration reports.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def build_report_prompt(report: dict, language: str = "en") -> str:
@@ -18,7 +18,7 @@ def build_report_prompt(report: dict, language: str = "en") -> str:
     Returns:
         string prompt
     """
-    current_date = datetime.utcnow().strftime("%Y-%m-%d")
+    current_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     summary = report.get("summary", "")
     score = report.get("migration_score", 0)

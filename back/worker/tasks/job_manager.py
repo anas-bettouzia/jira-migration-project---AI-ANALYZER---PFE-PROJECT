@@ -5,7 +5,7 @@ Stores and updates asynchronous analysis job status in MongoDB.
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from shared.repositories.job_repository import JobRepository
 
@@ -29,7 +29,7 @@ def create_job(
 ) -> dict:
     """Create a new job record."""
     job_id = str(uuid.uuid4())
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     job = {
         "job_id": job_id,
@@ -58,7 +58,7 @@ def create_job(
 
 def update_job_progress(job_id: str, progress: int, stage: str, message: str) -> None:
     """Update a job's progress, stage, and message."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     _repo().update_job_status(
         job_id,
@@ -73,7 +73,7 @@ def update_job_progress(job_id: str, progress: int, stage: str, message: str) ->
 
 def mark_running(job_id: str) -> None:
     """Mark a job as running."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     _repo().update_job_status(
         job_id,
@@ -91,7 +91,7 @@ def mark_running(job_id: str) -> None:
 
 def mark_completed(job_id: str, result: dict) -> None:
     """Mark a job as completed."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     _repo().update_job_status(
         job_id,
@@ -110,7 +110,7 @@ def mark_completed(job_id: str, result: dict) -> None:
 
 def mark_failed(job_id: str, error: str) -> None:
     """Mark a job as failed."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     _repo().update_job_status(
         job_id,

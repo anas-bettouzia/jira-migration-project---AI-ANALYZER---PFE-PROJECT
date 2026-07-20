@@ -1,6 +1,6 @@
 """Repository implementation for report documents."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from shared.db.mongo_client import get_mongo_db
 
@@ -74,7 +74,7 @@ class ReportRepository:
             return False
 
         report.pop("_id", None)
-        report["archived_at"] = report.get("archived_at") or datetime.utcnow()
+        report["archived_at"] = report.get("archived_at") or datetime.now(timezone.utc)
 
         self.archived_collection.insert_one(report)
         self.collection.delete_one(query)
