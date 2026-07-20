@@ -93,29 +93,77 @@ export interface ReportSections {
   recommendations?: ReportRecommendation[];
 }
 
-const CONTENT_DISPOSITION_FILENAME_RE = /filename\*?=(?:UTF-8''?)?"?([^";]+)"?/i;
+function readContentDispositionParam(header: string, paramName: string): string | null {
+  const prefix = `${paramName.toLowerCase()}=`;
+  const part = header
+    .split(';')
+    .map((value) => value.trim())
+    .find((value) => value.toLowerCase().startsWith(prefix));
+
+  if (!part) {
+    return null;
+  }
+
+  const value = part.slice(part.indexOf('=') + 1).trim();
+  if (value.startsWith('"') && value.endsWith('"')) {
+    return value.slice(1, -1);
+  }
+
+  return value;
+}
 
 function extractFilenameFromContentDisposition(header?: string): string | null {
   if (!header) {
     return null;
   }
 
-  const match = CONTENT_DISPOSITION_FILENAME_RE.exec(header);
-  if (!match || !match[1]) {
-    return null;
+  const encodedFilename = readContentDispositionParam(header, 'filename*');
+  if (encodedFilename) {
+    const value = encodedFilename.startsWith("UTF-8''")
+      ? encodedFilename.slice("UTF-8''".length)
+      : encodedFilename;
+    return decodeURIComponent(value.trim());
   }
 
-  return decodeURIComponent(match[1].trim());
+  const filename = readContentDispositionParam(header, 'filename');
+  return filename ? decodeURIComponent(filename.trim()) : null;
 }
 
 function sanitizeExportBasename(value: string, maxLength = 120): string {
   const filename = value.trim().replace(/\\/g, '/').split('/').pop() ?? value;
-  const stem = filename.replace(/\.[^.]+$/, '');
-  return stem
-    .replace(/[^\w-]+/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_|_$/g, '')
-    .slice(0, maxLength) || 'report';
+  const lastDotIndex = filename.lastIndexOf('.');
+  const stem = lastDotIndex > 0 ? filename.slice(0, lastDotIndex) : filename;
+  let sanitized = '';
+  let previousWasSeparator = false;
+
+  for (const char of stem) {
+    const code = char.charCodeAt(0);
+    const isSafeCharacter = (
+      (code >= 48 && code <= 57)
+      || (code >= 65 && code <= 90)
+      || (code >= 97 && code <= 122)
+      || char === '_'
+      || char === '-'
+    );
+    if (isSafeCharacter) {
+      sanitized += char;
+      previousWasSeparator = false;
+    } else if (!previousWasSeparator) {
+      sanitized += '_';
+      previousWasSeparator = true;
+    }
+  }
+
+  const trimmed = sanitized
+    .split('')
+    .filter((char, index, chars) => {
+      const isLeadingSeparator = char === '_' && chars.slice(0, index).every((item) => item === '_');
+      const isTrailingSeparator = char === '_' && chars.slice(index + 1).every((item) => item === '_');
+      return !isLeadingSeparator && !isTrailingSeparator;
+    })
+    .join('');
+
+  return trimmed.slice(0, maxLength) || 'report';
 }
 
 function buildExportFilename(

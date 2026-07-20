@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  sonarqube:
+    image: sonarqube:${SONARQUBE_IMAGE_TAG:-community}
+    container_name: jira_migration_sonarqube
+    depends_on:
+      - sonar_db
+    ports:
+      - "${SONAR_PORT:-9000}:9000"
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonar_db:5432/sonarqube
+      SONAR_JDBC_USERNAME: ${SONAR_JDBC_USERNAME:-sonar}
+      SONAR_JDBC_PASSWORD: ${SONAR_JDBC_PASSWORD:?Set SONAR_JDBC_PASSWORD before starting SonarQube}
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    restart: unless-stopped
+
+  sonar_db:
+    image: postgres:16-alpine
+    container_name: jira_migration_sonar_db
+    environment:
+      POSTGRES_USER: ${SONAR_JDBC_USERNAME:-sonar}
+      POSTGRES_PASSWORD: ${SONAR_JDBC_PASSWORD:?Set SONAR_JDBC_PASSWORD before starting SonarQube}
+      POSTGRES_DB: sonarqube
+    volumes:
+      - sonarqube_db:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  sonarqube_data:
+    name: jira_migration_sonarqube_data
+  sonarqube_extensions:
+    name: jira_migration_sonarqube_extensions
+  sonarqube_logs:
+    name: jira_migration_sonarqube_logs
+  sonarqube_db:
+    name: jira_migration_sonarqube_db

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -38,6 +38,130 @@ import logoSpectrum from '../../assets/img/logo-spectrum-groupe.png';
 
 type JobStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | string | undefined;
 type Translate = (key: string, values?: Record<string, string | number>) => string;
+type RecentJobsResult = { visibleJobs: AnalysisJob[]; hasMore: boolean };
+type PipelineConnectorState = 'done' | 'active' | 'next' | 'idle';
+
+const getAnalysisProgress = (status: JobStatus) => {
+  if (!status) return 10;
+  if (status === 'QUEUED') return 25;
+  if (status === 'RUNNING') return 66;
+  if (status === 'COMPLETED' || status === 'FAILED') return 100;
+  return 45;
+};
+
+const getProgressBarClassName = (status: JobStatus) => {
+  if (status === 'FAILED') return 'bg-[#ef4444]';
+  if (status === 'COMPLETED') return 'bg-[#23d18b]';
+  return 'bg-[#2f80ed]';
+};
+
+const getAnalysisDisplayName = (analysisName: string, selectedFilename: string, t: Translate) =>
+  analysisName || selectedFilename.replace(/\.[^/.]+$/, '') || t('analysis.migrationPackage');
+
+const getStatusHeroTitle = (t: Translate, isCompleted: boolean) =>
+  isCompleted ? t('analysis.auditCompletedTitle') : t('analysis.pipelineProgress');
+
+const getStatusHeroText = (t: Translate, isCompleted: boolean, analysisName: string, selectedFilename: string) => {
+  if (isCompleted) return t('analysis.auditCompletedText');
+  return t('analysis.pipelineProgressText', { name: getAnalysisDisplayName(analysisName, selectedFilename, t) });
+};
+
+const getVisibleRecentJobs = (jobs: AnalysisJob[], activeReportIds: Set<string>) =>
+  jobs.filter((job) => {
+    const reportIdFromJob = job.result?.report_id;
+    return !reportIdFromJob || activeReportIds.has(reportIdFromJob);
+  });
+
+const loadRecentAnalysisJobs = async (limit: number): Promise<RecentJobsResult> => {
+  const [jobs, reportsResponse] = await Promise.all([
+    analysisService.listJobs(limit),
+    reportService.listReports(),
+  ]);
+  const activeReportIds = new Set(
+    (reportsResponse.reports ?? [])
+      .map((report) => report.report_id)
+      .filter((reportId): reportId is string => Boolean(reportId)),
+  );
+
+  return {
+    visibleJobs: getVisibleRecentJobs(jobs, activeReportIds),
+    hasMore: jobs.length >= limit,
+  };
+};
+
+const getPackageStatusLabel = (t: Translate, hasActiveJob: boolean, hasSelectedPackage: boolean) => {
+  if (hasActiveJob) return t('analysis.uploaded');
+  if (hasSelectedPackage) return t('analysis.packageReady');
+  return t('analysis.waiting');
+};
+
+const getReadinessStatusLabel = (t: Translate, status: JobStatus, hasActiveJob: boolean) => {
+  if (status === 'COMPLETED') return t('analysis.reportReady');
+  if (status === 'FAILED') return t('analysis.status.failed');
+  if (hasActiveJob) return t('analysis.auditInProgress');
+  return t('analysis.pending');
+};
+
+const getRecentSummaryLabel = (t: Translate, isLoading: boolean, count: number) => {
+  if (isLoading) return t('common.loading');
+  if (count > 0) return t('analysis.recentCount', { count });
+  return t('common.empty');
+};
+
+const getReadinessStatusState = (status: JobStatus, hasActiveJob: boolean) => {
+  if (status === 'COMPLETED') return 'complete';
+  if (status === 'FAILED') return 'failed';
+  if (hasActiveJob) return 'active';
+  return 'waiting';
+};
+
+const getPipelineStepState = (activeStage: number, step: number) => ({
+  active: activeStage === step,
+  done: activeStage > step,
+  connectorState: getPipelineConnectorState(activeStage, step),
+});
+
+const getPipelineConnectorState = (activeStage: number, step: number): PipelineConnectorState => {
+  if (activeStage > step) return 'done';
+  if (activeStage === step) return 'active';
+  if (activeStage + 1 === step) return 'next';
+  return 'idle';
+};
+
+const getPipelineConnectorClassName = (connectorState?: PipelineConnectorState) => {
+  if (connectorState === 'done') return 'bg-[#31d4a2]/85';
+  if (connectorState === 'active') return 'bg-gradient-to-b from-[#31d4a2]/85 to-white/14';
+  if (connectorState === 'next') return 'bg-gradient-to-b from-[#5f9df7]/85 to-white/14';
+  return 'bg-white/12';
+};
+
+const getPipelineNumberClassName = (active: boolean, done: boolean) => {
+  if (active) return 'bg-[#2f80ed] text-white shadow-[#2f80ed]/24 ring-4 ring-[#2f80ed]/18';
+  if (done) return 'bg-[#31d4a2]/90 text-[#071126] shadow-[#31d4a2]/16 ring-4 ring-[#31d4a2]/12';
+  return 'bg-white/10 text-white/68 shadow-black/10 ring-1 ring-white/10';
+};
+
+const getPipelineCardClassName = (active: boolean, done: boolean) => {
+  if (active) return 'bg-[#1d3f7b]/90 shadow-lg shadow-[#071126]/16 ring-[#5f9df7]/38';
+  if (done) return 'bg-[#18345f]/80 ring-[#31d4a2]/18';
+  return 'bg-white/[0.065] ring-white/8';
+};
+
+const getPipelineEyebrowClassName = (active: boolean, done: boolean) =>
+  active || done ? 'text-[#34d399]' : 'text-white/35';
+
+const getStatusBadgeClassName = (status?: string) => {
+  if (status === 'COMPLETED') return 'bg-[#dcfce7] text-[#15803d]';
+  if (status === 'FAILED') return 'bg-[#fee2e2] text-[#b91c1c]';
+  return 'bg-[#dbeafe] text-[#1d4ed8]';
+};
+
+const getStageChipClassName = (active: boolean) => {
+  if (active) {
+    return 'bg-white text-[#2f80ed] ring-1 ring-[#bdd5fa] dark:bg-[#10264d] dark:text-[#8bbdff] dark:ring-[#2f80ed]/35';
+  }
+  return 'bg-[#edf2fb] text-[#8a96b3] dark:bg-white/5 dark:text-white/40';
+};
 
 export const AnalysisPage: React.FC = () => {
   const [jobId, setJobId] = useState<string | null>(null);
@@ -61,19 +185,16 @@ export const AnalysisPage: React.FC = () => {
   const navigate = useNavigate();
   const { t, language } = useI18n();
 
+  const status = jobStatus?.status;
   const result = jobStatus?.result;
   const summary = result?.summary;
   const reportId = result?.report_id;
-  const activeStage = getActiveStage(jobStatus?.status);
-
-  const progress = useMemo(() => {
-    if (!jobStatus?.status) return 10;
-    if (jobStatus.status === 'QUEUED') return 25;
-    if (jobStatus.status === 'RUNNING') return 66;
-    if (jobStatus.status === 'COMPLETED') return 100;
-    if (jobStatus.status === 'FAILED') return 100;
-    return 45;
-  }, [jobStatus?.status]);
+  const activeStage = getActiveStage(status);
+  const progress = getAnalysisProgress(status);
+  const progressBarClassName = getProgressBarClassName(status);
+  const isJobCompleted = status === 'COMPLETED';
+  const statusHeroTitle = getStatusHeroTitle(t, isJobCompleted);
+  const statusHeroText = getStatusHeroText(t, isJobCompleted, analysisName, selectedFilename);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', !isLight);
@@ -98,23 +219,11 @@ export const AnalysisPage: React.FC = () => {
     const fetchRecentJobs = async () => {
       setRecentJobsLoading(true);
       try {
-        const [jobs, reportsResponse] = await Promise.all([
-          analysisService.listJobs(recentJobsLimit),
-          reportService.listReports(),
-        ]);
-        const activeReportIds = new Set(
-          (reportsResponse.reports ?? [])
-            .map((report) => report.report_id)
-            .filter((reportId): reportId is string => Boolean(reportId)),
-        );
-        const visibleJobs = jobs.filter((job) => {
-          const reportIdFromJob = job.result?.report_id;
-          return !reportIdFromJob || activeReportIds.has(reportIdFromJob);
-        });
+        const { visibleJobs, hasMore } = await loadRecentAnalysisJobs(recentJobsLimit);
 
         if (isMounted) {
           setRecentJobs(visibleJobs);
-          setRecentJobsHasMore(jobs.length >= recentJobsLimit);
+          setRecentJobsHasMore(hasMore);
         }
       } catch (error) {
         console.error('Erreur chargement analyses recentes:', error);
@@ -132,7 +241,7 @@ export const AnalysisPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [jobId, jobStatus?.status, recentJobsLimit]);
+  }, [jobId, status, recentJobsLimit]);
 
   const startNewAnalysis = () => {
     setJobId(null);
@@ -155,17 +264,22 @@ export const AnalysisPage: React.FC = () => {
     if (!jobStatus?.payload) return;
 
     const incomingName = jobStatus.payload.analysis_name;
-    if (typeof incomingName === 'string' && incomingName.trim()) {
-      setAnalysisName(incomingName.trim());
-      return;
-    }
+    let nextAnalysisName = '';
 
-    if (!analysisName.trim()) {
+    if (typeof incomingName === 'string' && incomingName.trim()) {
+      nextAnalysisName = incomingName.trim();
+    } else if (!analysisName.trim()) {
       const filename = jobStatus.payload.filename;
       if (typeof filename === 'string' && filename.trim()) {
-        setAnalysisName(filename.replace(/\.[^/.]+$/, '').trim());
+        nextAnalysisName = filename.replace(/\.[^/.]+$/, '').trim();
       }
     }
+
+    if (!nextAnalysisName || nextAnalysisName === analysisName.trim()) return;
+
+    const timer = window.setTimeout(() => setAnalysisName(nextAnalysisName), 0);
+
+    return () => window.clearTimeout(timer);
   }, [jobStatus?.payload, analysisName]);
 
   const handleRecentJobClick = (job: AnalysisJob) => {
@@ -316,7 +430,7 @@ export const AnalysisPage: React.FC = () => {
               onOpenHelp={() => setSupportPanel('help')}
               onRecentJobClick={handleRecentJobClick}
               setIsCollapsed={setIsSidebarCollapsed}
-              status={jobStatus?.status}
+              status={status}
             />
 
             <section className="min-w-0 px-4 py-4 sm:px-6 lg:px-8 lg:py-4">
@@ -364,7 +478,7 @@ export const AnalysisPage: React.FC = () => {
                           </div>
                         </div>
 
-                        <PipelinePanel activeStage={activeStage} status={jobStatus?.status} />
+                        <PipelinePanel activeStage={activeStage} status={status} />
                       </div>
                     </div>
                     <ResourceCards />
@@ -387,15 +501,13 @@ export const AnalysisPage: React.FC = () => {
                                 <span className="h-px w-32 bg-[#bdd5fa]" />
                               </div>
                               <h1 className="text-2xl font-black leading-tight">
-                                {jobStatus?.status === 'COMPLETED' ? t('analysis.auditCompletedTitle') : t('analysis.pipelineProgress')}
+                                {statusHeroTitle}
                               </h1>
                               <p className="mt-1 max-w-xl text-sm text-[#64708d] dark:text-white/60">
-                                {jobStatus?.status === 'COMPLETED'
-                                  ? t('analysis.auditCompletedText')
-                                  : t('analysis.pipelineProgressText', { name: analysisName || selectedFilename.replace(/\.[^/.]+$/, '') || t('analysis.migrationPackage') })}
+                                {statusHeroText}
                               </p>
                             </div>
-                            <StatusBadge status={jobStatus?.status} />
+                            <StatusBadge status={status} />
                           </div>
 
                           <div className="rounded-2xl border border-[#dbe4f2] bg-[#f8faff] p-5 transition-colors duration-300 dark:border-white/10 dark:bg-white/5">
@@ -407,7 +519,7 @@ export const AnalysisPage: React.FC = () => {
                               <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${progress}%` }}
-                                className={`h-full rounded-full ${jobStatus?.status === 'FAILED' ? 'bg-[#ef4444]' : jobStatus?.status === 'COMPLETED' ? 'bg-[#23d18b]' : 'bg-[#2f80ed]'}`}
+                                className={`h-full rounded-full ${progressBarClassName}`}
                               />
                             </div>
                             <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -417,7 +529,7 @@ export const AnalysisPage: React.FC = () => {
                             </div>
                           </div>
 
-                          {jobStatus?.status === 'RUNNING' && (
+                          {status === 'RUNNING' && (
                             <motion.div
                               initial={{ opacity: 0, y: 8 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -438,7 +550,7 @@ export const AnalysisPage: React.FC = () => {
                             </motion.div>
                           )}
 
-                          {jobStatus?.status === 'COMPLETED' && (
+                          {isJobCompleted && (
                             <motion.div
                               initial={{ opacity: 0, y: 8 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -454,7 +566,7 @@ export const AnalysisPage: React.FC = () => {
                             </motion.div>
                           )}
 
-                          {jobStatus?.status === 'COMPLETED' && (
+                          {isJobCompleted && (
                             <div className="mt-5 grid gap-4 sm:grid-cols-4">
                               <StatCard label={t('analysis.migrationScore')} value={`${summary?.migration_score ?? 0}%`} tone="blue" />
                               <StatCard label={t('analysis.blockers')} value={summary?.blocker_count ?? 0} tone="red" />
@@ -471,7 +583,7 @@ export const AnalysisPage: React.FC = () => {
                               <RotateCcw size={16} />
                               {t('analysis.newAudit')}
                             </button>
-                            {jobStatus?.status === 'COMPLETED' && (
+                            {isJobCompleted && (
                               <div className="flex flex-wrap gap-2">
                                 <button onClick={() => downloadFile('pdf')} className="flex items-center gap-2 rounded-xl border border-[#d7e0ef] px-4 py-3 font-bold text-[#64708d] transition dark:border-white/10 dark:text-white/65 dark:hover:bg-white/5">
                                   <Download size={16} />
@@ -492,7 +604,7 @@ export const AnalysisPage: React.FC = () => {
                             )}
                           </div>
                         </div>
-                        <PipelinePanel activeStage={activeStage} status={jobStatus?.status} />
+                        <PipelinePanel activeStage={activeStage} status={status} />
                       </div>
                     </div>
                     <ResourceCards />
@@ -586,16 +698,12 @@ const SecondarySidebar = ({
 }) => {
   const { t } = useI18n();
   const hasActiveJob = Boolean(jobId);
-  const isCompleted = status === 'COMPLETED';
-  const isFailed = status === 'FAILED';
-  const packageValue = hasActiveJob ? t('analysis.uploaded') : hasSelectedPackage ? t('analysis.packageReady') : t('analysis.waiting');
-  const readinessValue = isCompleted
-    ? t('analysis.reportReady')
-    : isFailed
-      ? t('analysis.status.failed')
-      : hasActiveJob
-        ? t('analysis.auditInProgress')
-        : t('analysis.pending');
+  const packageIsReady = hasActiveJob || hasSelectedPackage;
+  const packageValue = getPackageStatusLabel(t, hasActiveJob, hasSelectedPackage);
+  const readinessValue = getReadinessStatusLabel(t, status, hasActiveJob);
+  const readinessState = getReadinessStatusState(status, hasActiveJob);
+  const readinessIsActive = readinessState === 'active' || readinessState === 'complete';
+  const recentSummary = getRecentSummaryLabel(t, recentJobsLoading, recentJobs.length);
 
   return (
     <section className={`flex flex-col border-b border-[#dce4f4] bg-white transition-all duration-300 dark:border-white/10 dark:bg-[#0c1730] lg:min-h-[calc(100vh-62px)] lg:border-b-0 lg:border-r ${isCollapsed ? 'px-3 py-4 lg:items-center lg:py-5' : 'px-4 py-4 lg:py-5'}`}>
@@ -641,7 +749,7 @@ const SecondarySidebar = ({
             <div className="mb-3 flex items-center justify-between px-1">
               <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">{t('analysis.recent')}</p>
               <span className="rounded-full bg-[#eef4ff] px-2 py-1 text-[10px] font-black text-[#2f80ed] dark:bg-white/6 dark:text-[#8bbdff]">
-                {recentJobsLoading ? t('common.loading') : recentJobs.length ? t('analysis.recentCount', { count: recentJobs.length }) : t('common.empty')}
+                {recentSummary}
               </span>
             </div>
 
@@ -708,8 +816,8 @@ const SecondarySidebar = ({
             <div className="mt-4 rounded-2xl border border-[#dbe4f2] bg-white p-3.5 dark:border-white/10 dark:bg-white/5">
               <p className="text-[10px] font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">{t('analysis.workspaceStatus')}</p>
               <div className="mt-3">
-                <WorkspaceProgressStep label={t('analysis.dataPackage')} value={packageValue} active={hasActiveJob || hasSelectedPackage} done={hasActiveJob || hasSelectedPackage} />
-                <WorkspaceProgressStep label={t('analysis.cloudReadiness')} value={readinessValue} active={hasActiveJob || isCompleted} done={isCompleted} failed={isFailed} isLast />
+                <WorkspaceProgressStep label={t('analysis.dataPackage')} value={packageValue} active={packageIsReady} done={packageIsReady} />
+                <WorkspaceProgressStep label={t('analysis.cloudReadiness')} value={readinessValue} active={readinessIsActive} done={readinessState === 'complete'} failed={readinessState === 'failed'} isLast />
               </div>
             </div>
           </div>
@@ -1112,6 +1220,9 @@ const WorkspaceProgressStep = ({
 
 const PipelinePanel = ({ activeStage, status }: { activeStage: number; status: JobStatus }) => {
   const { t } = useI18n();
+  const dataStep = getPipelineStepState(activeStage, 1);
+  const compatibilityStep = getPipelineStepState(activeStage, 2);
+  const reportStep = getPipelineStepState(activeStage, 3);
 
   return (
     <aside className="flex h-full flex-col bg-[#121f46] p-6 text-white sm:p-7">
@@ -1131,9 +1242,9 @@ const PipelinePanel = ({ activeStage, status }: { activeStage: number; status: J
       </div>
 
       <div className="mt-7 space-y-0">
-        <PipelineStep number="01" eyebrow={t('analysis.dataReady')} title={t('analysis.dataPrep')} text={t('analysis.dataPrepText')} active={activeStage === 1} done={activeStage > 1} connectorState={activeStage > 1 ? 'done' : 'next'} />
-        <PipelineStep number="02" eyebrow={t('analysis.currentStage')} title={t('analysis.compatibility')} text={t('analysis.compatibilityText')} active={activeStage === 2} done={activeStage > 2} connectorState={activeStage > 2 ? 'done' : activeStage === 2 ? 'active' : 'idle'} />
-        <PipelineStep number="03" eyebrow={t('analysis.finalOutput')} title={t('analysis.aiReport')} text={t('analysis.aiReportText')} active={activeStage === 3} done={false} />
+        <PipelineStep number="01" eyebrow={t('analysis.dataReady')} title={t('analysis.dataPrep')} text={t('analysis.dataPrepText')} active={dataStep.active} done={dataStep.done} connectorState={dataStep.connectorState} />
+        <PipelineStep number="02" eyebrow={t('analysis.currentStage')} title={t('analysis.compatibility')} text={t('analysis.compatibilityText')} active={compatibilityStep.active} done={compatibilityStep.done} connectorState={compatibilityStep.connectorState} />
+        <PipelineStep number="03" eyebrow={t('analysis.finalOutput')} title={t('analysis.aiReport')} text={t('analysis.aiReportText')} active={reportStep.active} done={false} />
       </div>
 
       <div className="mt-auto pt-8">
@@ -1164,80 +1275,72 @@ const PipelineStep = ({
   active: boolean;
   done: boolean;
   connectorState?: 'done' | 'active' | 'next' | 'idle';
-}) => (
-  <motion.div
-    layout
-    initial={{ opacity: 0, y: 8 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.26, ease: 'easeOut' }}
-    className="relative flex gap-4 pb-6 last:pb-0"
-  >
-    <div className="relative flex w-11 shrink-0 justify-center">
-      {connectorState && (
-        <motion.span
-          initial={{ scaleY: 0.65, opacity: 0.55 }}
-          animate={{ scaleY: 1, opacity: 1 }}
-          transition={{ duration: 0.35, ease: 'easeOut' }}
-          style={{ transformOrigin: 'top' }}
-          className={`absolute left-1/2 top-11 h-[calc(100%-2.75rem)] w-[2px] -translate-x-1/2 rounded-full ${
-            connectorState === 'done'
-              ? 'bg-[#31d4a2]/85'
-              : connectorState === 'active'
-                ? 'bg-gradient-to-b from-[#31d4a2]/85 to-white/14'
-                : connectorState === 'next'
-                  ? 'bg-gradient-to-b from-[#5f9df7]/85 to-white/14'
-                  : 'bg-white/12'
-          }`}
-        />
-      )}
-      <motion.div
-        animate={active ? { scale: [1, 1.06, 1] } : { scale: 1 }}
-        transition={active ? { duration: 1.8, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
-        className={`relative z-10 flex h-11 w-11 items-center justify-center rounded-full text-[11px] font-black shadow-lg transition ${
-        active
-          ? 'bg-[#2f80ed] text-white shadow-[#2f80ed]/24 ring-4 ring-[#2f80ed]/18'
-          : done
-            ? 'bg-[#31d4a2]/90 text-[#071126] shadow-[#31d4a2]/16 ring-4 ring-[#31d4a2]/12'
-            : 'bg-white/10 text-white/68 shadow-black/10 ring-1 ring-white/10'
-      }`}
-      >
-        {done ? <CheckCircle2 size={17} /> : number}
-      </motion.div>
-    </div>
+}) => {
+  const connectorClassName = getPipelineConnectorClassName(connectorState);
+  const numberClassName = getPipelineNumberClassName(active, done);
+  const cardClassName = getPipelineCardClassName(active, done);
+  const eyebrowClassName = getPipelineEyebrowClassName(active, done);
+
+  return (
     <motion.div
-      animate={active ? { x: [0, 2, 0] } : { x: 0 }}
-      transition={active ? { duration: 2.4, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
-      className={`flex-1 rounded-2xl p-4 ring-1 transition ${
-      active
-        ? 'bg-[#1d3f7b]/90 shadow-lg shadow-[#071126]/16 ring-[#5f9df7]/38'
-        : done
-          ? 'bg-[#18345f]/80 ring-[#31d4a2]/18'
-          : 'bg-white/[0.065] ring-white/8'
-    }`}
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.26, ease: 'easeOut' }}
+      className="relative flex gap-4 pb-6 last:pb-0"
     >
-      <p className={`text-[10px] font-black uppercase ${active || done ? 'text-[#34d399]' : 'text-white/35'}`}>{eyebrow}</p>
-      <h3 className="mt-1 text-sm font-black">{title}</h3>
-      <p className="text-xs text-white/55">{text}</p>
+      <div className="relative flex w-11 shrink-0 justify-center">
+        {connectorState && (
+          <motion.span
+            initial={{ scaleY: 0.65, opacity: 0.55 }}
+            animate={{ scaleY: 1, opacity: 1 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+            style={{ transformOrigin: 'top' }}
+            className={`absolute left-1/2 top-11 h-[calc(100%-2.75rem)] w-[2px] -translate-x-1/2 rounded-full ${connectorClassName}`}
+          />
+        )}
+        <motion.div
+          animate={active ? { scale: [1, 1.06, 1] } : { scale: 1 }}
+          transition={active ? { duration: 1.8, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
+          className={`relative z-10 flex h-11 w-11 items-center justify-center rounded-full text-[11px] font-black shadow-lg transition ${numberClassName}`}
+        >
+          {done ? <CheckCircle2 size={17} /> : number}
+        </motion.div>
+      </div>
+      <motion.div
+        animate={active ? { x: [0, 2, 0] } : { x: 0 }}
+        transition={active ? { duration: 2.4, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
+        className={`flex-1 rounded-2xl p-4 ring-1 transition ${cardClassName}`}
+      >
+        <p className={`text-[10px] font-black uppercase ${eyebrowClassName}`}>{eyebrow}</p>
+        <h3 className="mt-1 text-sm font-black">{title}</h3>
+        <p className="text-xs text-white/55">{text}</p>
+      </motion.div>
     </motion.div>
-  </motion.div>
-);
+  );
+};
 
 const StatusBadge = ({ status }: { status?: string }) => {
   const { t } = useI18n();
   const isPending = status === 'QUEUED' || status === 'RUNNING' || !status;
+  const badgeClassName = getStatusBadgeClassName(status);
   return (
-    <div className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black uppercase ${status === 'COMPLETED' ? 'bg-[#dcfce7] text-[#15803d]' : status === 'FAILED' ? 'bg-[#fee2e2] text-[#b91c1c]' : 'bg-[#dbeafe] text-[#1d4ed8]'}`}>
+    <div className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black uppercase ${badgeClassName}`}>
       {isPending && <Loader2 size={14} className="animate-spin" />}
       {getTranslatedJobStatus(t, status)}
     </div>
   );
 };
 
-const StageChip = ({ label, active }: { label: string; active: boolean }) => (
-  <div className={`rounded-xl px-3 py-3 text-xs font-black ${active ? 'bg-white text-[#2f80ed] ring-1 ring-[#bdd5fa] dark:bg-[#10264d] dark:text-[#8bbdff] dark:ring-[#2f80ed]/35' : 'bg-[#edf2fb] text-[#8a96b3] dark:bg-white/5 dark:text-white/40'}`}>
-    {label}
-  </div>
-);
+const StageChip = ({ label, active }: { label: string; active: boolean }) => {
+  const chipClassName = getStageChipClassName(active);
+
+  return (
+    <div className={`rounded-xl px-3 py-3 text-xs font-black ${chipClassName}`}>
+      {label}
+    </div>
+  );
+};
 
 const RunningCheck = ({ icon, label }: { icon: React.ReactNode; label: string }) => (
   <div className="flex items-center gap-2 rounded-xl border border-[#dbe4f2] bg-white px-3 py-2 text-xs font-black text-[#2f80ed] dark:border-white/10 dark:bg-[#0c1730]/70 dark:text-[#8bbdff]">
