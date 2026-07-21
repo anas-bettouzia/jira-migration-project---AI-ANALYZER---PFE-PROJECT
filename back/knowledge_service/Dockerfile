@@ -12,7 +12,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY shared/ ./shared/
 COPY knowledge_service/ ./knowledge_service/
-RUN mkdir -p /app/knowledge_service/chroma_db && chown -R appuser:appuser /app/knowledge_service
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Use the unprivileged user for runtime.
 USER appuser
@@ -24,4 +25,5 @@ ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
 
 EXPOSE 5003
 
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["python", "knowledge_service/app.py"]
