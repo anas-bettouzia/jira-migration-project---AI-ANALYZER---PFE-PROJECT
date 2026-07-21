@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    configs:
+      - source: prometheus_yml
+        target: /etc/prometheus/prometheus.yml
+    volumes:
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+    configs:
+      - source: grafana_datasource_yml
+        target: /etc/grafana/provisioning/datasources/prometheus.yml
+      - source: grafana_dashboards_yml
+        target: /etc/grafana/provisioning/dashboards/dashboards.yml
+      - source: grafana_jira_migration_dashboard
+        target: /etc/grafana/provisioning/dashboards/jira-migration.json
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - app_network
+    restart: unless-stopped
+
+configs:
+  prometheus_yml:
+    external: true
+  grafana_datasource_yml:
+    external: true
+  grafana_dashboards_yml:
+    external: true
+  grafana_jira_migration_dashboard:
+    external: true
+
+volumes:
+  prometheus_data:
+    name: jira_migration_prometheus_data
+  grafana_data:
+    name: jira_migration_grafana_data
+
+networks:
+  app_network:
+    external: true
+    name: jira-migration_default
