@@ -342,11 +342,18 @@ def _send_password_reset_email_smtp(email: str, reset_link: str) -> None:
     try:
         if smtp_use_ssl or smtp_port == 465:
             smtp_connection = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10)
+            starttls_required = False
         else:
             smtp_connection = smtplib.SMTP(smtp_host, smtp_port, timeout=5)
+            starttls_required = True
 
         with smtp_connection as smtp:
-            if not smtp_use_ssl and smtp_use_tls:
+            if starttls_required:
+                if not smtp_use_tls:
+                    raise RuntimeError(
+                        "Insecure SMTP configuration: SMTP_USE_TLS must be enabled "
+                        "when not using SSL."
+                    )
                 smtp.starttls()
             if smtp_username and smtp_password:
                 smtp.login(smtp_username, smtp_password)
@@ -572,11 +579,18 @@ def _send_email_verification_email(email: str, verification_link: str) -> None:
 
         if smtp_use_ssl or smtp_port == 465:
             smtp_connection = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10)
+            starttls_required = False
         else:
             smtp_connection = smtplib.SMTP(smtp_host, smtp_port, timeout=5)
+            starttls_required = True
 
         with smtp_connection as smtp:
-            if not smtp_use_ssl and smtp_use_tls:
+            if starttls_required:
+                if not smtp_use_tls:
+                    raise RuntimeError(
+                        "Insecure SMTP configuration: SMTP_USE_TLS must be enabled "
+                        "when not using SSL."
+                    )
                 smtp.starttls()
             if smtp_username and smtp_password:
                 smtp.login(smtp_username, smtp_password)

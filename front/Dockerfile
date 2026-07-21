@@ -18,5 +18,11 @@ FROM nginx:stable-alpine
 # self-signed certs at build time for production deployments.
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+RUN chown -R nginx:nginx /usr/share/nginx/html
+
+# Run nginx as a non-root user when possible.
+# The official nginx alpine image includes a dedicated nginx user.
+USER nginx
+
 EXPOSE 80 443
 CMD ["nginx", "-g", "daemon off;"]
