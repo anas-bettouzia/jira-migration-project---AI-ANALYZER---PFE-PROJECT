@@ -8,7 +8,7 @@ Le stack de monitoring est conçu pour être déployé séparément du stack app
 - Le stack applicatif principal reste dans `docker-compose.yml`.
 - Le stack monitoring est isolé dans `docker-compose.monitoring.yml`.
 - Les deux stacks partagent un réseau Docker commun : `jira_migration_app_network`.
-- Les configurations Prometheus et Grafana sont fournies via des `configs` Docker plutôt que des montages de volumes locaux.
+- Les configurations Prometheus et Grafana sont montées dans des volumes locaux pour Portainer Standalone.
 
 ## Fichiers clés
 
@@ -36,36 +36,185 @@ docker compose -f docker-compose.monitoring.yml up -d
 
 ## Déploiement via Portainer / Docker Stack
 
-1. Créer ou vérifier le réseau partagé si nécessaire :
+> Si vous utilisez Portainer en mode Standalone (Compose classique), n'utilisez pas `configs:`. Utilisez un fichier Compose avec des volumes et copiez vos fichiers de configuration dans les volumes sur l'hôte.
+
+### 1. Vérifier le réseau partagé
+
+Ton stack `jira-migration` doit utiliser le réseau externe :
+
+- `jira_migration_app_network`
+
+Si le réseau n'existe pas encore, crée-le dans Portainer ou avec :
 
 ```powershell
-docker network create --driver overlay jira_migration_app_network
+docker network create --driver bridge jira_migration_app_network
 ```
 
-2. Déployer le stack monitoring :
+### 2. Utiliser le fichier `docker-compose.monitoring.yml`
+
+Dans Portainer, va dans **Stacks → Add stack** et colle ce contenu :
+
+```yaml
+version: "3.9"
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: jira_prometheus
+    ports:
+      - "9099:9090"
+    volumes:
+      - prometheus_config:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: jira_grafana
+    ports:
+      - "3009:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - grafana_provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - app_network
+    restart: unless-stopped
+
+networks:
+  app_network:
+    external: true
+    name: jira_migration_app_network
+
+volumes:
+  prometheus_config:
+  prometheus_data:
+  grafana_provisioning:
+  grafana_data:
+```
+
+### 3. Copier les fichiers de configuration dans les volumes
+
+Sur l'hôte Docker, retrouve les chemins des volumes créés :
 
 ```powershell
-docker stack deploy -c docker-compose.monitoring.yml jira_migration_monitoring
+docker volume inspect <volume_name>
 ```
 
-3. Vérifier que le stack principal expose bien les services suivants sur le réseau partagé :
+Pour chaque volume, copie le contenu correspondant :
 
-- `gateway` sur `gateway:5000`
-- `parsing_service` sur `parsing-service:5001`
-- `compatibility_service` sur `compatibility-service:5002`
-- `knowledge_service` sur `knowledge-service:5003`
-- `report_service` sur `report-service:5004`
-- `worker` sur `worker:5005`
+- `prometheus_config` → `/etc/prometheus/prometheus.yml`
+- `grafana_provisioning` → `/etc/grafana/provisioning`
 
-## URL d'accès
+### 4. Contenu du fichier `prometheus.yml`
 
-- Prometheus : `http://localhost:9090`
-- Grafana : `http://localhost:3000`
+```yaml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'jira-migration-monitor'
 
-Identifiants Grafana par défaut :
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
 
-- utilisateur : `admin`
-- mot de passe : `${GRAFANA_ADMIN_PASSWORD:-admin}`
+  - job_name: 'gateway'
+    static_configs:
+      - targets: ['gateway:5000']
+    metrics_path: '/metrics'
+
+  - job_name: 'parsing_service'
+    static_configs:
+      - targets: ['parsing-service:5001']
+    metrics_path: '/metrics'
+
+  - job_name: 'compatibility_service'
+    static_configs:
+      - targets: ['compatibility-service:5002']
+    metrics_path: '/metrics'
+
+  - job_name: 'knowledge_service'
+    static_configs:
+      - targets: ['knowledge-service:5003']
+    metrics_path: '/metrics'
+
+  - job_name: 'report_service'
+    static_configs:
+      - targets: ['report-service:5004']
+    metrics_path: '/metrics'
+
+  - job_name: 'worker'
+    static_configs:
+      - targets: ['worker:5005']
+    metrics_path: '/metrics'
+```
+
+### 5. Contenu du provisioning Grafana
+
+Sur l'hôte, crée le dossier `dashboards` dans `grafana_provisioning` et ajoute :
+
+`grafana/provisioning/datasources/prometheus.yml`
+```yaml
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: 15s
+```
+
+`grafana/provisioning/dashboards/dashboards.yml`
+```yaml
+apiVersion: 1
+
+providers:
+  - name: 'Jira Migration Dashboards'
+    orgId: 1
+    folder: 'Jira Migration'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+```
+
+`grafana/provisioning/dashboards/jira-migration.json`
+- utilise le fichier JSON déjà présent dans le dépôt `grafana/provisioning/dashboards/jira-migration.json`
+
+### 6. Redéployer le stack
+
+1. Redéploie le stack `jira-migration-monitoring` dans Portainer
+2. Vérifie les logs si nécessaire
+
+### 7. URL d’accès
+
+- Prometheus : `http://<host>:9099`
+- Grafana : `http://<host>:3009`
+
+### 8. Important
+
+Ne tente pas de scrapper `mongodb:27017` ou `redis:6379` directement sans exporter.
+
+Pour surveiller MongoDB/Redis, il faut ajouter un exporter dédié.
 
 ## Remarques
 
