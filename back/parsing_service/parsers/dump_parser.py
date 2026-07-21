@@ -73,7 +73,7 @@ def parse_sql_dump(file_info: dict) -> list[JiraComponent]:
     components = []
 
     script_pattern = re.compile(
-        r"INSERT INTO .*?VALUES.*?(['\"])(.*?)\1",
+        r"INSERT\s+INTO\s+\w+\s+VALUES\s*\((['\"])(.+?)\1",
         re.IGNORECASE | re.DOTALL,
     )
 

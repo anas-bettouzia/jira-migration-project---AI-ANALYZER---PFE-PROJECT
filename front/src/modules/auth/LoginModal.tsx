@@ -344,6 +344,14 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
         <div
           className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
           onClick={onClose}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              onClose();
+            }
+          }}
+          aria-label="Close modal"
         />
 
         <div className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-[2rem] shadow-2xl border border-white/20 dark:border-slate-800 p-8 animate-in fade-in zoom-in duration-300">
@@ -371,6 +379,14 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
       <div
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            onClose();
+          }
+        }}
+        aria-label="Close modal"
       />
 
       <div className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-[2rem] shadow-2xl border border-white/20 dark:border-slate-800 p-8 animate-in fade-in zoom-in duration-300">

@@ -1,9 +1,8 @@
 @import "tailwindcss";
-
-@custom-variant dark (&:where(.dark, .dark *));
-
-/* Mobile fallbacks to avoid compositing artifacts (imported last) */
 @import './styles/mobile-fallbacks.css';
+
+/* stylelint-disable-next-line at-rule-no-unknown */
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   --spectrum-blue: #004a99;

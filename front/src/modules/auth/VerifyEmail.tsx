@@ -100,6 +100,14 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
       <div
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
         onClick={handleClose}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            handleClose();
+          }
+        }}
+        aria-label="Close modal"
       />
 
       {/* Main Container Card Matching LoginModal */}
