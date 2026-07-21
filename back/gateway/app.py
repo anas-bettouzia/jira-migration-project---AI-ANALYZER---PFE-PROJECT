@@ -1507,9 +1507,13 @@ def create_app():
             url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports/{report_id}/json"
             response = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
 
-            # If error (e.g. 404), return json error message
+            # If error (e.g. 404), return json error message with headers
             if response.status_code != 200:
-                return jsonify(response.json()), response.status_code
+                try:
+                    body = jsonify(response.json())
+                except ValueError:
+                    body = jsonify({"error": "Report request failed"})
+                return body, response.status_code, {"Content-Type": "application/json"}
 
             filename = _build_report_filename(
                 report_id,
@@ -1527,7 +1531,8 @@ def create_app():
 
         except requests.exceptions.RequestException as error:
             logger.error("Report JSON export failed: %s", error)
-            return jsonify({"error": f"Report request failed: {error}"}), 502
+            body = jsonify({"error": f"Report request failed: {error}"})
+            return body, 502, {"Content-Type": "application/json"}
 
     @app.route("/api/reports/<report_id>/pdf", methods=["GET"])
     @jwt_required()
@@ -1545,12 +1550,13 @@ def create_app():
             url = f"{REPORT_SERVICE_URL.rstrip('/')}/reports/{report_id}/pdf"
             response = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
 
-            # If error (e.g. 404), return json error message
+            # If error (e.g. 404), return json error message with headers
             if response.status_code != 200:
                 try:
-                    return jsonify(response.json()), response.status_code
+                    body = jsonify(response.json())
                 except ValueError:
-                    return jsonify({"error": "Failed to retrieve PDF"}), response.status_code
+                    body = jsonify({"error": "Failed to retrieve PDF"})
+                return body, response.status_code, {"Content-Type": "application/json"}
 
             filename = _build_report_filename(report_id, source_filename, requested_language, "pdf")
             headers = {
@@ -1561,7 +1567,8 @@ def create_app():
 
         except requests.exceptions.RequestException as error:
             logger.error("Report PDF export failed: %s", error)
-            return jsonify({"error": f"Report request failed: {error}"}), 502
+            body = jsonify({"error": f"Report request failed: {error}"})
+            return body, 502, {"Content-Type": "application/json"}
 
     @app.route("/api/reports/<report_id>", methods=["DELETE"])
     @jwt_required()
