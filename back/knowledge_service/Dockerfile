@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY shared/ ./shared/
 COPY knowledge_service/ ./knowledge_service/
-COPY entrypoint.sh /entrypoint.sh
+COPY knowledge_service/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Use the unprivileged user for runtime.
