@@ -130,14 +130,14 @@ function extractFilenameFromContentDisposition(header?: string): string | null {
 }
 
 function sanitizeExportBasename(value: string, maxLength = 120): string {
-  const filename = value.trim().replace(/\\/g, '/').split('/').pop() ?? value;
+  const filename = value.trim().replaceAll('\\', '/').split('/').pop() ?? value;
   const lastDotIndex = filename.lastIndexOf('.');
   const stem = lastDotIndex > 0 ? filename.slice(0, lastDotIndex) : filename;
   let sanitized = '';
   let previousWasSeparator = false;
 
   for (const char of stem) {
-    const code = char.charCodeAt(0);
+    const code = char.codePointAt(0) ?? 0;
     const isSafeCharacter = (
       (code >= 48 && code <= 57)
       || (code >= 65 && code <= 90)

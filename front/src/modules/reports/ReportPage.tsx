@@ -981,7 +981,7 @@ const technicalLabel = (value: string | undefined, language: Language) => {
     },
   };
 
-  return labels[language]?.[normalized] ?? normalized.replace(/_/g, ' ').toLowerCase().replace(/^\w/, (char) => char.toUpperCase());
+  return labels[language]?.[normalized] ?? normalized.replaceAll('_', ' ').toLowerCase().replace(/^\w/, (char) => char.toUpperCase());
 };
 
 const TopBlockerCard = ({
@@ -1180,7 +1180,7 @@ const AISummaryRenderer = ({ content }: { content: string }) => {
     } else if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**')) {
       elements.push(
         <h2 key={`h2-bold-${i}`} className="mt-5 text-xl font-black text-[#111b3f] dark:text-white">
-          {trimmedLine.replace(/\*\*/g, '')}
+          {trimmedLine.replaceAll('**', '')}
         </h2>,
       );
     } else if (trimmedLine.startsWith('*')) {
@@ -1188,7 +1188,7 @@ const AISummaryRenderer = ({ content }: { content: string }) => {
       while (i < lines.length && lines[i].trim().startsWith('*')) {
         listItems.push(
           <li key={`li-${i}`} className="ml-4 text-sm leading-7 text-[#64708d] dark:text-white/68">
-              {lines[i].replace(/^\s*(\*\s)+/, '').replace(/\*\*/g, '')}
+              {lines[i].replace(/^\s*(\*\s)+/, '').replaceAll('**', '')}
           </li>,
         );
         i++;
@@ -1204,7 +1204,7 @@ const AISummaryRenderer = ({ content }: { content: string }) => {
     } else if (trimmedLine !== '') {
       elements.push(
         <p key={`p-${i}`} className="break-words text-sm leading-7 text-[#64708d] dark:text-white/68">
-          {line.replace(/\*\*/g, '')}
+          {line.replaceAll('**', '')}
         </p>,
       );
     }

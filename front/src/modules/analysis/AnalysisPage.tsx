@@ -1058,6 +1058,11 @@ const RecentJobItem = ({
     <div
       onClick={onClick}
       onMouseLeave={closeMenuOnLeave}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          onClick();
+        }
+      }}
       role="button"
       tabIndex={0}
       className={`relative w-full cursor-pointer rounded-2xl border p-2.5 text-left transition ${
