@@ -341,16 +341,10 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     // When registration just succeeded we render a minimal modal with only the success message
     showRegistrationSuccess ? (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div
+        <button
+          type="button"
           className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
           onClick={onClose}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              onClose();
-            }
-          }}
           aria-label="Close modal"
         />
 
@@ -376,16 +370,10 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
       </div>
     ) : (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
+      <button
+        type="button"
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            onClose();
-          }
-        }}
         aria-label="Close modal"
       />
 

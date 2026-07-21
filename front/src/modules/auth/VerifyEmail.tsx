@@ -97,16 +97,10 @@ const VerifyEmail = ({ onClose }: VerifyEmailProps) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Blurred Backdrop Matching LoginModal */}
-      <div
+      <button
+        type="button"
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
         onClick={handleClose}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            handleClose();
-          }
-        }}
         aria-label="Close modal"
       />
 
