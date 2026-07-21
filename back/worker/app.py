@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from shared.core.config import Config
+from shared.monitoring import init_prometheus_metrics
 
 load_dotenv()
 
@@ -164,6 +165,7 @@ def get_jobs():
 
 
 if __name__ == "__main__":
+    init_prometheus_metrics(app, 'worker')
     port = int(os.environ.get("PORT", 5005))
     debug = os.getenv("DEBUG", "false").lower() in {"1", "true", "yes"}
     app.run(host=Config.FLASK_RUN_HOST, port=port, debug=debug)

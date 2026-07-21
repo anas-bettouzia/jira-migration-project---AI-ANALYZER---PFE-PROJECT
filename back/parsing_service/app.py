@@ -20,6 +20,7 @@ from parsing_service.parsers import dump_parser, groovy_parser, xml_parser, zip_
 from shared.core.config import Config
 from shared.repositories.analysis_repository import AnalysisRepository
 from shared.schemas.parsed_data_schema import ParsedJiraData
+from shared.monitoring import init_prometheus_metrics
 
 app = Flask(__name__)
 app.config["TRUSTED_HOSTS"] = None
@@ -165,6 +166,7 @@ def _to_dict(value):
 
 
 if __name__ == "__main__":
+    init_prometheus_metrics(app, 'parsing_service')
     port = int(os.environ.get("PORT", 5001))
     debug = os.getenv("DEBUG", "false").lower() in {"1", "true", "yes"}
     app.run(host=Config.FLASK_RUN_HOST, port=port, debug=debug)

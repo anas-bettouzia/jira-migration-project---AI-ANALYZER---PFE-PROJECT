@@ -35,6 +35,7 @@ from shared.core.errors import register_error_handlers
 from shared.core.extensions import jwt, mongo
 from shared.repositories.user_repository import UserRepository
 from shared.core.logger import setup_logger
+from shared.monitoring import init_prometheus_metrics
 
 load_dotenv()
 
@@ -1596,6 +1597,9 @@ def create_app():
         except requests.exceptions.RequestException as error:
             logger.error("Delete report request failed: %s", error)
             return jsonify({"error": f"Report service request failed: {error}"}), 502
+
+    # Initialize Prometheus metrics
+    init_prometheus_metrics(app, 'gateway')
 
     return app
 

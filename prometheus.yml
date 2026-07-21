@@ -1,0 +1,50 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'jira-migration-monitor'
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'gateway'
+    static_configs:
+      - targets: ['gateway:5000']
+    metrics_path: '/metrics'
+
+  - job_name: 'parsing_service'
+    static_configs:
+      - targets: ['parsing-service:5001']
+    metrics_path: '/metrics'
+
+  - job_name: 'compatibility_service'
+    static_configs:
+      - targets: ['compatibility-service:5002']
+    metrics_path: '/metrics'
+
+  - job_name: 'knowledge_service'
+    static_configs:
+      - targets: ['knowledge-service:5003']
+    metrics_path: '/metrics'
+
+  - job_name: 'report_service'
+    static_configs:
+      - targets: ['report-service:5004']
+    metrics_path: '/metrics'
+
+  - job_name: 'worker'
+    static_configs:
+      - targets: ['worker:5005']
+    metrics_path: '/metrics'
+
+  - job_name: 'mongodb'
+    static_configs:
+      - targets: ['mongodb:27017']
+    metrics_path: '/metrics'
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    metrics_path: '/metrics'

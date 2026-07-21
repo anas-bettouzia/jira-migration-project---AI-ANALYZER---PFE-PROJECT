@@ -27,6 +27,7 @@ from report_service.llm.gemini_client import generate_report_json
 from shared.core.config import Config
 from shared.repositories.compatibility_repository import CompatibilityRepository
 from shared.repositories.report_repository import ReportRepository
+from shared.monitoring import init_prometheus_metrics
 
 app = Flask(__name__)
 cors_config = {
@@ -595,6 +596,9 @@ def delete_report(report_id):
         return jsonify({"error": str(error)}), 500
 
 if __name__ == "__main__":
+    # Initialize Prometheus metrics
+    init_prometheus_metrics(app, 'report_service')
+
     port = int(os.environ.get("PORT", 5004))
     debug = os.getenv("DEBUG", "false").lower() in {"1", "true", "yes"}
     app.run(host=Config.FLASK_RUN_HOST, port=port, debug=debug)

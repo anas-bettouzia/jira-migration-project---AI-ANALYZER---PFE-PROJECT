@@ -7,10 +7,14 @@ to the report_service for LLM-grounded report generation.
 import logging
 import os
 import sys
-from shared.core.config import Config
+
+from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from dotenv import load_dotenv
+
+from shared.core.config import Config
+from shared.monitoring import init_prometheus_metrics
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
@@ -147,6 +151,8 @@ if __name__ == "__main__":
     # Auto-index on startup if collection is empty
     logger.info("Starting Knowledge Service — checking index...")
     index_documents(force_reindex=False)
+
+    init_prometheus_metrics(app, 'knowledge_service')
 
     port = int(os.environ.get("PORT", 5003))
     debug = os.getenv("DEBUG", "false").lower() in {"1", "true", "yes"}

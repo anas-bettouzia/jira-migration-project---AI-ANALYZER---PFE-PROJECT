@@ -28,6 +28,7 @@ from shared.repositories.component_analysis_cache_repository import (
     ComponentAnalysisCacheRepository,
 )
 from shared.repositories.compatibility_repository import CompatibilityRepository
+from shared.monitoring import init_prometheus_metrics
 
 
 app = Flask(__name__)
@@ -169,6 +170,7 @@ def cache_stats():
 
 
 if __name__ == "__main__":
+    init_prometheus_metrics(app, 'compatibility_service')
     port = int(os.environ.get("PORT", 5002))
     debug = os.getenv("DEBUG", "false").lower() in {"1", "true", "yes"}
     app.run(host=Config.FLASK_RUN_HOST, port=port, debug=debug)
