@@ -56,6 +56,8 @@ EMAIL_REGEX = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.(com|fr|tn)$"
 PASSWORD_REGEX = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\w\W]{8,}$"  # NOSONAR
 PASSWORD_RESET_TOKEN_MINUTES = int(os.getenv("PASSWORD_RESET_TOKEN_MINUTES", "30"))
 
+APPLICATION_JSON = "application/json"
+
 
 def _normalize_email(email: str) -> str:
     """Return a consistently stored email value."""
@@ -293,7 +295,7 @@ def _send_password_reset_email_sendgrid(email: str, reset_link: str) -> None:
     }
     headers = {
         "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
+        "Content-Type": APPLICATION_JSON,
     }
     try:
         response = requests.post(
@@ -536,7 +538,7 @@ def _send_email_verification_email(email: str, verification_link: str) -> None:
                 {"type": "text/html", "value": _email_verification_message_html(link)},
             ],
         }
-        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": APPLICATION_JSON}
         response = requests.post(
             "https://api.sendgrid.com/v3/mail/send",
             json=payload,
@@ -1513,7 +1515,7 @@ def create_app():
                     body = jsonify(response.json())
                 except ValueError:
                     body = jsonify({"error": "Report request failed"})
-                return body, response.status_code, {"Content-Type": "application/json"}
+                return body, response.status_code, {"Content-Type": APPLICATION_JSON}
 
             filename = _build_report_filename(
                 report_id,
@@ -1523,16 +1525,14 @@ def create_app():
             )
             headers = {
                 'Content-Disposition': f'attachment; filename={filename}',
-                'Content-Type': response.headers.get(
-                    'Content-Type', 'application/json'
-                ),
+                'Content-Type': response.headers.get('Content-Type', APPLICATION_JSON),
             }
             return response.content, 200, headers
 
         except requests.exceptions.RequestException as error:
             logger.error("Report JSON export failed: %s", error)
             body = jsonify({"error": f"Report request failed: {error}"})
-            return body, 502, {"Content-Type": "application/json"}
+            return body, 502, {"Content-Type": APPLICATION_JSON}
 
     @app.route("/api/reports/<report_id>/pdf", methods=["GET"])
     @jwt_required()
@@ -1556,7 +1556,7 @@ def create_app():
                     body = jsonify(response.json())
                 except ValueError:
                     body = jsonify({"error": "Failed to retrieve PDF"})
-                return body, response.status_code, {"Content-Type": "application/json"}
+                return body, response.status_code, {"Content-Type": APPLICATION_JSON}
 
             filename = _build_report_filename(report_id, source_filename, requested_language, "pdf")
             headers = {
@@ -1568,7 +1568,7 @@ def create_app():
         except requests.exceptions.RequestException as error:
             logger.error("Report PDF export failed: %s", error)
             body = jsonify({"error": f"Report request failed: {error}"})
-            return body, 502, {"Content-Type": "application/json"}
+            return body, 502, {"Content-Type": APPLICATION_JSON}
 
     @app.route("/api/reports/<report_id>", methods=["DELETE"])
     @jwt_required()
