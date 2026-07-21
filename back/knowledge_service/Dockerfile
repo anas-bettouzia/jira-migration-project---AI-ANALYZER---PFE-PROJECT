@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY shared/ ./shared/
 COPY knowledge_service/ ./knowledge_service/
+RUN mkdir -p /app/knowledge_service/chroma_db && chown -R appuser:appuser /app/knowledge_service
 
 # Use the unprivileged user for runtime.
 USER appuser
