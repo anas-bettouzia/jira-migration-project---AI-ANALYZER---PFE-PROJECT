@@ -341,11 +341,16 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     // When registration just succeeded we render a minimal modal with only the success message
     showRegistrationSuccess ? (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
           onClick={onClose}
-          aria-label="Close modal"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              onClose();
+            }
+          }}
         />
 
         <div className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-[2rem] shadow-2xl border border-white/20 dark:border-slate-800 p-8 animate-in fade-in zoom-in duration-300">
@@ -370,11 +375,16 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
       </div>
     ) : (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
-        aria-label="Close modal"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            onClose();
+          }
+        }}
       />
 
       <div className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-[2rem] shadow-2xl border border-white/20 dark:border-slate-800 p-8 animate-in fade-in zoom-in duration-300">
