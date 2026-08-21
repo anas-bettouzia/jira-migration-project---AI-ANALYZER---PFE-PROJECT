@@ -366,7 +366,7 @@ const ProfilePage: React.FC = () => {
                   {isGoogleAccount ? (
                     <section className="rounded-[22px] bg-white p-5 shadow-sm ring-1 ring-[#dbe4f2] dark:bg-[#101d3a] dark:ring-white/10 sm:p-6">
                       <div className="mb-5 flex items-start gap-3">
-                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#e8fbf3] text-[#0a9f6a] dark:bg-emerald-400/12 dark:text-emerald-300">
+                        <span className="flex h-11 w-14 items-center justify-center rounded-2xl bg-[#e8fbf3] text-[#0a9f6a] dark:bg-emerald-400/12 dark:text-emerald-300">
                           <CheckCircle2 size={20} />
                         </span>
                         <div>
@@ -375,8 +375,8 @@ const ProfilePage: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="rounded-[22px] border border-[#dbe4f2] bg-[#f8faff] p-4 dark:border-white/10 dark:bg-white/[0.03]">
-                        <p className="text-xs font-black uppercase tracking-wide text-[#8a96b3] dark:text-white/45">{t('profile.securedBy')}</p>
+                      <div className="rounded-[22px] border border-[#dbe4f2] bg-[#f8faff] p-4 shadow-sm shadow-[#dfe8f6] dark:border-white/10 dark:bg-white/[0.03] dark:shadow-none">
+                        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8a96b3] dark:text-white/45">{t('profile.securedBy')}</p>
                         <p className="mt-2 text-2xl font-black text-[#111b3f] dark:text-white">Google</p>
                         <p className="mt-2 text-sm leading-6 text-[#64708d] dark:text-white/55">{t('profile.googleManagedHint')}</p>
                       </div>
@@ -385,7 +385,7 @@ const ProfilePage: React.FC = () => {
                     <form onSubmit={handlePasswordSubmit} className="rounded-[22px] bg-white p-5 shadow-sm ring-1 ring-[#dbe4f2] dark:bg-[#101d3a] dark:ring-white/10 sm:p-6">
                       <div className="mb-5 flex items-start gap-3">
                         <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff4df] text-[#b76b00] dark:bg-[#f59e0b]/12 dark:text-[#ffbe4d]">
-                          <KeyRound size={20} />
+                          <KeyRound size={18} />
                         </span>
                         <div>
                           <h2 className="text-lg font-black">{t('profile.changePassword')}</h2>

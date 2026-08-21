@@ -7,7 +7,7 @@ from shared.core.config import Config
 
 logger = logging.getLogger(__name__)
 
-TRANSLATION_MODEL = os.getenv("TRANSLATION_MODEL", "gemini-2.5-flash")
+TRANSLATION_MODEL = os.getenv("TRANSLATION_MODEL", "gemini-3.5-flash")
 
 
 def _gemini_translate(text: str, source_locale: str, target_locale: str) -> dict:

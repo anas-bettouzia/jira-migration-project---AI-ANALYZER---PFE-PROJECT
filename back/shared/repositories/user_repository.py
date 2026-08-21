@@ -144,7 +144,7 @@ class UserRepository:
             {
                 "$set": {
                     "reset_password_token_hash": token_hash,
-                    "reset_password_expires_at": expires_at,
+                    "reset_password_expires_at": expires_at.isoformat(),
                     "updated_at": datetime.now(timezone.utc).isoformat(),
                 }
             },
@@ -192,7 +192,7 @@ class UserRepository:
             {
                 "$set": {
                     "email_verification_token_hash": token_hash,
-                    "email_verification_expires_at": expires_at,
+                    "email_verification_expires_at": expires_at.isoformat(),
                     "updated_at": datetime.now(timezone.utc).isoformat(),
                 }
             },

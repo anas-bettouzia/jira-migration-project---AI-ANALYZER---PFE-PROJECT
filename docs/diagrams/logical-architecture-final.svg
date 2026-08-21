@@ -1,0 +1,190 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1250" viewBox="0 0 2400 1250">
+  <defs>
+    <style>
+      .bg{fill:#fff}
+      .frame{fill:#fff;stroke:#1f2937;stroke-width:2.4}
+      .sep{stroke:#b8c7db;stroke-width:1.6;stroke-dasharray:9 8}
+      .ink{stroke:#111827;stroke-width:2.2;fill:none}
+      .title{font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:800;fill:#111827}
+      .layer{font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:700;fill:#111827}
+      .txt{font-family:Arial,Helvetica,sans-serif;font-size:15px;fill:#111827}
+      .bold{font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;fill:#111827}
+      .actor{font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;fill:#111827}
+      .comp{fill:#edf5ff;stroke:#2563ff;stroke-width:2}
+      .ai{fill:#edf9ef;stroke:#16833b;stroke-width:2}
+      .db{fill:#fbf5ff;stroke:#8a2be2;stroke-width:2}
+      .note{fill:#fff7ed;stroke:#f97316;stroke-width:2}
+      .flow{stroke:#111827;stroke-width:2.1;fill:none;marker-end:url(#black)}
+      .data{stroke:#8a2be2;stroke-width:2.0;fill:none;stroke-dasharray:9 7;marker-end:url(#purple)}
+      .ia{stroke:#16833b;stroke-width:2.0;fill:none;stroke-dasharray:9 7;marker-end:url(#green)}
+      .icon{fill:none;stroke:#2563ff;stroke-width:2}
+      .ai-icon{fill:none;stroke:#16833b;stroke-width:2}
+    </style>
+    <marker id="black" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.8" markerHeight="5.8" orient="auto"><path d="M0 0 10 5 0 10z" fill="#111827"/></marker>
+    <marker id="purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.8" markerHeight="5.8" orient="auto"><path d="M0 0 10 5 0 10z" fill="#8a2be2"/></marker>
+    <marker id="green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.8" markerHeight="5.8" orient="auto"><path d="M0 0 10 5 0 10z" fill="#16833b"/></marker>
+  </defs>
+
+  <rect class="bg" width="2200" height="1250"/>
+
+  <!-- UML title tab -->
+  <path class="frame" d="M10 10 H790 V35 L765 60 H10 Z"/>
+  <text class="title" x="24" y="43">pkg Diagramme d'architecture logique - Jira Migration AI Analyzer</text>
+
+  <!-- Actor -->
+  <circle class="ink" cx="92" cy="245" r="27"/>
+  <line class="ink" x1="92" y1="272" x2="92" y2="350"/>
+  <line class="ink" x1="48" y1="306" x2="136" y2="306"/>
+  <line class="ink" x1="92" y1="350" x2="54" y2="425"/>
+  <line class="ink" x1="92" y1="350" x2="130" y2="425"/>
+  <text class="actor" x="43" y="468">Consultant</text>
+  <text class="actor" x="42" y="492">Atlassian</text>
+
+  <!-- Main frame -->
+  <rect class="frame" x="245" y="95" width="1920" height="980"/>
+  <line class="sep" x1="245" y1="230" x2="2165" y2="230"/>
+  <line class="sep" x1="245" y1="375" x2="2165" y2="375"/>
+  <line class="sep" x1="245" y1="535" x2="2165" y2="535"/>
+  <line class="sep" x1="245" y1="865" x2="2165" y2="865"/>
+
+  <text class="layer" x="280" y="140">1. Présentation</text>
+  <text class="layer" x="280" y="278">2. Accès et sécurité</text>
+  <text class="layer" x="280" y="422">3. Orchestration métier</text>
+  <text class="layer" x="280" y="582">4. Domaines fonctionnels</text>
+  <text class="layer" x="280" y="905">5. Données et connaissances</text>
+
+  <!-- Components -->
+  <rect class="comp" x="790" y="120" width="340" height="88"/>
+  <text class="bold" x="916" y="153">Frontend</text>
+  <text class="txt" x="883" y="178">Interface React</text>
+  <text class="txt" x="838" y="200">Import package, suivi, rapports</text>
+  <rect class="icon" x="1096" y="139" width="18" height="18"/><rect class="icon" x="1110" y="125" width="18" height="18"/>
+
+  <rect class="comp" x="790" y="260" width="340" height="92"/>
+  <text class="bold" x="910" y="292">API Gateway</text>
+  <text class="txt" x="913" y="318">Flask API</text>
+  <text class="txt" x="852" y="340">Authentification et routage</text>
+  <rect class="icon" x="1096" y="280" width="18" height="18"/><rect class="icon" x="1110" y="266" width="18" height="18"/>
+
+  <rect class="comp" x="1280" y="260" width="300" height="92"/>
+  <text class="bold" x="1368" y="292">Authentification</text>
+  <text class="txt" x="1350" y="318">JWT / Google OAuth</text>
+  <text class="txt" x="1368" y="340">Profil utilisateur</text>
+  <rect class="icon" x="1546" y="280" width="18" height="18"/><rect class="icon" x="1560" y="266" width="18" height="18"/>
+
+  <rect class="comp" x="790" y="415" width="340" height="92"/>
+  <text class="bold" x="860" y="448">Worker / Job Manager</text>
+  <text class="txt" x="876" y="474">Orchestration asynchrone</text>
+  <text class="txt" x="905" y="496">Suivi du traitement</text>
+  <rect class="icon" x="1096" y="435" width="18" height="18"/><rect class="icon" x="1110" y="421" width="18" height="18"/>
+
+  <rect class="comp" x="350" y="610" width="280" height="105"/>
+  <text class="bold" x="429" y="644">Parsing Service</text>
+  <text class="txt" x="392" y="672">Extraction Jira Data Center</text>
+  <text class="txt" x="423" y="695">Données extraites</text>
+  <rect class="icon" x="598" y="628" width="18" height="18"/><rect class="icon" x="612" y="614" width="18" height="18"/>
+
+  <rect class="comp" x="760" y="610" width="310" height="105"/>
+  <text class="bold" x="825" y="644">Compatibility Service</text>
+  <text class="txt" x="829" y="672">Analyse de compatibilité</text>
+  <text class="txt" x="840" y="695">Règles, RAG et IA</text>
+  <rect class="icon" x="1038" y="628" width="18" height="18"/><rect class="icon" x="1052" y="614" width="18" height="18"/>
+
+  <rect class="comp" x="1220" y="610" width="310" height="105"/>
+  <text class="bold" x="1298" y="644">Knowledge Service</text>
+  <text class="txt" x="1311" y="672">Recherche RAG</text>
+  <text class="txt" x="1275" y="695">Preuves documentaires</text>
+  <rect class="icon" x="1498" y="628" width="18" height="18"/><rect class="icon" x="1512" y="614" width="18" height="18"/>
+
+  <rect class="comp" x="1655" y="610" width="300" height="105"/>
+  <text class="bold" x="1740" y="644">Report Service</text>
+  <text class="txt" x="1732" y="672">Génération rapport</text>
+  <text class="txt" x="1742" y="695">Export PDF / JSON</text>
+  <rect class="icon" x="1923" y="628" width="18" height="18"/><rect class="icon" x="1937" y="614" width="18" height="18"/>
+
+  <!-- AI group -->
+  <rect x="815" y="792" width="128" height="28" rx="3" fill="#edf9ef" stroke="#16833b" stroke-width="1.6"/>
+  <text class="bold" x="833" y="812" fill="#166534">Services IA</text>
+  <rect class="ai" x="420" y="772" width="280" height="70"/>
+  <text class="bold" x="529" y="800" fill="#14532d">Ollama</text>
+  <text class="txt" x="478" y="824">IA locale conteneurisée</text>
+  <rect class="ai" x="1110" y="772" width="310" height="70"/>
+  <text class="bold" x="1218" y="800" fill="#14532d">Gemini API</text>
+  <text class="txt" x="1173" y="824">Raisonnement et synthèse</text>
+
+  <!-- Databases -->
+  <g>
+    <path class="db" d="M555 955 C555 941 725 941 725 955 L725 1028 C725 1042 555 1042 555 1028 Z"/>
+    <ellipse class="db" cx="640" cy="955" rx="85" ry="14"/>
+    <text class="bold" x="615" y="995">Redis</text>
+    <text class="txt" x="595" y="1020">État des jobs</text>
+  </g>
+  <g>
+    <path class="db" d="M1060 940 C1060 922 1360 922 1360 940 L1360 1028 C1360 1046 1060 1046 1060 1028 Z"/>
+    <ellipse class="db" cx="1210" cy="940" rx="150" ry="18"/>
+    <text class="bold" x="1116" y="984">MongoDB partagée</text>
+    <text class="txt" x="1150" y="1008">Données métier</text>
+    <text class="txt" x="1100" y="1030">users, jobs, analyses, rapports</text>
+  </g>
+  <g>
+    <path class="db" d="M1600 955 C1600 941 1800 941 1800 955 L1800 1028 C1800 1042 1600 1042 1600 1028 Z"/>
+    <ellipse class="db" cx="1700" cy="955" rx="100" ry="14"/>
+    <text class="bold" x="1655" y="995">ChromaDB</text>
+    <text class="txt" x="1640" y="1020">Base vectorielle RAG</text>
+  </g>
+
+  <!-- Functional arrows -->
+  <path class="flow" d="M160 306 H220 V164 H788"/>
+  <text class="txt" x="166" y="288">utilise</text>
+  <path class="flow" d="M960 208 V258"/>
+  <text class="txt" x="975" y="238">/api</text>
+  <path class="flow" d="M1130 306 H1278"/>
+  <text class="txt" x="1204" y="290" text-anchor="middle">contrôle d'accès</text>
+  <path class="flow" d="M960 352 V413"/>
+  <text class="txt" x="975" y="387">créer job</text>
+  <path class="flow" d="M790 461 H560 V600 H490 V608"/>
+  <text class="txt" x="630" y="444">orchestrer</text>
+  <path class="flow" d="M630 662 H758"/>
+  <text class="txt" x="694" y="646" text-anchor="middle">extraire</text>
+  <path class="flow" d="M1070 662 H1218"/>
+  <text class="txt" x="1144" y="646" text-anchor="middle">preuves RAG</text>
+  <path class="flow" d="M1530 662 H1653"/>
+  <text class="txt" x="1592" y="646" text-anchor="middle">contexte RAG</text>
+  <path class="flow" d="M1130 445 H1805 V608"/>
+  <text class="txt" x="1355" y="430">consulter / exporter rapport</text>
+  <path class="flow" d="M960 507 V555 H1690 V608"/>
+  <text class="txt" x="1305" y="543">générer rapport</text>
+
+  <!-- AI arrows -->
+  <path class="ia" d="M560 715 V770"/>
+  <text class="txt" x="430" y="748">détection locale</text>
+  <path class="ia" d="M970 715 V748 H1265 V770"/>
+  <text class="txt" x="1055" y="738">raisonnement IA</text>
+  <path class="ia" d="M1805 715 V812 H1422"/>
+  <text class="txt" x="1445" y="842">synthèse / traduction</text>
+
+  <!-- Data arrows -->
+  <path class="data" d="M905 507 V552 H640 V941"/>
+  <text class="txt" x="660" y="920">état job</text>
+  <path class="data" d="M915 715 V885 H1210 V922"/>
+  <text class="txt" x="965" y="902">données métier partagées</text>
+  <path class="data" d="M1375 715 V748 H1700 V941"/>
+  <text class="txt" x="1715" y="912">index / preuves RAG</text>
+
+  <!-- Legend -->
+  <rect class="frame" x="500" y="1120" width="1500" height="105"/>
+  <text class="layer" x="1210" y="1150">Légende</text>
+  <rect class="comp" x="555" y="1170" width="52" height="30"/>
+  <text class="txt" x="630" y="1191">Module logique</text>
+  <rect class="ai" x="790" y="1170" width="52" height="30"/>
+  <text class="txt" x="865" y="1191">Service IA</text>
+  <path class="db" d="M1015 1174 C1015 1168 1073 1168 1073 1174 L1073 1198 C1073 1204 1015 1204 1015 1198 Z"/>
+  <ellipse class="db" cx="1044" cy="1174" rx="29" ry="6"/>
+  <text class="txt" x="1095" y="1191">Base de données</text>
+  <line class="flow" x1="1280" y1="1185" x2="1350" y2="1185"/>
+  <text class="txt" x="1372" y="1191">Flux fonctionnel</text>
+  <line class="data" x1="1545" y1="1185" x2="1615" y2="1185"/>
+  <text class="txt" x="1638" y="1191">Accès données</text>
+  <line class="ia" x1="1795" y1="1185" x2="1865" y2="1185"/>
+  <text class="txt" x="1888" y="1191">Appel IA</text>
+</svg>

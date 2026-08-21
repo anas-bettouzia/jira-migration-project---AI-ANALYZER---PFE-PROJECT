@@ -1,6 +1,6 @@
 """
 API Gateway service for Jira Migration backend.
-Provides authentication and routing to backend microservices.
+Provides authentication and routing to backend application services.
 """
 
 # pylint: disable=too-many-lines
@@ -716,6 +716,9 @@ def _reset_token_is_expired(expires_at) -> bool:
             return True
     if not isinstance(expires_at, datetime):
         return True
+    # Ensure timezone-aware comparison
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
     return expires_at < datetime.now(timezone.utc)
 
 def _ensure_admin_user(user_repo: UserRepository) -> None:

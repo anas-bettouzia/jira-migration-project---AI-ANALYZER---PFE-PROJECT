@@ -22,7 +22,7 @@ except ImportError:  # pragma: no cover - optional dependency
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_MODEL = "gemini-3.5-flash"
 MAX_RETRIES = 2
 RETRY_DELAY_SECONDS = 3
 

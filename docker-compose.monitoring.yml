@@ -1,49 +1,49 @@
-version: "3.9"
-
 services:
   prometheus:
-    image: prom/prometheus:latest
-    container_name: jira_prometheus
+    image: prom/prometheus:v2.55.1
+    container_name: jira-ai-prometheus
     ports:
-      - "9099:9090"
-    volumes:
-      # Monte le fichier local prometheus.yml de la racine
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      # Volume nommé pour conserver l'historique des métriques
-      - prometheus_data:/prometheus
+      - "${PROMETHEUS_PORT:-9090}:9090"
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_TIME:-24h}"
+      - "--storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE:-128MB}"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
     networks:
-      - app_network
+      - jira_migration_app_network
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:latest
-    container_name: jira_grafana
-    ports:
-      - "3009:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
-    volumes:
-      # Monte votre dossier local grafana/provisioning (dashboards + datasources)
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      # Volume nommé pour conserver la base de données Grafana
-      - grafana_data:/var/lib/grafana
+    image: grafana/grafana-oss:11.3.0
+    container_name: jira-ai-grafana
     depends_on:
       - prometheus
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_LOG_LEVEL: warn
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     networks:
-      - app_network
+      - jira_migration_app_network
     restart: unless-stopped
-
-networks:
-  app_network:
-    external: true
-    name: jira_migration_app_network
 
 volumes:
   prometheus_data:
   grafana_data:
+
+networks:
+  jira_migration_app_network:
+    external: true
+    name: jira_migration_app_network

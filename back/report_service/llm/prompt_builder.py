@@ -85,6 +85,9 @@ Constraints:
 - Do NOT write [Current Date]
 - Keep it concise, between 300 and 500 words
 - Use a professional consulting tone
+- Do NOT repeat the report title or create generic section headers such as '# Executive Summary', '# Jira Cloud Migration Assessment Report', or '# Jira Cloud Migration Readiness Assessment'
+- Keep only one executive title at most, and prefer the surrounding panel title already shown to the user
+- Do NOT use H1/H2 headings for the main title; use plain professional paragraphs instead
 - Do NOT repeat raw JSON
 - Do NOT invent components or risks not present in the input data
 - When referencing components, use their business names only; do not expose technical component IDs.

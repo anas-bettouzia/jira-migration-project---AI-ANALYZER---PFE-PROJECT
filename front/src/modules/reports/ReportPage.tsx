@@ -1144,72 +1144,83 @@ const ReportDetailRow = ({ detail, report }: { detail: DetailEntry; report: Repo
 const AISummaryRenderer = ({ content }: { content: string }) => {
   const lines = content.split('\n');
   const elements: React.ReactNode[] = [];
-  let i = 0;
 
-  while (i < lines.length) {
-    const line = lines[i];
-    const trimmedLine = line.trim();
+  const renderHeading = (level: number, text: string, idx: number) => {
+    const headingClass = {
+      1: 'text-2xl font-black',
+      2: 'text-xl font-black',
+      3: 'text-lg font-black',
+      4: 'text-base font-black',
+      5: 'text-sm font-black',
+      6: 'text-xs font-black',
+    }[level] || 'text-lg font-black';
 
-    // Handle markdown headings: #, ##, ###, ####, etc.
-    if (trimmedLine.startsWith('#')) {
-      const headingMatch = trimmedLine.match(/^(#+)\s(.*)$/);
-      if (headingMatch) {
-        const level = Math.min(headingMatch[1].length, 6); // Support h1-h6
-        const text = headingMatch[2];
-        const headingClass = {
-          1: 'text-2xl font-black', // h1
-          2: 'text-xl font-black',  // h2 - "##"
-          3: 'text-lg font-black',  // h3 - "###"
-          4: 'text-base font-black', // h4
-          5: 'text-sm font-black',   // h5
-          6: 'text-xs font-black',   // h6
-        }[level] || 'text-lg font-black';
-        const HeadingTag = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+    const Tag = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+    return React.createElement(Tag, { key: `h${level}-${idx}`, className: `mt-5 ${headingClass} text-[#111b3f] dark:text-white` }, text);
+  };
 
-        elements.push(
-          React.createElement(
-            HeadingTag,
-            {
-              key: `h${level}-${i}`,
-              className: `mt-5 ${headingClass} text-[#111b3f] dark:text-white`,
-            },
-            text,
-          ),
-        );
-      }
-    } else if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**')) {
-      elements.push(
-        <h2 key={`h2-bold-${i}`} className="mt-5 text-xl font-black text-[#111b3f] dark:text-white">
-          {trimmedLine.replaceAll('**', '')}
-        </h2>,
+  const renderBoldHeading = (text: string, idx: number) => (
+    <h2 key={`h2-bold-${idx}`} className="mt-5 text-xl font-black text-[#111b3f] dark:text-white">
+      {text.replaceAll('**', '')}
+    </h2>
+  );
+
+  const renderList = (start: number) => {
+    const items: React.ReactNode[] = [];
+    let i = start;
+    while (i < lines.length && lines[i].trim().startsWith('*')) {
+      const text = lines[i].replace(/^\s*(\*\s)+/, '').replaceAll('**', '');
+      items.push(
+        <li key={`li-${i}`} className="ml-4 text-sm leading-7 text-[#64708d] dark:text-white/68">{text}</li>,
       );
-    } else if (trimmedLine.startsWith('*')) {
-      const listItems: React.ReactNode[] = [];
-      while (i < lines.length && lines[i].trim().startsWith('*')) {
-        listItems.push(
-          <li key={`li-${i}`} className="ml-4 text-sm leading-7 text-[#64708d] dark:text-white/68">
-              {lines[i].replace(/^\s*(\*\s)+/, '').replaceAll('**', '')}
-          </li>,
-        );
-        i++;
-      }
-      elements.push(
-        <ul key={`ul-${i}`} className="mb-4 list-disc">
-          {listItems}
-        </ul>,
-      );
-      i--;
-    } else if (trimmedLine === '---') {
-      elements.push(<div key={`hr-${i}`} className="my-4 border-t border-[#dbe4f2] dark:border-white/10" />);
-    } else if (trimmedLine !== '') {
-      elements.push(
-        <p key={`p-${i}`} className="break-words text-sm leading-7 text-[#64708d] dark:text-white/68">
-          {line.replaceAll('**', '')}
-        </p>,
-      );
+      i += 1;
     }
 
-    i++;
+    return { element: <ul key={`ul-${start}`} className="mb-4 list-disc">{items}</ul>, nextIndex: i };
+  };
+
+  const renderHr = (idx: number) => <div key={`hr-${idx}`} className="my-4 border-t border-[#dbe4f2] dark:border-white/10" />;
+
+  const renderParagraph = (text: string, idx: number) => (
+    <p key={`p-${idx}`} className="break-words text-sm leading-7 text-[#64708d] dark:text-white/68">{text.replaceAll('**', '')}</p>
+  );
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (!trimmed) continue;
+
+    if (trimmed.startsWith('#')) {
+      const m = trimmed.match(/^(#+)\s(.*)$/);
+      if (m) {
+        const level = Math.min(m[1].length, 6);
+        const text = m[2].trim();
+        const skipTitle = /^(?:\d+\.\s*)?(?:Executive Summary|Jira Cloud Migration (?:Assessment|Readiness) Report|Jira Cloud Migration Readiness Assessment|Cloud Readiness Report)$/i.test(text);
+        if (skipTitle) continue;
+        elements.push(renderHeading(level, text, i));
+        continue;
+      }
+    }
+
+    if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+      elements.push(renderBoldHeading(trimmed, i));
+      continue;
+    }
+
+    if (trimmed.startsWith('*')) {
+      const { element, nextIndex } = renderList(i);
+      elements.push(element);
+      i = nextIndex - 1;
+      continue;
+    }
+
+    if (trimmed === '---') {
+      elements.push(renderHr(i));
+      continue;
+    }
+
+    elements.push(renderParagraph(line, i));
   }
 
   return <div className="space-y-3">{elements}</div>;

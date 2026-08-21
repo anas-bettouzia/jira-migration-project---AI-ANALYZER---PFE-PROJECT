@@ -1,0 +1,284 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2200" height="2200" viewBox="0 0 2200 2200">
+  <defs>
+    <marker id="arrow" markerWidth="11" markerHeight="11" refX="10" refY="5.5" orient="auto">
+      <path d="M0,0 L11,5.5 L0,11 Z" fill="#111827"/>
+    </marker>
+    <marker id="returnArrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#64748b"/>
+    </marker>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #111827; }
+      .title { font-size: 24px; font-weight: 700; }
+      .h { font-size: 16px; font-weight: 700; }
+      .t { font-size: 13px; }
+      .s { font-size: 12px; }
+      .phaseTitle { font-size: 14px; font-weight: 700; }
+      .actorBox { fill: #ffffff; stroke: #111827; stroke-width: 1.5; rx: 4; }
+      .participant { fill: #eff6ff; stroke: #2563eb; stroke-width: 1.7; rx: 4; }
+      .dataBox { fill: #faf5ff; stroke: #7e22ce; stroke-width: 1.7; rx: 4; }
+      .aiBox { fill: #f0fdf4; stroke: #15803d; stroke-width: 1.7; rx: 4; }
+      .frame { fill: none; stroke: #64748b; stroke-width: 1.25; rx: 3; }
+      .frameLabel { fill: #ffffff; stroke: #64748b; stroke-width: 1.25; }
+      .lifeline { stroke: #7c8da3; stroke-width: 1.35; stroke-dasharray: 7 7; }
+      .call { stroke: #111827; stroke-width: 1.9; fill: none; marker-end: url(#arrow); }
+      .return { stroke: #64748b; stroke-width: 1.55; fill: none; stroke-dasharray: 8 6; marker-end: url(#returnArrow); }
+      .labelBg { fill: #ffffff; opacity: 0.96; }
+      .note { fill: #fff7ed; stroke: #ea580c; stroke-width: 1.2; rx: 4; }
+    </style>
+  </defs>
+
+  <rect x="1" y="1" width="2198" height="2198" fill="#ffffff" stroke="#111827" stroke-width="1"/>
+
+  <!-- UML title tab -->
+  <path d="M8 8 H1095 V31 L1072 52 H8 Z" fill="#ffffff" stroke="#111827" stroke-width="1.5"/>
+  <text x="24" y="39" class="title">sd Diagramme de séquence - Analyse et génération du rapport - Jira Migration AI Analyzer</text>
+
+  <!-- Participant headers -->
+  <rect x="35" y="92" width="145" height="68" class="actorBox"/>
+  <circle cx="108" cy="114" r="10" fill="#ffffff" stroke="#111827" stroke-width="1.5"/>
+  <line x1="108" y1="124" x2="108" y2="145" stroke="#111827" stroke-width="1.5"/>
+  <line x1="91" y1="134" x2="125" y2="134" stroke="#111827" stroke-width="1.5"/>
+  <text x="108" y="184" class="h" text-anchor="middle">Consultant</text>
+  <text x="108" y="204" class="h" text-anchor="middle">Atlassian</text>
+
+  <rect x="240" y="92" width="150" height="68" class="participant"/>
+  <text x="315" y="121" class="h" text-anchor="middle">Frontend</text>
+  <text x="315" y="143" class="t" text-anchor="middle">React + Nginx</text>
+
+  <rect x="445" y="92" width="150" height="68" class="participant"/>
+  <text x="520" y="121" class="h" text-anchor="middle">API Gateway</text>
+  <text x="520" y="143" class="t" text-anchor="middle">Flask</text>
+
+  <rect x="650" y="92" width="150" height="68" class="participant"/>
+  <text x="725" y="121" class="h" text-anchor="middle">Worker</text>
+  <text x="725" y="143" class="t" text-anchor="middle">orchestration</text>
+
+  <rect x="855" y="92" width="150" height="68" class="participant"/>
+  <text x="930" y="121" class="h" text-anchor="middle">Parsing</text>
+  <text x="930" y="143" class="t" text-anchor="middle">Service</text>
+
+  <rect x="1060" y="92" width="160" height="68" class="participant"/>
+  <text x="1140" y="121" class="h" text-anchor="middle">Compatibility</text>
+  <text x="1140" y="143" class="t" text-anchor="middle">Service</text>
+
+  <rect x="1285" y="92" width="150" height="68" class="participant"/>
+  <text x="1360" y="121" class="h" text-anchor="middle">Knowledge</text>
+  <text x="1360" y="143" class="t" text-anchor="middle">Service</text>
+
+  <rect x="1490" y="92" width="150" height="68" class="aiBox"/>
+  <text x="1565" y="121" class="h" text-anchor="middle">Services IA</text>
+  <text x="1565" y="143" class="t" text-anchor="middle">Ollama / Gemini</text>
+
+  <rect x="1695" y="92" width="150" height="68" class="participant"/>
+  <text x="1770" y="121" class="h" text-anchor="middle">Report</text>
+  <text x="1770" y="143" class="t" text-anchor="middle">Service</text>
+
+  <rect x="1900" y="92" width="185" height="68" class="dataBox"/>
+  <text x="1992" y="121" class="h" text-anchor="middle">Données</text>
+  <text x="1992" y="143" class="t" text-anchor="middle">MongoDB / Redis / ChromaDB</text>
+
+  <!-- Lifelines -->
+  <line x1="108" y1="215" x2="108" y2="2125" class="lifeline"/>
+  <line x1="315" y1="160" x2="315" y2="2125" class="lifeline"/>
+  <line x1="520" y1="160" x2="520" y2="2125" class="lifeline"/>
+  <line x1="725" y1="160" x2="725" y2="2125" class="lifeline"/>
+  <line x1="930" y1="160" x2="930" y2="2125" class="lifeline"/>
+  <line x1="1140" y1="160" x2="1140" y2="2125" class="lifeline"/>
+  <line x1="1360" y1="160" x2="1360" y2="2125" class="lifeline"/>
+  <line x1="1565" y1="160" x2="1565" y2="2125" class="lifeline"/>
+  <line x1="1770" y1="160" x2="1770" y2="2125" class="lifeline"/>
+  <line x1="1992" y1="160" x2="1992" y2="2125" class="lifeline"/>
+
+  <!-- Phase 1: auth -->
+  <rect x="210" y="225" width="1880" height="240" class="frame"/>
+  <path d="M210 225 H355 V252 H210 Z" class="frameLabel"/>
+  <text x="224" y="244" class="phaseTitle">authentification</text>
+
+  <path d="M108 285 H315" class="call"/>
+  <rect x="133" y="267" width="112" height="18" class="labelBg"/>
+  <text x="140" y="280" class="s">S'authentifier</text>
+
+  <path d="M315 325 H520" class="call"/>
+  <rect x="350" y="307" width="134" height="18" class="labelBg"/>
+  <text x="357" y="320" class="s">Login JWT / Google OAuth</text>
+
+  <path d="M520 365 H1992" class="call"/>
+  <rect x="1185" y="347" width="112" height="18" class="labelBg"/>
+  <text x="1192" y="360" class="s">Vérifier utilisateur</text>
+
+  <path d="M1992 405 H520" class="return"/>
+  <rect x="1190" y="387" width="92" height="18" class="labelBg"/>
+  <text x="1197" y="400" class="s">Utilisateur valide</text>
+
+  <path d="M520 445 H315" class="return"/>
+  <rect x="398" y="427" width="34" height="18" class="labelBg"/>
+  <text x="405" y="440" class="s">JWT</text>
+
+  <!-- Phase 2: async analysis -->
+  <rect x="210" y="495" width="1880" height="1075" class="frame"/>
+  <path d="M210 495 H395 V522 H210 Z" class="frameLabel"/>
+  <text x="224" y="514" class="phaseTitle">analyse asynchrone</text>
+
+  <path d="M108 555 H315" class="call"/>
+  <rect x="126" y="537" width="174" height="18" class="labelBg"/>
+  <text x="133" y="550" class="s">Importer package et lancer analyse</text>
+
+  <path d="M315 595 H520" class="call"/>
+  <rect x="375" y="577" width="92" height="18" class="labelBg"/>
+  <text x="382" y="590" class="s">POST /api/analyze</text>
+
+  <path d="M520 635 H725" class="call"/>
+  <rect x="570" y="617" width="92" height="18" class="labelBg"/>
+  <text x="577" y="630" class="s">Créer un job</text>
+
+  <path d="M725 675 H1992" class="call"/>
+  <rect x="1280" y="657" width="110" height="18" class="labelBg"/>
+  <text x="1287" y="670" class="s">Enregistrer état job</text>
+
+  <path d="M725 715 H520" class="return"/>
+  <rect x="607" y="697" width="45" height="18" class="labelBg"/>
+  <text x="614" y="710" class="s">job_id</text>
+
+  <path d="M520 755 H315" class="return"/>
+  <rect x="402" y="737" width="45" height="18" class="labelBg"/>
+  <text x="409" y="750" class="s">job_id</text>
+
+  <path d="M725 805 H930" class="call"/>
+  <rect x="772" y="787" width="118" height="18" class="labelBg"/>
+  <text x="779" y="800" class="s">Parser package Jira DC</text>
+
+  <path d="M930 845 H1992" class="call"/>
+  <rect x="1360" y="827" width="132" height="18" class="labelBg"/>
+  <text x="1367" y="840" class="s">Sauvegarder analyse</text>
+
+  <path d="M930 885 H725" class="return"/>
+  <rect x="804" y="867" width="64" height="18" class="labelBg"/>
+  <text x="811" y="880" class="s">analysis_id</text>
+
+  <path d="M725 925 H1140" class="call"/>
+  <rect x="862" y="907" width="128" height="18" class="labelBg"/>
+  <text x="869" y="920" class="s">Analyser compatibilité</text>
+
+  <path d="M1140 965 H1992" class="call"/>
+  <rect x="1478" y="947" width="122" height="18" class="labelBg"/>
+  <text x="1485" y="960" class="s">Charger données métier</text>
+
+  <path d="M1140 1005 H1360" class="call"/>
+  <rect x="1182" y="987" width="138" height="18" class="labelBg"/>
+  <text x="1189" y="1000" class="s">Rechercher preuves RAG</text>
+
+  <path d="M1360 1045 H1992" class="call"/>
+  <rect x="1600" y="1027" width="112" height="18" class="labelBg"/>
+  <text x="1607" y="1040" class="s">Interroger ChromaDB</text>
+
+  <path d="M1992 1085 H1360" class="return"/>
+  <rect x="1620" y="1067" width="132" height="18" class="labelBg"/>
+  <text x="1627" y="1080" class="s">preuves documentaires</text>
+
+  <path d="M1360 1125 H1140" class="return"/>
+  <rect x="1210" y="1107" width="82" height="18" class="labelBg"/>
+  <text x="1217" y="1120" class="s">contexte RAG</text>
+
+  <rect x="1085" y="1145" width="585" height="120" class="frame"/>
+  <path d="M1085 1145 H1305 V1172 H1085 Z" class="frameLabel"/>
+  <text x="1098" y="1164" class="phaseTitle">opt [raisonnement IA requis]</text>
+
+  <path d="M1140 1198 H1565" class="call"/>
+  <rect x="1268" y="1180" width="190" height="18" class="labelBg"/>
+  <text x="1275" y="1193" class="s">Raisonnement / recommandations</text>
+
+  <path d="M1565 1238 H1140" class="return"/>
+  <rect x="1318" y="1220" width="68" height="18" class="labelBg"/>
+  <text x="1325" y="1233" class="s">résultat IA</text>
+
+  <path d="M1140 1290 H1992" class="call"/>
+  <rect x="1480" y="1272" width="170" height="18" class="labelBg"/>
+  <text x="1487" y="1285" class="s">Sauvegarder matrice de compatibilité</text>
+
+  <path d="M1140 1330 H725" class="return"/>
+  <rect x="900" y="1312" width="58" height="18" class="labelBg"/>
+  <text x="907" y="1325" class="s">matrix_id</text>
+
+  <path d="M725 1375 H1770" class="call"/>
+  <rect x="1168" y="1357" width="94" height="18" class="labelBg"/>
+  <text x="1175" y="1370" class="s">Générer rapport</text>
+
+  <path d="M1770 1415 H1360" class="call"/>
+  <rect x="1492" y="1397" width="146" height="18" class="labelBg"/>
+  <text x="1499" y="1410" class="s">Compléter preuves RAG</text>
+
+  <path d="M1770 1455 H1565" class="call"/>
+  <rect x="1605" y="1437" width="114" height="18" class="labelBg"/>
+  <text x="1612" y="1450" class="s">Synthèse / traduction</text>
+
+  <path d="M1770 1495 H1992" class="call"/>
+  <rect x="1838" y="1477" width="118" height="18" class="labelBg"/>
+  <text x="1845" y="1490" class="s">Sauvegarder rapport</text>
+
+  <path d="M1770 1535 H725" class="return"/>
+  <rect x="1220" y="1517" width="55" height="18" class="labelBg"/>
+  <text x="1227" y="1530" class="s">report_id</text>
+
+  <!-- Consultation is summarized to keep the sequence readable -->
+  <rect x="35" y="1395" width="450" height="88" class="note"/>
+  <text x="55" y="1420" class="t">Consultation et export :</text>
+  <text x="55" y="1442" class="t">le Frontend récupère le rapport via l'API Gateway,</text>
+  <text x="55" y="1464" class="t">puis permet l'export PDF ou JSON.</text>
+  <!-- Clean consultation/export scenario as UML messages -->
+  <rect x="24" y="1386" width="476" height="108" fill="#ffffff" stroke="none"/>
+  <line x1="210" y1="1386" x2="210" y2="1494" class="frame"/>
+  <line x1="108" y1="1386" x2="108" y2="1494" class="lifeline"/>
+  <line x1="315" y1="1386" x2="315" y2="1494" class="lifeline"/>
+
+  <rect x="210" y="1600" width="1880" height="525" class="frame"/>
+  <path d="M210 1600 H410 V1627 H210 Z" class="frameLabel"/>
+  <text x="224" y="1619" class="phaseTitle">consultation du rapport</text>
+
+  <path d="M108 1660 H315" class="call"/>
+  <rect x="132" y="1642" width="112" height="18" class="labelBg"/>
+  <text x="139" y="1655" class="s">Consulter rapport</text>
+
+  <path d="M315 1700 H520" class="call"/>
+  <rect x="345" y="1682" width="142" height="18" class="labelBg"/>
+  <text x="352" y="1695" class="s">GET /api/reports/{id}</text>
+
+  <path d="M520 1740 H1770" class="call"/>
+  <rect x="1080" y="1722" width="120" height="18" class="labelBg"/>
+  <text x="1087" y="1735" class="s">R&#233;cup&#233;rer rapport</text>
+
+  <path d="M1770 1780 H1992" class="call"/>
+  <rect x="1844" y="1762" width="74" height="18" class="labelBg"/>
+  <text x="1851" y="1775" class="s">Lire rapport</text>
+
+  <path d="M1992 1820 H1770" class="return"/>
+  <rect x="1848" y="1802" width="58" height="18" class="labelBg"/>
+  <text x="1855" y="1815" class="s">rapport</text>
+
+  <path d="M1770 1860 H520" class="return"/>
+  <rect x="1102" y="1842" width="84" height="18" class="labelBg"/>
+  <text x="1109" y="1855" class="s">rapport JSON</text>
+
+  <path d="M520 1900 H315" class="return"/>
+  <rect x="372" y="1882" width="82" height="18" class="labelBg"/>
+  <text x="379" y="1895" class="s">rapport affich&#233;</text>
+
+  <rect x="300" y="1925" width="1585" height="190" class="frame"/>
+  <path d="M300 1925 H470 V1952 H300 Z" class="frameLabel"/>
+  <text x="314" y="1944" class="phaseTitle">opt [export demand&#233;]</text>
+
+  <path d="M315 1980 H520" class="call"/>
+  <rect x="338" y="1962" width="158" height="18" class="labelBg"/>
+  <text x="345" y="1975" class="s">Demander export PDF/JSON</text>
+
+  <path d="M520 2015 H1770" class="call"/>
+  <rect x="1080" y="1997" width="142" height="18" class="labelBg"/>
+  <text x="1087" y="2010" class="s">G&#233;n&#233;rer fichier export</text>
+
+  <path d="M1770 2050 H520" class="return"/>
+  <rect x="1102" y="2032" width="92" height="18" class="labelBg"/>
+  <text x="1109" y="2045" class="s">PDF ou JSON</text>
+
+  <path d="M520 2085 H315" class="return"/>
+  <rect x="360" y="2067" width="104" height="18" class="labelBg"/>
+  <text x="367" y="2080" class="s">fichier export&#233;</text>
+</svg>

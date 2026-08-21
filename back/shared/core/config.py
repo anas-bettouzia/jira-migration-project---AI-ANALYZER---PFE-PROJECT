@@ -37,7 +37,7 @@ class Config:
         "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION",
         "python",
     )
-    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
     CORS_ALLOWED_ORIGINS = [
         origin.strip()
